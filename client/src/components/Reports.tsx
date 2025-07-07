@@ -972,8 +972,14 @@ export default function Reports() {
           <CardTitle className="text-lg font-semibold text-gray-900">Monthly Attendance Sheet</CardTitle>
         </CardHeader>
         <CardContent className="overflow-x-auto">
+          <div className="mb-6 text-center">
+            <h2 className="text-xl font-bold text-gray-800">
+              {new Date(startDate).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })} - Monthly Attendance Sheet
+            </h2>
+          </div>
+          
           {monthlyAttendanceData.map((employee: any) => {
-            // Calculate total hours for the employee
+            // Calculate total hours and overtime for the employee
             const totalHours = Object.values(employee.dailyData || {}).reduce((sum: number, dayData: any) => {
               if (dayData?.workedHours) {
                 const hours = parseFloat(dayData.workedHours);
@@ -982,9 +988,21 @@ export default function Reports() {
               return sum;
             }, 0);
 
+            const totalOvertime = Object.values(employee.dailyData || {}).reduce((sum: number, dayData: any) => {
+              if (dayData?.overtime && dayData.overtime !== '0' && dayData.overtime !== '0.00') {
+                const hours = parseFloat(dayData.overtime.toString().replace('h', ''));
+                return sum + (isNaN(hours) ? 0 : hours);
+              }
+              return sum;
+            }, 0);
+
+            const totalPresentDays = Object.values(employee.dailyData || {}).filter((dayData: any) => 
+              dayData?.status === 'P'
+            ).length;
+
             return (
               <div key={employee.id} className="mb-8">
-                <div className="p-3 bg-yellow-200 border border-gray-300">
+                <div className="p-3 bg-blue-50 border border-gray-300">
                   <div className="grid grid-cols-4 gap-4 text-sm">
                     <div><strong>Name:</strong> {employee.fullName}</div>
                     <div><strong>EMP ID:</strong> {employee.employeeId}</div>
@@ -1045,7 +1063,9 @@ export default function Reports() {
                           );
                         })}
                         <td className="border p-1 text-center bg-blue-100 font-semibold">
-                          {field === 'Worked Hours' ? `${totalHours.toFixed(2)}h` : '-'}
+                          {field === 'Worked Hours' ? `${totalHours.toFixed(2)}h` : 
+                           field === 'Status' ? `${totalPresentDays} days` :
+                           field === 'Overtime' ? `${totalOvertime.toFixed(2)}h` : '-'}
                         </td>
                       </tr>
                     ))}
