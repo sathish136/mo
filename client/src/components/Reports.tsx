@@ -458,10 +458,8 @@ export default function Reports() {
         return;
       }
 
-      if (format === "pdf-portrait") {
-        exportToPDF(data, filename, reportType, 'portrait');
-      } else if (format === "pdf-landscape") {
-        exportToPDF(data, filename, reportType, 'landscape');
+      if (format === "pdf") {
+        exportToPDF(data, filename, reportType);
       }
     } catch (error) {
       console.error("Export failed:", error);
@@ -473,7 +471,21 @@ export default function Reports() {
 
 
 
-  const exportToPDF = (data: any[], filename: string, reportType: string, orientation: 'portrait' | 'landscape' = 'portrait') => {
+  const getColumnClass = (header: string): string => {
+    const lowerHeader = header.toLowerCase();
+    if (lowerHeader.includes('employee') && lowerHeader.includes('id')) return 'col-employee-id';
+    if (lowerHeader.includes('name') || lowerHeader.includes('full')) return 'col-name';
+    if (lowerHeader.includes('department')) return 'col-department';
+    if (lowerHeader.includes('group')) return 'col-group';
+    if (lowerHeader.includes('date')) return 'col-date';
+    if (lowerHeader.includes('time')) return 'col-time';
+    if (lowerHeader.includes('hour')) return 'col-hours';
+    if (lowerHeader.includes('status')) return 'col-status';
+    if (lowerHeader.includes('reason')) return 'col-reason';
+    return 'col-default';
+  };
+
+  const exportToPDF = (data: any[], filename: string, reportType: string) => {
     // Simple HTML to PDF conversion using browser print
     const printWindow = window.open("", "_blank");
     if (!printWindow) return;
@@ -518,8 +530,8 @@ export default function Reports() {
         <title>${filename}</title>
         <style>
           @page {
-            size: A4 ${orientation};
-            margin: ${orientation === 'landscape' ? '0.3in' : '0.5in'};
+            size: A4;
+            margin: 0.5in;
           }
           * {
             box-sizing: border-box;
@@ -527,16 +539,15 @@ export default function Reports() {
           body { 
             font-family: Arial, sans-serif; 
             margin: 0; 
-            padding: 0;
-            font-size: ${orientation === 'landscape' ? '10px' : '11px'};
-            line-height: 1.3;
+            padding: 20px;
+            font-size: 11px;
+            line-height: 1.4;
             width: 100%;
             max-width: 100%;
           }
           .container {
             width: 100%;
             max-width: 100%;
-            overflow-x: auto;
           }
           .header {
             text-align: center;
@@ -545,14 +556,14 @@ export default function Reports() {
             padding-bottom: 20px;
           }
           .company-name {
-            font-size: ${orientation === 'landscape' ? '24px' : '28px'};
+            font-size: 24px;
             font-weight: bold;
             color: #1e40af;
             margin-bottom: 5px;
             text-transform: uppercase;
           }
           .department {
-            font-size: ${orientation === 'landscape' ? '16px' : '18px'};
+            font-size: 16px;
             color: #374151;
             margin-bottom: 8px;
             font-weight: 600;
@@ -570,7 +581,7 @@ export default function Reports() {
             border: 2px solid #e2e8f0;
           }
           .report-title {
-            font-size: ${orientation === 'landscape' ? '18px' : '20px'};
+            font-size: 18px;
             font-weight: bold;
             color: #1f2937;
             margin-bottom: 15px;
@@ -617,6 +628,16 @@ export default function Reports() {
           .status-late { color: #f59e0b; font-weight: bold; }
           .status-half-day, .status-hl { color: #8b5cf6; font-weight: bold; }
           .status-short-leave { color: #06b6d4; font-weight: bold; }
+          .col-employee-id { width: 10%; text-align: center; }
+          .col-name { width: 20%; text-align: left; }
+          .col-department { width: 15%; text-align: left; }
+          .col-group { width: 8%; text-align: center; }
+          .col-date { width: 10%; text-align: center; }
+          .col-time { width: 8%; text-align: center; }
+          .col-hours { width: 8%; text-align: center; }
+          .col-status { width: 12%; text-align: center; }
+          .col-reason { width: 9%; text-align: left; }
+          .col-default { width: auto; text-align: left; }
           .footer {
             margin-top: 40px;
             text-align: center;
@@ -661,13 +682,13 @@ export default function Reports() {
               margin-bottom: 15px;
             }
             table { 
-              font-size: ${orientation === 'landscape' ? '9px' : '8px'};
-              margin-top: 10px;
+              font-size: 9px;
+              margin-top: 15px;
               page-break-inside: auto;
             }
             th, td { 
-              padding: ${orientation === 'landscape' ? '3px 2px' : '2px 1px'};
-              font-size: ${orientation === 'landscape' ? '9px' : '8px'};
+              padding: 6px 4px;
+              font-size: 9px;
             }
             tr { 
               page-break-inside: avoid; 
@@ -724,41 +745,43 @@ export default function Reports() {
 
     if (reportType === "monthly-attendance") {
       // Special handling for monthly attendance
-      htmlContent += "<thead><tr><th>Employee ID</th><th>Name</th><th>Department</th><th>Group</th>";
+      htmlContent += "<thead><tr><th class='col-employee-id'>Employee ID</th><th class='col-name'>Name</th><th class='col-department'>Department</th><th class='col-group'>Group</th>";
       
       const firstEmployee = data[0];
       if (firstEmployee?.dailyData) {
         const dateColumns = Object.keys(firstEmployee.dailyData).sort();
         dateColumns.forEach(date => {
           const dateObj = new Date(date);
-          htmlContent += `<th>${dateObj.getDate()}</th>`;
+          htmlContent += `<th class='col-date'>${dateObj.getDate()}</th>`;
         });
         htmlContent += "</tr></thead><tbody>";
         
         data.forEach(emp => {
-          htmlContent += `<tr><td>${emp.employeeId}</td><td>${emp.fullName}</td><td>${emp.department || ""}</td><td>${emp.employeeGroup || ""}</td>`;
+          htmlContent += `<tr><td class='col-employee-id'>${emp.employeeId}</td><td class='col-name'>${emp.fullName}</td><td class='col-department'>${emp.department || ""}</td><td class='col-group'>${emp.employeeGroup || ""}</td>`;
           dateColumns.forEach(date => {
             const dayData = emp.dailyData[date];
             const status = dayData?.status || "A";
             const statusClass = status === "P" ? "status-p" : status === "A" ? "status-a" : "status-hl";
-            htmlContent += `<td class="${statusClass}">${status}</td>`;
+            htmlContent += `<td class="col-date ${statusClass}">${status}</td>`;
           });
           htmlContent += "</tr>";
         });
       }
     } else {
-      // Standard table export
+      // Standard table export with proper alignment
       const headers = Object.keys(data[0]);
       htmlContent += "<thead><tr>";
-      headers.forEach(header => {
-        htmlContent += `<th>${header.replace(/([A-Z])/g, " $1").replace(/^./, str => str.toUpperCase())}</th>`;
+      headers.forEach((header, index) => {
+        const columnClass = getColumnClass(header);
+        htmlContent += `<th class="${columnClass}">${header.replace(/([A-Z])/g, " $1").replace(/^./, str => str.toUpperCase())}</th>`;
       });
       htmlContent += "</tr></thead><tbody>";
       
       data.forEach(row => {
         htmlContent += "<tr>";
-        headers.forEach(header => {
-          htmlContent += `<td>${row[header] || ""}</td>`;
+        headers.forEach((header, index) => {
+          const columnClass = getColumnClass(header);
+          htmlContent += `<td class="${columnClass}">${row[header] || ""}</td>`;
         });
         htmlContent += "</tr>";
       });
@@ -2061,22 +2084,13 @@ export default function Reports() {
             <FileSpreadsheet className="h-4 w-4" />
             Excel Export
           </Button>
-          <div className="flex gap-2">
-            <Button 
-              onClick={() => handleExportReport('pdf-portrait')}
-              className="bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 text-white font-semibold py-2 px-3 rounded-lg shadow-lg transition duration-200 ease-in-out flex items-center gap-2 text-sm"
-            >
-              <FileText className="h-4 w-4" />
-              PDF Portrait
-            </Button>
-            <Button 
-              onClick={() => handleExportReport('pdf-landscape')}
-              className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold py-2 px-3 rounded-lg shadow-lg transition duration-200 ease-in-out flex items-center gap-2 text-sm"
-            >
-              <FileText className="h-4 w-4" />
-              PDF Landscape
-            </Button>
-          </div>
+          <Button 
+            onClick={() => handleExportReport('pdf')}
+            className="bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 text-white font-semibold py-2 px-4 rounded-lg shadow-lg transition duration-200 ease-in-out flex items-center gap-2"
+          >
+            <FileText className="h-4 w-4" />
+            PDF Export
+          </Button>
         </div>
       </div>
       <Card className="rounded-lg shadow-sm border-gray-200">
