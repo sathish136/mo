@@ -34,6 +34,7 @@ import {
 import { getGroupWorkingHours, updateGroupWorkingHours } from './hrSettings';
 import { attendanceCalculator } from './attendanceCalculator';
 import hrSettingsRouter from './hrSettings';
+import { storage } from './storage';
 
 const router = express.Router();
 
@@ -46,7 +47,7 @@ if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
 
-const storage = multer.diskStorage({
+const multerStorage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, uploadDir);
   },
@@ -56,7 +57,7 @@ const storage = multer.diskStorage({
   },
 });
 
-const upload = multer({ storage: storage });
+const upload = multer({ storage: multerStorage });
 
 // Serve static files from the 'uploads' directory
 router.use("/uploads", express.static(uploadDir));
