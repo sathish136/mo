@@ -58,6 +58,14 @@ export default function LeaveManagement() {
     queryKey: ["/api/employees"],
   });
 
+  const { data: attendance = [] } = useQuery({
+    queryKey: ["/api/attendance"],
+  });
+
+  const { data: holidays = [] } = useQuery({
+    queryKey: ["/api/holidays"],
+  });
+
   // Calculate actual leave allowances from Holiday Management data
   const annualHolidayCount = holidays.filter(h => h.type === 'annual').length || 0;
   const specialHolidayCount = holidays.filter(h => h.type === 'special').length || 2;
@@ -66,14 +74,6 @@ export default function LeaveManagement() {
     { id: 1, name: "annual", description: "Annual Leave", maxDays: annualHolidayCount },
     { id: 2, name: "special", description: "Special Leave", maxDays: specialHolidayCount },
   ];
-
-  const { data: attendance = [] } = useQuery({
-    queryKey: ["/api/attendance"],
-  });
-
-  const { data: holidays = [] } = useQuery({
-    queryKey: ["/api/holidays"],
-  });
 
   // Define today's date
   const today = new Date().toISOString().split('T')[0];
