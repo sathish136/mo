@@ -256,38 +256,103 @@ export default function Reports() {
     const { data, filename, reportType } = previewData;
     
     try {
+      // Get current date and time for report generation - same as PDF format
+      const now = new Date();
+      const reportGeneratedTime = now.toLocaleString('en-GB', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+      });
+
+      // Get month and year for the report period
+      const reportStartDate = new Date(startDate);
+      const reportEndDate = new Date(endDate);
+      const reportMonth = reportStartDate.toLocaleString('en-GB', { month: 'long', year: 'numeric' });
+      
+      // Determine report title based on type
+      let reportTitle = '';
+      switch (reportType) {
+        case 'daily-attendance':
+          reportTitle = 'Daily Attendance Report';
+          break;
+        case 'daily-ot':
+          reportTitle = 'Daily Overtime Report';
+          break;
+        case 'monthly-attendance':
+          reportTitle = 'Monthly Attendance Sheet';
+          break;
+        case 'offer-attendance':
+          reportTitle = '1/4 Offer-Attendance Report';
+          break;
+        case 'late-arrival':
+          reportTitle = 'Late Arrival Report';
+          break;
+        case 'half-day':
+          reportTitle = 'Half Day Report';
+          break;
+        case 'short-leave-usage':
+          reportTitle = 'Short Leave Usage Report';
+          break;
+        default:
+          reportTitle = 'Attendance Report';
+      }
+
+      const worksheetData = [];
+      
+      // Add header information - same as PDF format
+      worksheetData.push(['MINISTRY OF FINANCE SRI LANKA']);
+      worksheetData.push(['Human Resources Department']);
+      worksheetData.push(['HR Attendance Management System']);
+      worksheetData.push([]);
+      worksheetData.push([reportTitle.toUpperCase()]);
+      worksheetData.push([]);
+      worksheetData.push([`Period: ${formatDate(new Date(startDate))} to ${formatDate(new Date(endDate))}`]);
+      worksheetData.push([`Generated: ${reportGeneratedTime}`]);
+      worksheetData.push([`Report Month: ${reportMonth}`, `Total Records: ${data.length}`]);
+      worksheetData.push([]);
+      worksheetData.push(['Applied Filters:']);
+      worksheetData.push([`Employee: ${selectedEmployee === 'all' ? 'All Employees' : selectedEmployee}`, `Group: ${selectedGroup === 'all' ? 'All Groups' : selectedGroup === 'group_a' ? 'Group A' : 'Group B'}`]);
+      worksheetData.push([]);
+      
       let worksheet: any;
       
       if (reportType === "monthly-attendance") {
         // Special handling for monthly attendance sheet
-        const worksheetData = [];
-        
         // Add headers
-        const headers = ["Employee ID", "Full Name", "Department", "Group"];
+        const headers = ["S.No", "Employee ID", "Full Name", "Department", "Group"];
         const firstEmployee = data[0];
         if (firstEmployee?.dailyData) {
           const dateColumns = Object.keys(firstEmployee.dailyData).sort();
-          headers.push(...dateColumns);
-          headers.push("Total Hours", "Overtime Hours", "Present Days");
+          dateColumns.forEach(date => {
+            const dayNum = new Date(date).getDate();
+            headers.push(dayNum.toString());
+          });
+          headers.push("Total Hours", "OT Hours", "Present Days");
         }
         worksheetData.push(headers);
         
         // Add data rows
-        data.forEach((emp: any) => {
+        data.forEach((emp: any, index: number) => {
           const row = [
+            index + 1,
             emp.employeeId,
             emp.fullName,
             emp.department || "",
-            emp.employeeGroup || ""
+            emp.employeeGroup === 'group_a' ? 'Group A' : 'Group B'
           ];
           
           if (emp.dailyData) {
             const dateColumns = Object.keys(emp.dailyData).sort();
             dateColumns.forEach(date => {
               const dayData = emp.dailyData[date];
-              row.push(dayData?.status || "A");
+              const status = dayData?.status || 'A';
+              row.push(status);
             });
-            row.push(emp.totalHours || 0, emp.overtimeHours || 0, emp.presentDays || 0);
+            row.push(emp.totalHours || '0.00', emp.overtimeHours || '0.00', emp.presentDays || 0);
           }
           
           worksheetData.push(row);
@@ -450,12 +515,26 @@ export default function Reports() {
       <head>
         <title>${filename}</title>
         <style>
+          @page {
+            size: A4;
+            margin: 0.5in;
+          }
+          * {
+            box-sizing: border-box;
+          }
           body { 
             font-family: Arial, sans-serif; 
             margin: 0; 
-            padding: 20px;
-            font-size: 12px;
-            line-height: 1.4;
+            padding: 0;
+            font-size: 11px;
+            line-height: 1.3;
+            width: 100%;
+            max-width: 100%;
+          }
+          .container {
+            width: 100%;
+            max-width: 100%;
+            overflow-x: auto;
           }
           .header {
             text-align: center;
@@ -558,13 +637,48 @@ export default function Reports() {
             color: #92400e;
           }
           @media print {
-            body { margin: 0; padding: 15px; }
             @page { 
-              margin: 1cm; 
               size: A4;
+              margin: 0.5in;
             }
-            .header { page-break-inside: avoid; }
-            .report-details { page-break-inside: avoid; }
+            body { 
+              margin: 0; 
+              padding: 0;
+              color: black !important;
+              background: white !important;
+              font-size: 10px;
+            }
+            .header { 
+              page-break-inside: avoid;
+              margin-bottom: 15px;
+              padding-bottom: 10px;
+            }
+            .report-details { 
+              page-break-inside: avoid;
+              padding: 10px;
+              margin-bottom: 15px;
+            }
+            table { 
+              font-size: 8px;
+              margin-top: 10px;
+              page-break-inside: auto;
+            }
+            th, td { 
+              padding: 2px 1px;
+              font-size: 8px;
+            }
+            tr { 
+              page-break-inside: avoid; 
+              page-break-after: auto; 
+            }
+            thead { 
+              display: table-header-group; 
+            }
+            .footer { 
+              margin-top: 15px; 
+              padding-top: 10px;
+              page-break-inside: avoid;
+            }
           }
         </style>
       </head>
