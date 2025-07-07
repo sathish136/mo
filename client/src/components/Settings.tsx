@@ -1733,7 +1733,11 @@ export default function Settings() {
           // Fetch session details when dialog opens
           fetch(`/api/license/sessions?licenseKey=${license.licenseKey}`)
             .then(res => res.json())
-            .then(data => setActiveSessions(data.sessions || []))
+            .then(data => {
+              console.log('Session data received:', data);
+              console.log('Sessions array:', data.sessions);
+              setActiveSessions(data.sessions || []);
+            })
             .catch(err => console.error('Failed to fetch sessions:', err));
         }
       }}>
@@ -1746,6 +1750,7 @@ export default function Settings() {
             <DialogDescription>Current active sessions for your license</DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
+            <div className="text-xs text-gray-500 mb-2">Debug: {activeSessions.length} sessions in state</div>
             {activeSessions.length === 0 ? (
               <div className="text-center py-8">
                 <Users className="w-12 h-12 mx-auto text-gray-400 mb-4" />
