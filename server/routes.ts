@@ -28,6 +28,7 @@ import {
 } from "../shared/schema";
 
 import { getGroupWorkingHours, updateGroupWorkingHours } from './hrSettings';
+import { attendanceCalculator } from './attendanceCalculator';
 
 const router = express.Router();
 

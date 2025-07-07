@@ -16,44 +16,46 @@ if (!fs.existsSync(DATA_DIR)) {
   fs.mkdirSync(DATA_DIR, { recursive: true });
 }
 
-// Default settings if file doesn't exist
+// Default settings matching exact policy requirements
 const defaultSettings: GroupWorkingHours = {
   groupA: {
     startTime: '08:30',
     endTime: '16:15',
-    durationMinutes: 465,
+    durationMinutes: 465, // 7.75 hours * 60 = 465 minutes
+    minHoursForOT: 7.75, // Overtime after 7.75 hours
     lateArrivalPolicy: {
-      gracePeriodUntil: '09:00',
-      halfDayAfter: '10:00',
-      halfDayBefore: '14:45'
+      gracePeriodUntil: '09:00', // 30-minute grace period
+      halfDayAfter: '10:00',     // Half day if arrival after 10:00 AM
+      halfDayBefore: '14:45'     // Half day if arrival before 2:45 PM
     },
     shortLeavePolicy: {
       morningStart: '08:30',
-      morningEnd: '10:00',
-      eveningStart: '14:45',
+      morningEnd: '10:00',       // Morning short leave: 8:30 AM - 10:00 AM
+      eveningStart: '14:45',     // Evening short leave: 2:45 PM - 4:15 PM
       eveningEnd: '16:15',
-      maxPerMonth: 2,
-      preApprovalRequired: true,
-      minimumWorkingHoursRequired: true
+      maxPerMonth: 2,            // Maximum 2 per month
+      preApprovalRequired: true, // Must be pre-approved
+      minimumWorkingHoursRequired: true // Must still meet minimum working hours
     }
   },
   groupB: {
     startTime: '08:00',
     endTime: '16:45',
-    durationMinutes: 525,
+    durationMinutes: 525, // 8.75 hours * 60 = 525 minutes  
+    minHoursForOT: 8.75,  // Overtime after 8.75 hours
     lateArrivalPolicy: {
-      gracePeriodUntil: '08:15',
-      halfDayAfter: '09:30',
-      halfDayBefore: '15:15',
-      shortLeaveAllowance: true
+      gracePeriodUntil: '08:15', // 15-minute grace period
+      halfDayAfter: '09:30',     // Half day if arrival after 9:30 AM
+      halfDayBefore: '15:15',    // Half day if arrival before 3:15 PM
+      shortLeaveAllowance: true  // Unless covered by short leave
     },
     shortLeavePolicy: {
       morningStart: '08:00',
-      morningEnd: '09:30',
-      eveningStart: '15:15',
+      morningEnd: '09:30',       // Morning short leave: 8:00 AM - 9:30 AM
+      eveningStart: '15:15',     // Evening short leave: 3:15 PM - 4:45 PM
       eveningEnd: '16:45',
-      maxPerMonth: 2,
-      preApprovalRequired: true
+      maxPerMonth: 2,            // Maximum 2 per month
+      preApprovalRequired: true  // Must be approved in advance
     }
   }
 };

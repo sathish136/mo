@@ -165,3 +165,14 @@ Changelog:
     - Integrated year-based filtering and holiday calendar view
     - Professional design showing Annual Holidays (21 days), Special Holidays (24 days), Total (45 days)
     - Added weekend day tracking for comprehensive holiday coverage
+  - Policy Implementation (Group A & Group B Attendance Policies):
+    - Created comprehensive attendance calculation engine implementing exact policy requirements
+    - Group A: 8:30 AM - 4:15 PM (7.75 hours), 30-min grace period, half-day after 10:00 AM
+    - Group B: 8:00 AM - 4:45 PM (8.75 hours), 15-min grace period, half-day after 9:30 AM
+    - Implemented short leave tracking system (2 per month max for both groups)
+    - Added proper overtime calculation (7.75+ hours for Group A, 8.75+ hours for Group B)
+    - Created 1/4 Offer calculation system (overtime from 4:15 PM for Group A, 4:45 PM for Group B)
+    - Set up complete 45-holiday system (21 Annual + 24 Special holidays)
+    - Integrated weekend and holiday overtime rules (full OT on weekends/holidays)
+    - Added short leave requests table and tracking functionality
+    - Implemented policy-compliant late arrival and half-day rules

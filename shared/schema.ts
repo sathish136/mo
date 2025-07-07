@@ -103,6 +103,19 @@ export const holidays = pgTable("holidays", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+export const shortLeaveRequests = pgTable("short_leave_requests", {
+  id: serial("id").primaryKey(),
+  employeeId: varchar("employee_id", { length: 50 }).notNull(),
+  date: timestamp("date").notNull(),
+  type: varchar("type", { length: 10 }).notNull(), // 'morning' or 'evening'
+  startTime: varchar("start_time", { length: 5 }).notNull(),
+  endTime: varchar("end_time", { length: 5 }).notNull(),
+  reason: text("reason"),
+  status: varchar("status", { length: 10 }).default("pending").notNull(), // 'pending', 'approved', 'rejected'
+  approvedBy: varchar("approved_by", { length: 50 }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // Adding Group Working Hours settings
 export interface GroupWorkingHours {
   groupA: {
@@ -195,6 +208,18 @@ export const overtimeRequestsRelations = relations(overtimeRequests, ({ one }) =
   }),
 }));
 
+export const shortLeaveRequestsRelations = relations(shortLeaveRequests, ({ one }) => ({
+  employee: one(employees, {
+    fields: [shortLeaveRequests.employeeId],
+    references: [employees.id],
+  }),
+  approver: one(employees, {
+    fields: [shortLeaveRequests.approvedBy],
+    references: [employees.id],
+    relationName: "approver",
+  }),
+}));
+
 // Insert schemas
 export const insertDepartmentSchema = createInsertSchema(departments).omit({ id: true });
 export type InsertDepartment = z.infer<typeof insertDepartmentSchema>;
@@ -249,6 +274,13 @@ export const insertHolidaySchema = createInsertSchema(holidays, {
   updatedAt: true,
 });
 
+export const insertShortLeaveRequestSchema = createInsertSchema(shortLeaveRequests, {
+  date: z.coerce.date(),
+}).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Types
 export type Attendance = typeof attendance.$inferSelect;
 export type InsertAttendance = z.infer<typeof insertAttendanceSchema>;
@@ -260,3 +292,5 @@ export type BiometricDevice = typeof biometricDevices.$inferSelect;
 export type InsertBiometricDevice = z.infer<typeof insertBiometricDeviceSchema>;
 export type Holiday = typeof holidays.$inferSelect;
 export type InsertHoliday = z.infer<typeof insertHolidaySchema>;
+export type ShortLeaveRequest = typeof shortLeaveRequests.$inferSelect;
+export type InsertShortLeaveRequest = z.infer<typeof insertShortLeaveRequestSchema>;
