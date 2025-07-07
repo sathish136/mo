@@ -24,7 +24,7 @@ const leaveRequestSchema = z.object({
   leaveType: z.enum(["annual", "special"]),
   startDate: z.string().min(1, "Start date is required"),
   endDate: z.string().min(1, "End date is required"),
-  days: z.number().min(1, "Days must be at least 1"),
+  days: z.number().optional(), // Make days optional since it's calculated
   reason: z.string().min(1, "Reason is required"),
 });
 
@@ -49,7 +49,6 @@ export default function LeaveManagement() {
       leaveType: "annual",
       startDate: "",
       endDate: "",
-      days: 1,
       reason: "",
     },
   });
@@ -129,40 +128,53 @@ export default function LeaveManagement() {
   // Create leave request mutation
   const createLeaveRequestMutation = useMutation({
     mutationFn: async (data: LeaveRequestFormData) => {
-      console.log("Submitting leave request:", data);
-      const response = await fetch("/api/leave-requests", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(data),
-        credentials: "include",
-      });
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ message: "Unknown error" }));
-        throw new Error(errorData.message || "Failed to create leave request");
+      try {
+        console.log("Submitting leave request:", data);
+        const response = await fetch("/api/leave-requests", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(data),
+          credentials: "include",
+        });
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({ message: "Unknown error" }));
+          throw new Error(errorData.message || "Failed to create leave request");
+        }
+        return response.json();
+      } catch (error) {
+        console.error("Mutation function error:", error);
+        throw error;
       }
-      return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/leave-requests"] });
-      setIsDialogOpen(false);
-      form.reset();
-      toast({
-        title: "Success",
-        description: "Leave request created successfully",
-        variant: "default",
-      });
-      console.log("Leave request created successfully");
+      try {
+        queryClient.invalidateQueries({ queryKey: ["/api/leave-requests"] });
+        setIsDialogOpen(false);
+        form.reset();
+        toast({
+          title: "Success",
+          description: "Leave request created successfully",
+          variant: "default",
+        });
+        console.log("Leave request created successfully");
+      } catch (error) {
+        console.error("Success handler error:", error);
+      }
     },
     onError: (error: any) => {
-      console.error("Failed to create leave request:", error);
-      const errorMessage = error.message || "Failed to create leave request";
-      toast({
-        title: "Error",
-        description: errorMessage,
-        variant: "destructive",
-      });
+      try {
+        console.error("Failed to create leave request:", error);
+        const errorMessage = error.message || "Failed to create leave request";
+        toast({
+          title: "Error",
+          description: errorMessage,
+          variant: "destructive",
+        });
+      } catch (handlerError) {
+        console.error("Error handler error:", handlerError);
+      }
     },
   });
 
@@ -203,72 +215,83 @@ export default function LeaveManagement() {
     },
   });
 
-  const handleSubmit = (data: LeaveRequestFormData) => {
-    console.log("Form submission data:", data);
-    console.log("Available employees:", employees);
-    
-    // Check for duplicate leave requests on the same date
-    const startDate = new Date(data.startDate);
-    const endDate = new Date(data.endDate);
-    
-    const duplicateRequest = leaveRequests.find(req => {
-      if (req.employeeId !== parseInt(data.employeeId)) return false;
+  const handleSubmit = async (data: LeaveRequestFormData) => {
+    try {
+      console.log("Form submission data:", data);
+      console.log("Available employees:", employees);
+      console.log("Form validation errors:", form.formState.errors);
       
-      const reqStartDate = new Date(req.startDate);
-      const reqEndDate = new Date(req.endDate);
+      // Check for duplicate leave requests on the same date
+      const startDate = new Date(data.startDate);
+      const endDate = new Date(data.endDate);
       
-      // Check for any overlap between date ranges
-      return (
-        (startDate >= reqStartDate && startDate <= reqEndDate) ||
-        (endDate >= reqStartDate && endDate <= reqEndDate) ||
-        (startDate <= reqStartDate && endDate >= reqEndDate)
-      );
-    });
-    
-    if (duplicateRequest) {
-      toast({
-        title: "Duplicate Leave Request",
-        description: `Employee already has a leave request for overlapping dates (${format(new Date(duplicateRequest.startDate), 'dd/MM/yyyy')} - ${format(new Date(duplicateRequest.endDate), 'dd/MM/yyyy')})`,
-        variant: "destructive",
+      const duplicateRequest = leaveRequests.find(req => {
+        if (req.employeeId !== parseInt(data.employeeId)) return false;
+        
+        const reqStartDate = new Date(req.startDate);
+        const reqEndDate = new Date(req.endDate);
+        
+        // Check for any overlap between date ranges
+        return (
+          (startDate >= reqStartDate && startDate <= reqEndDate) ||
+          (endDate >= reqStartDate && endDate <= reqEndDate) ||
+          (startDate <= reqStartDate && endDate >= reqEndDate)
+        );
       });
-      return;
-    }
-
-    // Calculate days between start and end date
-    const daysDiff = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-    
-    // Check leave balance for the employee
-    const employee = employeesWithBalance.find(e => e.id.toString() === data.employeeId);
-    if (employee) {
-      const availableBalance = data.leaveType === 'annual' 
-        ? employee.leaveBalance.annual.remaining 
-        : employee.leaveBalance.special.remaining;
       
-      if (daysDiff > availableBalance) {
+      if (duplicateRequest) {
         toast({
-          title: "Insufficient Leave Balance",
-          description: `Employee only has ${availableBalance} ${data.leaveType} leave days remaining. Cannot request ${daysDiff} days.`,
+          title: "Duplicate Leave Request",
+          description: `Employee already has a leave request for overlapping dates (${format(new Date(duplicateRequest.startDate), 'dd/MM/yyyy')} - ${format(new Date(duplicateRequest.endDate), 'dd/MM/yyyy')})`,
           variant: "destructive",
         });
         return;
       }
+
+      // Calculate days between start and end date
+      const daysDiff = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+      
+      // Check leave balance for the employee
+      const employee = employeesWithBalance.find(e => e.id.toString() === data.employeeId);
+      if (employee) {
+        const availableBalance = data.leaveType === 'annual' 
+          ? employee.leaveBalance.annual.remaining 
+          : employee.leaveBalance.special.remaining;
+        
+        if (daysDiff > availableBalance) {
+          toast({
+            title: "Insufficient Leave Balance",
+            description: `Employee only has ${availableBalance} ${data.leaveType} leave days remaining. Cannot request ${daysDiff} days.`,
+            variant: "destructive",
+          });
+          return;
+        }
+      }
+      
+      // Subtract holidays from total days
+      const holidaysInRange = holidays.filter(holiday => {
+        const holidayDate = new Date(holiday.date);
+        return holidayDate >= startDate && holidayDate <= endDate;
+      }).length;
+      
+      const workingDays = Math.max(1, daysDiff - holidaysInRange);
+      
+      const submitData = {
+        ...data,
+        days: workingDays,
+      };
+      
+      console.log("Final submit data:", submitData);
+      
+      await createLeaveRequestMutation.mutateAsync(submitData);
+    } catch (error) {
+      console.error("Error in handleSubmit:", error);
+      toast({
+        title: "Error",
+        description: "Failed to submit leave request",
+        variant: "destructive",
+      });
     }
-    
-    // Subtract holidays from total days
-    const holidaysInRange = holidays.filter(holiday => {
-      const holidayDate = new Date(holiday.date);
-      return holidayDate >= startDate && holidayDate <= endDate;
-    }).length;
-    
-    const workingDays = Math.max(1, daysDiff - holidaysInRange);
-    
-    const submitData = {
-      ...data,
-      days: workingDays,
-    };
-    
-    console.log("Final submit data:", submitData);
-    createLeaveRequestMutation.mutate(submitData);
   };
 
   const handleQuickLeaveFromAbsent = (employee: any, leaveType: string) => {
@@ -427,7 +450,17 @@ export default function LeaveManagement() {
             )}
 
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+              <form onSubmit={(e) => {
+                e.preventDefault();
+                form.handleSubmit(handleSubmit)(e).catch((error) => {
+                  console.error("Form submission error:", error);
+                  toast({
+                    title: "Error",
+                    description: "Failed to submit leave request",
+                    variant: "destructive",
+                  });
+                });
+              }} className="space-y-4">
                 {/* Debug info */}
                 <div className="text-xs text-gray-500">
                   Form errors: {JSON.stringify(form.formState.errors)}
