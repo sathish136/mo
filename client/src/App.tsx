@@ -2,7 +2,9 @@ import { Route, Router } from "wouter";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { Toaster } from "@/components/ui/toaster";
+import { useState, useEffect } from "react";
 import Layout from "@/components/Layout";
+import SplashScreen from "@/components/SplashScreen";
 import Dashboard from "@/components/Dashboard";
 import EmployeeManagement from "@/components/EmployeeManagement";
 import AttendanceTracker from "@/components/AttendanceTracker";
@@ -15,6 +17,28 @@ import HRSettings from "@/components/HRSettings";
 import HolidayManagement from "@/components/HolidayManagement";
 
 function App() {
+  const [showSplash, setShowSplash] = useState(true);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
+
+  useEffect(() => {
+    // Check if this is the initial app load
+    const hasLoadedBefore = sessionStorage.getItem('appLoaded');
+    if (hasLoadedBefore) {
+      setShowSplash(false);
+      setIsInitialLoad(false);
+    } else {
+      sessionStorage.setItem('appLoaded', 'true');
+    }
+  }, []);
+
+  const handleSplashComplete = () => {
+    setShowSplash(false);
+  };
+
+  if (showSplash && isInitialLoad) {
+    return <SplashScreen onComplete={handleSplashComplete} duration={3500} />;
+  }
+
   return (
     <QueryClientProvider client={queryClient}>
       <div className="h-screen bg-gray-50">
