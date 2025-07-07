@@ -16,14 +16,7 @@ export default function Dashboard() {
     },
   });
 
-  const { data: employees, isLoading: employeesLoading } = useQuery({
-    queryKey: ["/api/employees", { limit: 5 }],
-    queryFn: async () => {
-      const response = await fetch("/api/employees?limit=5");
-      if (!response.ok) throw new Error("Failed to fetch employees");
-      return response.json();
-    },
-  });
+
 
   const { data: recentActivities, isLoading: activitiesLoading } = useQuery<any[]>({ 
     queryKey: ["/api/dashboard/recent-activity"],
@@ -34,7 +27,7 @@ export default function Dashboard() {
     },
   });
 
-  if (statsLoading || employeesLoading || activitiesLoading) {
+  if (statsLoading || activitiesLoading) {
     return (
       <div className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -200,54 +193,7 @@ export default function Dashboard() {
         </Card>
       </div>
 
-      {/* Quick Employee Overview */}
-      <Card className="border border-gray-200">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-lg font-semibold text-gray-900">Recent Employees</CardTitle>
-            <Link to="/employees">
-              <Button className="bg-[hsl(var(--gov-navy))] hover:bg-[hsl(var(--gov-navy-light))] ">
-                View All Employees
-              </Button>
-            </Link>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {(employees || []).length === 0 ? (
-            <div className="text-center py-8">
-              <AlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-600">No employees found</p>
-              <p className="text-sm text-gray-500">Add employees to get started</p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {(employees || []).map((employee: any) => (
-                <div key={employee.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                  <div className="flex items-center space-x-3">
-                    <Avatar>
-                      <AvatarFallback className="bg-[hsl(var(--gov-navy))] text-white">
-                        {employee.fullName.split(" ").map((n: string) => n[0]).join("").slice(0, 2)}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">{employee.fullName}</p>
-                      <p className="text-xs text-gray-500">{employee.email}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Badge variant={employee.employeeGroup === "group_a" ? "default" : "secondary"}>
-                      {employee.employeeGroup === "group_a" ? "Group A" : "Group B"}
-                    </Badge>
-                    <Badge variant={employee.status === "active" ? "default" : "secondary"}>
-                      {employee.status}
-                    </Badge>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+
     </div>
   );
 }
