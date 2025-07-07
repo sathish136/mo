@@ -1,11 +1,14 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { FileText, Download, Calendar, Users, Clock, TrendingUp, AlertTriangle, Settings } from "lucide-react";
+import { FileText, Download, Calendar, Users, Clock, TrendingUp, AlertTriangle, Settings, Eye, FileSpreadsheet } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import * as XLSX from 'xlsx';
+import { saveAs } from 'file-saver';
 
 export default function Reports() {
   const [reportType, setReportType] = useState("daily-attendance");
@@ -13,6 +16,8 @@ export default function Reports() {
   const [endDate, setEndDate] = useState(formatDate(new Date()));
   const [selectedEmployee, setSelectedEmployee] = useState("all");
   const [selectedGroup, setSelectedGroup] = useState("all");
+  const [previewData, setPreviewData] = useState<any>(null);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
   // Automatically update date range for Monthly Attendance Sheet
   useEffect(() => {
@@ -199,122 +204,152 @@ export default function Reports() {
     enabled: reportType === "offer-attendance",
   });
 
-  const handleExportReport = async (format: string) => {
-    try {
-      // Get the current report data based on the selected report type
-      let data: any;
-      let filename: string;
-      
-      switch (reportType) {
-        case "monthly-attendance":
-          data = monthlyAttendanceData;
-          filename = `monthly-attendance-${startDate}-to-${endDate}`;
-          break;
-        case "daily-attendance":
-          data = dailyAttendanceData;
-          filename = `daily-attendance-${startDate}`;
-          break;
-        case "daily-ot":
-          data = dailyOtData;
-          filename = `daily-ot-${startDate}`;
-          break;
-        case "late-arrival":
-          data = lateArrivalData;
-          filename = `late-arrival-${startDate}-to-${endDate}`;
-          break;
-        case "half-day":
-          data = halfDayData;
-          filename = `half-day-${startDate}-to-${endDate}`;
-          break;
-        case "short-leave-usage":
-          data = shortLeaveUsageData;
-          filename = `short-leave-usage-${startDate}-to-${endDate}`;
-          break;
-        case "offer-attendance":
-          data = offerAttendanceData;
-          filename = `offer-attendance-${startDate}-to-${endDate}`;
-          break;
-        case "attendance":
-          data = null; // Not implemented yet
-          filename = `attendance-summary-${startDate}-to-${endDate}`;
-          break;
-        case "overtime":
-          data = null; // Not implemented yet
-          filename = `overtime-report-${startDate}-to-${endDate}`;
-          break;
-        case "leave":
-          data = null; // Not implemented yet
-          filename = `leave-report-${startDate}-to-${endDate}`;
-          break;
-        case "employee":
-          data = null; // Not implemented yet
-          filename = `employee-report`;
-          break;
-        default:
-          throw new Error("Unknown report type");
-      }
-
-      if (!data || data.length === 0) {
-        alert("No data available to export");
+  const handlePreviewExport = () => {
+    let data: any;
+    let filename: string;
+    
+    switch (reportType) {
+      case "monthly-attendance":
+        data = monthlyAttendanceData;
+        filename = `monthly-attendance-${startDate}-to-${endDate}`;
+        break;
+      case "daily-attendance":
+        data = dailyAttendanceData;
+        filename = `daily-attendance-${startDate}`;
+        break;
+      case "daily-ot":
+        data = dailyOtData;
+        filename = `daily-ot-${startDate}`;
+        break;
+      case "late-arrival":
+        data = lateArrivalData;
+        filename = `late-arrival-${startDate}-to-${endDate}`;
+        break;
+      case "half-day":
+        data = halfDayData;
+        filename = `half-day-${startDate}-to-${endDate}`;
+        break;
+      case "short-leave-usage":
+        data = shortLeaveUsageData;
+        filename = `short-leave-usage-${startDate}-to-${endDate}`;
+        break;
+      case "offer-attendance":
+        data = offerAttendanceData;
+        filename = `offer-attendance-${startDate}-to-${endDate}`;
+        break;
+      default:
         return;
-      }
+    }
 
-      if (format === "excel") {
-        exportToExcel(data, filename);
-      } else if (format === "pdf") {
-        exportToPDF(data, filename, reportType);
+    if (!data || data.length === 0) {
+      alert("No data available to export");
+      return;
+    }
+
+    setPreviewData({ data, filename, reportType });
+    setIsPreviewOpen(true);
+  };
+
+  const handleExportToExcel = () => {
+    if (!previewData) return;
+    
+    const { data, filename, reportType } = previewData;
+    
+    try {
+      let worksheet: any;
+      
+      if (reportType === "monthly-attendance") {
+        // Special handling for monthly attendance sheet
+        const worksheetData = [];
+        
+        // Add headers
+        const headers = ["Employee ID", "Full Name", "Department", "Group"];
+        const firstEmployee = data[0];
+        if (firstEmployee?.dailyData) {
+          const dateColumns = Object.keys(firstEmployee.dailyData).sort();
+          headers.push(...dateColumns);
+          headers.push("Total Hours", "Overtime Hours", "Present Days");
+        }
+        worksheetData.push(headers);
+        
+        // Add data rows
+        data.forEach((emp: any) => {
+          const row = [
+            emp.employeeId,
+            emp.fullName,
+            emp.department || "",
+            emp.employeeGroup || ""
+          ];
+          
+          if (emp.dailyData) {
+            const dateColumns = Object.keys(emp.dailyData).sort();
+            dateColumns.forEach(date => {
+              const dayData = emp.dailyData[date];
+              row.push(dayData?.status || "A");
+            });
+            row.push(emp.totalHours || 0, emp.overtimeHours || 0, emp.presentDays || 0);
+          }
+          
+          worksheetData.push(row);
+        });
+        
+        worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
+      } else if (reportType === "offer-attendance") {
+        // Special handling for offer-attendance report
+        const worksheetData = [];
+        
+        // Add headers
+        const headers = [
+          "Employee ID", "Full Name", "Group", "Total Offer Hours", "Working Days",
+          "Avg Hours/Day", "Holiday Hours", "Saturday Hours",
+          "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"
+        ];
+        worksheetData.push(headers);
+        
+        // Add data rows
+        data.forEach((record: any) => {
+          const row = [
+            record.employeeId,
+            record.fullName,
+            record.employeeGroup === 'group_a' ? 'Group A' : 'Group B',
+            record.totalOfferHours,
+            record.workingDays,
+            record.averageOfferHoursPerDay,
+            record.holidayHours,
+            record.saturdayHours,
+            record.weeklyBreakdown.monday,
+            record.weeklyBreakdown.tuesday,
+            record.weeklyBreakdown.wednesday,
+            record.weeklyBreakdown.thursday,
+            record.weeklyBreakdown.friday,
+            record.weeklyBreakdown.saturday,
+            record.weeklyBreakdown.sunday
+          ];
+          
+          worksheetData.push(row);
+        });
+        
+        worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
+      } else {
+        // Standard table export
+        worksheet = XLSX.utils.json_to_sheet(data);
       }
+      
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Report");
+      
+      const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+      const blob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      
+      saveAs(blob, `${filename}.xlsx`);
+      setIsPreviewOpen(false);
     } catch (error) {
       console.error("Export failed:", error);
       alert("Export failed. Please try again.");
     }
   };
 
-  const exportToExcel = (data: any[], filename: string) => {
-    // Convert data to CSV format
-    if (data.length === 0) return;
-    
-    let csvContent = "";
-    
-    if (reportType === "monthly-attendance") {
-      // Special handling for monthly attendance sheet
-      csvContent = "Employee ID,Name,Department,Group,";
-      
-      // Add all date columns based on the data structure
-      const firstEmployee = data[0];
-      if (firstEmployee?.dailyData) {
-        const dateColumns = Object.keys(firstEmployee.dailyData).sort();
-        csvContent += dateColumns.join(",") + "\n";
-        
-        data.forEach(emp => {
-          csvContent += `${emp.employeeId},${emp.fullName},${emp.department || ""},${emp.employeeGroup || ""},`;
-          dateColumns.forEach(date => {
-            const dayData = emp.dailyData[date];
-            csvContent += `${dayData?.status || "A"},`;
-          });
-          csvContent += "\n";
-        });
-      }
-    } else {
-      // Standard table export
-      const headers = Object.keys(data[0]);
-      csvContent = headers.join(",") + "\n";
-      
-      data.forEach(row => {
-        csvContent += headers.map(header => {
-          const value = row[header];
-          return typeof value === "string" && value.includes(",") ? `"${value}"` : value;
-        }).join(",") + "\n";
-      });
-    }
-    
-    // Create and download file
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.download = `${filename}.csv`;
-    link.click();
-  };
+
 
   const exportToPDF = (data: any[], filename: string, reportType: string) => {
     // Simple HTML to PDF conversion using browser print
@@ -1695,121 +1730,196 @@ export default function Reports() {
   const renderOfferAttendanceReport = () => {
     if (isOfferAttendanceLoading) {
       return (
-        <Card>
-          <CardContent className="p-6">
-            <div className="text-center text-gray-500">Loading offer-attendance report...</div>
-          </CardContent>
-        </Card>
+        <div className="p-6">
+          <Card className="shadow-lg border-2 border-gray-200 bg-gradient-to-br from-white to-gray-50">
+            <CardContent className="p-8 flex items-center justify-center">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+                <div className="text-lg text-gray-600">Loading 1/4 Offer-Attendance Report...</div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       );
     }
 
     if (!offerAttendanceData || offerAttendanceData.length === 0) {
       return (
-        <Card>
-          <CardContent className="p-6">
-            <div className="text-center text-gray-500">No offer-attendance data found for the selected period.</div>
-          </CardContent>
-        </Card>
+        <div className="p-6">
+          <Card className="shadow-lg border-2 border-gray-200 bg-gradient-to-br from-white to-gray-50">
+            <CardContent className="p-8">
+              <div className="text-center py-12">
+                <Clock className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                <div className="text-xl text-gray-500 mb-2">No Offer-Attendance Data Found</div>
+                <div className="text-gray-400">No offer-attendance data available for the selected period.</div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       );
     }
 
+    const totalOfferHours = offerAttendanceData.reduce((sum: number, record: any) => sum + record.totalOfferHours, 0);
+    const avgHoursPerEmployee = totalOfferHours / Math.max(offerAttendanceData.length, 1);
+    const totalHolidayWeekendHours = offerAttendanceData.reduce((sum: number, record: any) => sum + record.holidayHours + record.saturdayHours, 0);
+
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Clock className="h-5 w-5" />
-            1/4 Offer-Attendance Report ({formatDate(new Date(startDate))} - {formatDate(new Date(endDate))})
-          </CardTitle>
-          <div className="text-sm text-gray-600 space-y-1">
-            <p>• Group A: Overtime calculated from 4:15 PM onwards</p>
-            <p>• Group B: Overtime calculated from 4:45 PM onwards</p>
-            <p>• Includes government holidays and Saturdays</p>
-            <p>• Excludes holidays and delays marked in status</p>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <table className="min-w-full border-collapse border border-gray-300">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="border border-gray-300 px-4 py-2 text-left font-semibold">Employee ID</th>
-                  <th className="border border-gray-300 px-4 py-2 text-left font-semibold">Full Name</th>
-                  <th className="border border-gray-300 px-4 py-2 text-left font-semibold">Group</th>
-                  <th className="border border-gray-300 px-4 py-2 text-left font-semibold">Total Offer Hours</th>
-                  <th className="border border-gray-300 px-4 py-2 text-left font-semibold">Working Days</th>
-                  <th className="border border-gray-300 px-4 py-2 text-left font-semibold">Avg Hours/Day</th>
-                  <th className="border border-gray-300 px-4 py-2 text-left font-semibold">Holiday Hours</th>
-                  <th className="border border-gray-300 px-4 py-2 text-left font-semibold">Saturday Hours</th>
-                  <th className="border border-gray-300 px-4 py-2 text-left font-semibold">Mon</th>
-                  <th className="border border-gray-300 px-4 py-2 text-left font-semibold">Tue</th>
-                  <th className="border border-gray-300 px-4 py-2 text-left font-semibold">Wed</th>
-                  <th className="border border-gray-300 px-4 py-2 text-left font-semibold">Thu</th>
-                  <th className="border border-gray-300 px-4 py-2 text-left font-semibold">Fri</th>
-                  <th className="border border-gray-300 px-4 py-2 text-left font-semibold">Sat</th>
-                  <th className="border border-gray-300 px-4 py-2 text-left font-semibold">Sun</th>
-                </tr>
-              </thead>
-              <tbody>
-                {offerAttendanceData.map((record: any, index: number) => (
-                  <tr key={index} className="hover:bg-gray-50">
-                    <td className="border border-gray-300 px-4 py-2">{record.employeeId}</td>
-                    <td className="border border-gray-300 px-4 py-2">{record.fullName}</td>
-                    <td className="border border-gray-300 px-4 py-2">
-                      <Badge variant={record.employeeGroup === 'group_a' ? 'default' : 'secondary'}>
-                        {record.employeeGroup === 'group_a' ? 'Group A' : 'Group B'}
-                      </Badge>
-                    </td>
-                    <td className="border border-gray-300 px-4 py-2 font-semibold text-blue-600">
-                      {record.totalOfferHours}h
-                    </td>
-                    <td className="border border-gray-300 px-4 py-2">{record.workingDays}</td>
-                    <td className="border border-gray-300 px-4 py-2">{record.averageOfferHoursPerDay}h</td>
-                    <td className="border border-gray-300 px-4 py-2 text-green-600">
-                      {record.holidayHours}h
-                    </td>
-                    <td className="border border-gray-300 px-4 py-2 text-purple-600">
-                      {record.saturdayHours}h
-                    </td>
-                    <td className="border border-gray-300 px-4 py-2">{record.weeklyBreakdown.monday}h</td>
-                    <td className="border border-gray-300 px-4 py-2">{record.weeklyBreakdown.tuesday}h</td>
-                    <td className="border border-gray-300 px-4 py-2">{record.weeklyBreakdown.wednesday}h</td>
-                    <td className="border border-gray-300 px-4 py-2">{record.weeklyBreakdown.thursday}h</td>
-                    <td className="border border-gray-300 px-4 py-2">{record.weeklyBreakdown.friday}h</td>
-                    <td className="border border-gray-300 px-4 py-2 text-purple-600">{record.weeklyBreakdown.saturday}h</td>
-                    <td className="border border-gray-300 px-4 py-2 text-orange-600">{record.weeklyBreakdown.sunday}h</td>
+      <div className="p-6 space-y-6">
+        {/* Enhanced Header with Gradient */}
+        <Card className="shadow-lg border-2 border-indigo-200 bg-gradient-to-r from-indigo-50 to-blue-50">
+          <CardHeader className="pb-4">
+            <CardTitle className="flex items-center gap-3 text-xl text-indigo-800">
+              <div className="p-2 bg-indigo-100 rounded-lg">
+                <Clock className="h-6 w-6 text-indigo-600" />
+              </div>
+              1/4 Offer-Attendance Report
+            </CardTitle>
+            <div className="text-sm text-indigo-600 font-medium">
+              Period: {formatDate(new Date(startDate))} - {formatDate(new Date(endDate))}
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+              <div className="bg-white/70 p-3 rounded-lg border border-indigo-200">
+                <h4 className="font-semibold text-indigo-800 mb-2">Group A Policy</h4>
+                <p className="text-xs text-indigo-600">• Overtime calculated from 4:15 PM onwards</p>
+                <p className="text-xs text-indigo-600">• Includes government holidays and Saturdays</p>
+              </div>
+              <div className="bg-white/70 p-3 rounded-lg border border-indigo-200">
+                <h4 className="font-semibold text-indigo-800 mb-2">Group B Policy</h4>
+                <p className="text-xs text-indigo-600">• Overtime calculated from 4:45 PM onwards</p>
+                <p className="text-xs text-indigo-600">• Excludes holidays and delays marked in status</p>
+              </div>
+            </div>
+          </CardHeader>
+        </Card>
+
+        {/* Enhanced Summary Statistics with Gradients */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <Card className="shadow-md border-2 border-blue-200 bg-gradient-to-br from-blue-50 to-blue-100">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-sm font-medium text-blue-700">Total Employees</div>
+                  <div className="text-2xl font-bold text-blue-900">{offerAttendanceData.length}</div>
+                </div>
+                <Users className="h-8 w-8 text-blue-600" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="shadow-md border-2 border-green-200 bg-gradient-to-br from-green-50 to-green-100">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-sm font-medium text-green-700">Total Offer Hours</div>
+                  <div className="text-2xl font-bold text-green-900">{totalOfferHours.toFixed(1)}h</div>
+                </div>
+                <Clock className="h-8 w-8 text-green-600" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="shadow-md border-2 border-purple-200 bg-gradient-to-br from-purple-50 to-purple-100">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-sm font-medium text-purple-700">Avg Hours/Employee</div>
+                  <div className="text-2xl font-bold text-purple-900">{avgHoursPerEmployee.toFixed(1)}h</div>
+                </div>
+                <TrendingUp className="h-8 w-8 text-purple-600" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="shadow-md border-2 border-orange-200 bg-gradient-to-br from-orange-50 to-orange-100">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-sm font-medium text-orange-700">Holiday/Weekend Hours</div>
+                  <div className="text-2xl font-bold text-orange-900">{totalHolidayWeekendHours.toFixed(1)}h</div>
+                </div>
+                <Calendar className="h-8 w-8 text-orange-600" />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Enhanced Data Table */}
+        <Card className="shadow-lg border-2 border-gray-200 bg-gradient-to-br from-white to-gray-50">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg text-gray-800">
+              <FileText className="h-5 w-5" />
+              Detailed Offer-Attendance Records ({offerAttendanceData.length} employees)
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-xs border-collapse">
+                <thead>
+                  <tr className="bg-gradient-to-r from-gray-100 to-gray-200 border-b-2 border-gray-300">
+                    <th className="px-2 py-2 text-left font-semibold text-gray-700 border-r border-gray-200">S.No</th>
+                    <th className="px-2 py-2 text-left font-semibold text-gray-700 border-r border-gray-200">Employee ID</th>
+                    <th className="px-2 py-2 text-left font-semibold text-gray-700 border-r border-gray-200">Full Name</th>
+                    <th className="px-2 py-2 text-left font-semibold text-gray-700 border-r border-gray-200">Group</th>
+                    <th className="px-2 py-2 text-left font-semibold text-gray-700 border-r border-gray-200">Total Offer Hours</th>
+                    <th className="px-2 py-2 text-left font-semibold text-gray-700 border-r border-gray-200">Working Days</th>
+                    <th className="px-2 py-2 text-left font-semibold text-gray-700 border-r border-gray-200">Avg Hours/Day</th>
+                    <th className="px-2 py-2 text-left font-semibold text-gray-700 border-r border-gray-200">Holiday Hours</th>
+                    <th className="px-2 py-2 text-left font-semibold text-gray-700 border-r border-gray-200">Saturday Hours</th>
+                    <th className="px-2 py-2 text-left font-semibold text-gray-700 border-r border-gray-200">Mon</th>
+                    <th className="px-2 py-2 text-left font-semibold text-gray-700 border-r border-gray-200">Tue</th>
+                    <th className="px-2 py-2 text-left font-semibold text-gray-700 border-r border-gray-200">Wed</th>
+                    <th className="px-2 py-2 text-left font-semibold text-gray-700 border-r border-gray-200">Thu</th>
+                    <th className="px-2 py-2 text-left font-semibold text-gray-700 border-r border-gray-200">Fri</th>
+                    <th className="px-2 py-2 text-left font-semibold text-gray-700 border-r border-gray-200">Sat</th>
+                    <th className="px-2 py-2 text-left font-semibold text-gray-700">Sun</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          
-          {/* Summary Statistics */}
-          <div className="mt-6 grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="bg-blue-50 p-4 rounded-lg">
-              <div className="text-sm font-medium text-blue-600">Total Employees</div>
-              <div className="text-2xl font-bold text-blue-900">{offerAttendanceData.length}</div>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {offerAttendanceData.map((record: any, index: number) => (
+                    <tr 
+                      key={index} 
+                      className={`hover:bg-gray-50 transition-colors duration-150 ${
+                        record.employeeGroup === 'group_a' ? 'bg-blue-25' : 'bg-purple-25'
+                      }`}
+                    >
+                      <td className="px-2 py-2 text-gray-700 font-medium border-r border-gray-200">{index + 1}</td>
+                      <td className="px-2 py-2 text-gray-900 font-semibold border-r border-gray-200">{record.employeeId}</td>
+                      <td className="px-2 py-2 text-gray-900 border-r border-gray-200">{record.fullName}</td>
+                      <td className="px-2 py-2 border-r border-gray-200">
+                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                          record.employeeGroup === 'group_a' 
+                            ? 'bg-blue-100 text-blue-800 border border-blue-200' 
+                            : 'bg-purple-100 text-purple-800 border border-purple-200'
+                        }`}>
+                          {record.employeeGroup === 'group_a' ? 'Group A' : 'Group B'}
+                        </span>
+                      </td>
+                      <td className="px-2 py-2 font-bold text-indigo-600 border-r border-gray-200">
+                        {record.totalOfferHours}h
+                      </td>
+                      <td className="px-2 py-2 text-gray-700 border-r border-gray-200">{record.workingDays}</td>
+                      <td className="px-2 py-2 text-gray-700 border-r border-gray-200">{record.averageOfferHoursPerDay}h</td>
+                      <td className="px-2 py-2 font-semibold text-green-600 border-r border-gray-200">
+                        {record.holidayHours}h
+                      </td>
+                      <td className="px-2 py-2 font-semibold text-purple-600 border-r border-gray-200">
+                        {record.saturdayHours}h
+                      </td>
+                      <td className="px-2 py-2 text-gray-700 border-r border-gray-200">{record.weeklyBreakdown.monday}h</td>
+                      <td className="px-2 py-2 text-gray-700 border-r border-gray-200">{record.weeklyBreakdown.tuesday}h</td>
+                      <td className="px-2 py-2 text-gray-700 border-r border-gray-200">{record.weeklyBreakdown.wednesday}h</td>
+                      <td className="px-2 py-2 text-gray-700 border-r border-gray-200">{record.weeklyBreakdown.thursday}h</td>
+                      <td className="px-2 py-2 text-gray-700 border-r border-gray-200">{record.weeklyBreakdown.friday}h</td>
+                      <td className="px-2 py-2 font-semibold text-purple-600 border-r border-gray-200">{record.weeklyBreakdown.saturday}h</td>
+                      <td className="px-2 py-2 font-semibold text-orange-600">{record.weeklyBreakdown.sunday}h</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-            <div className="bg-green-50 p-4 rounded-lg">
-              <div className="text-sm font-medium text-green-600">Total Offer Hours</div>
-              <div className="text-2xl font-bold text-green-900">
-                {offerAttendanceData.reduce((sum: number, record: any) => sum + record.totalOfferHours, 0).toFixed(1)}h
-              </div>
-            </div>
-            <div className="bg-purple-50 p-4 rounded-lg">
-              <div className="text-sm font-medium text-purple-600">Avg Hours/Employee</div>
-              <div className="text-2xl font-bold text-purple-900">
-                {(offerAttendanceData.reduce((sum: number, record: any) => sum + record.totalOfferHours, 0) / Math.max(offerAttendanceData.length, 1)).toFixed(1)}h
-              </div>
-            </div>
-            <div className="bg-orange-50 p-4 rounded-lg">
-              <div className="text-sm font-medium text-orange-600">Holiday/Weekend Hours</div>
-              <div className="text-2xl font-bold text-orange-900">
-                {offerAttendanceData.reduce((sum: number, record: any) => sum + record.holidayHours + record.saturdayHours, 0).toFixed(1)}h
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
     );
   };
 
@@ -1817,16 +1927,14 @@ export default function Reports() {
     <div className="space-y-6">
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-2xl font-bold">Reports</h2>
-        <div className="relative group">
-          <button className="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold py-1.5 px-3 rounded-md shadow-md transition duration-200 ease-in-out flex items-center">
-            Export
-            <svg className="ml-1.5 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7"></path></svg>
-          </button>
-          <div className="absolute right-0 mt-1 w-36 bg-white rounded-lg shadow-md z-20 opacity-0 group-hover:opacity-100 transition duration-200 ease-in-out">
-            <button onClick={() => handleExportReport('pdf')} className="block w-full text-left px-3 py-1.5 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 transition duration-200 ease-in-out">PDF</button>
-            <button onClick={() => handleExportReport('excel')} className="block w-full text-left px-3 py-1.5 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 transition duration-200 ease-in-out">Excel</button>
-          </div>
-        </div>
+        <Button 
+          onClick={handlePreviewExport}
+          className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold py-2 px-4 rounded-lg shadow-lg transition duration-200 ease-in-out flex items-center gap-2"
+        >
+          <Eye className="h-4 w-4" />
+          Preview & Export
+          <FileSpreadsheet className="h-4 w-4" />
+        </Button>
       </div>
       <Card className="rounded-lg shadow-sm border-gray-200">
         <CardHeader>
@@ -1928,6 +2036,130 @@ export default function Reports() {
       {reportType === "half-day" && renderHalfDayReport()}
       {reportType === "short-leave-usage" && renderShortLeaveUsageReport()}
       {reportType === "offer-attendance" && renderOfferAttendanceReport()}
+
+      {/* Export Preview Dialog */}
+      <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-xl">
+              <FileSpreadsheet className="h-6 w-6 text-green-600" />
+              Export Preview - {previewData?.filename}
+            </DialogTitle>
+          </DialogHeader>
+          
+          {previewData && (
+            <div className="space-y-4">
+              <div className="bg-gray-50 p-4 rounded-lg border">
+                <h3 className="font-semibold text-gray-800 mb-2">Export Details</h3>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span className="font-medium text-gray-600">Report Type:</span>
+                    <span className="ml-2 text-gray-900 capitalize">{previewData.reportType.replace('-', ' ')}</span>
+                  </div>
+                  <div>
+                    <span className="font-medium text-gray-600">Records:</span>
+                    <span className="ml-2 text-gray-900">{previewData.data.length} entries</span>
+                  </div>
+                  <div>
+                    <span className="font-medium text-gray-600">Format:</span>
+                    <span className="ml-2 text-gray-900">Excel (.xlsx)</span>
+                  </div>
+                  <div>
+                    <span className="font-medium text-gray-600">File Size:</span>
+                    <span className="ml-2 text-gray-900">~{Math.ceil(previewData.data.length * 0.1)}KB</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white border rounded-lg">
+                <div className="p-3 bg-gray-100 border-b">
+                  <h4 className="font-semibold text-gray-800">Data Preview (First 5 records)</h4>
+                </div>
+                <div className="p-4 overflow-x-auto">
+                  <table className="min-w-full text-xs border-collapse border border-gray-300">
+                    <thead>
+                      <tr className="bg-gray-50">
+                        {previewData.reportType === 'monthly-attendance' ? (
+                          <>
+                            <th className="border border-gray-300 px-2 py-1 text-left font-semibold">Employee ID</th>
+                            <th className="border border-gray-300 px-2 py-1 text-left font-semibold">Full Name</th>
+                            <th className="border border-gray-300 px-2 py-1 text-left font-semibold">Department</th>
+                            <th className="border border-gray-300 px-2 py-1 text-left font-semibold">Group</th>
+                            <th className="border border-gray-300 px-2 py-1 text-left font-semibold">Total Hours</th>
+                          </>
+                        ) : previewData.reportType === 'offer-attendance' ? (
+                          <>
+                            <th className="border border-gray-300 px-2 py-1 text-left font-semibold">Employee ID</th>
+                            <th className="border border-gray-300 px-2 py-1 text-left font-semibold">Full Name</th>
+                            <th className="border border-gray-300 px-2 py-1 text-left font-semibold">Group</th>
+                            <th className="border border-gray-300 px-2 py-1 text-left font-semibold">Total Offer Hours</th>
+                            <th className="border border-gray-300 px-2 py-1 text-left font-semibold">Working Days</th>
+                          </>
+                        ) : (
+                          Object.keys(previewData.data[0] || {}).slice(0, 5).map((key: string) => (
+                            <th key={key} className="border border-gray-300 px-2 py-1 text-left font-semibold">
+                              {key.replace(/([A-Z])/g, ' $1').replace(/^./, (str: string) => str.toUpperCase())}
+                            </th>
+                          ))
+                        )}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {previewData.data.slice(0, 5).map((record: any, index: number) => (
+                        <tr key={index} className="hover:bg-gray-50">
+                          {previewData.reportType === 'monthly-attendance' ? (
+                            <>
+                              <td className="border border-gray-300 px-2 py-1">{record.employeeId}</td>
+                              <td className="border border-gray-300 px-2 py-1">{record.fullName}</td>
+                              <td className="border border-gray-300 px-2 py-1">{record.department || ''}</td>
+                              <td className="border border-gray-300 px-2 py-1">{record.employeeGroup || ''}</td>
+                              <td className="border border-gray-300 px-2 py-1">{record.totalHours || 0}</td>
+                            </>
+                          ) : previewData.reportType === 'offer-attendance' ? (
+                            <>
+                              <td className="border border-gray-300 px-2 py-1">{record.employeeId}</td>
+                              <td className="border border-gray-300 px-2 py-1">{record.fullName}</td>
+                              <td className="border border-gray-300 px-2 py-1">{record.employeeGroup === 'group_a' ? 'Group A' : 'Group B'}</td>
+                              <td className="border border-gray-300 px-2 py-1">{record.totalOfferHours}h</td>
+                              <td className="border border-gray-300 px-2 py-1">{record.workingDays}</td>
+                            </>
+                          ) : (
+                            Object.values(record).slice(0, 5).map((value: any, idx: number) => (
+                              <td key={idx} className="border border-gray-300 px-2 py-1">
+                                {typeof value === 'object' ? JSON.stringify(value) : String(value)}
+                              </td>
+                            ))
+                          )}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  {previewData.data.length > 5 && (
+                    <p className="text-gray-500 text-xs mt-2">... and {previewData.data.length - 5} more records</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-4 border-t">
+                <Button 
+                  variant="outline" 
+                  onClick={() => setIsPreviewOpen(false)}
+                  className="px-6"
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  onClick={handleExportToExcel}
+                  className="bg-green-600 hover:bg-green-700 text-white px-6 flex items-center gap-2"
+                >
+                  <Download className="h-4 w-4" />
+                  Download Excel
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
