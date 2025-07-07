@@ -70,6 +70,9 @@ export default function LeaveManagement() {
     queryKey: ["/api/holidays"],
   });
 
+  // Define today's date
+  const today = new Date().toISOString().split('T')[0];
+
   // Get absent employees for selected date
   const absentEmployees = employees.filter(emp => {
     const hasAttendanceOnDate = attendance.some(att => 
@@ -429,7 +432,7 @@ export default function LeaveManagement() {
           <CardContent>
             <div className="text-2xl font-bold">
               {approvedRequests.filter(req => 
-                new Date(req.approvedAt || '').toISOString().split('T')[0] === today
+                req.approvedAt && new Date(req.approvedAt).toISOString().split('T')[0] === today
               ).length}
             </div>
             <p className="text-xs text-muted-foreground">Recently approved</p>
