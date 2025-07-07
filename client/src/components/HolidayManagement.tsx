@@ -355,6 +355,25 @@ export default function HolidayManagement() {
                     />
                     <FormField
                       control={form.control}
+                      name="year"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Year</FormLabel>
+                          <FormControl>
+                            <Input 
+                              type="number" 
+                              value={field.value || new Date().getFullYear()}
+                              onChange={(e) => field.onChange(parseInt(e.target.value))}
+                              min={2020}
+                              max={2030}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
                       name="isRecurring"
                       render={({ field }) => (
                         <FormItem className="flex flex-row items-start space-x-3 space-y-0">
@@ -459,6 +478,8 @@ export default function HolidayManagement() {
                 description: "",
                 isRecurring: false,
                 applicableGroups: ["group_a", "group_b"],
+                year: new Date().getFullYear(),
+                isActive: true,
               });
             }
           }}>
@@ -493,6 +514,25 @@ export default function HolidayManagement() {
                               type="date" 
                               value={field.value ? new Date(field.value).toISOString().split('T')[0] : ''}
                               onChange={(e) => field.onChange(new Date(e.target.value))}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="year"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Year</FormLabel>
+                          <FormControl>
+                            <Input 
+                              type="number" 
+                              value={field.value || new Date().getFullYear()}
+                              onChange={(e) => field.onChange(parseInt(e.target.value))}
+                              min={2020}
+                              max={2030}
                             />
                           </FormControl>
                           <FormMessage />
