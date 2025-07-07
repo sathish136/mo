@@ -327,8 +327,8 @@ export default function HolidayManagement() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-blue-700">Annual Holidays</p>
-                <p className="text-3xl font-bold text-blue-900">21</p>
-                <p className="text-xs text-blue-600 mt-1">days standard</p>
+                <p className="text-3xl font-bold text-blue-900">{holidayStats.annual}</p>
+                <p className="text-xs text-blue-600 mt-1">days added</p>
               </div>
               <Calendar className="w-8 h-8 text-blue-600" />
             </div>
@@ -340,8 +340,8 @@ export default function HolidayManagement() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-purple-700">Special Holidays</p>
-                <p className="text-3xl font-bold text-purple-900">24</p>
-                <p className="text-xs text-purple-600 mt-1">days standard</p>
+                <p className="text-3xl font-bold text-purple-900">{holidayStats.special}</p>
+                <p className="text-xs text-purple-600 mt-1">days added</p>
               </div>
               <FileText className="w-8 h-8 text-purple-600" />
             </div>
@@ -366,7 +366,7 @@ export default function HolidayManagement() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-orange-700">Total Holidays</p>
-                <p className="text-3xl font-bold text-orange-900">45</p>
+                <p className="text-3xl font-bold text-orange-900">{holidayStats.total}</p>
                 <p className="text-xs text-orange-600 mt-1">days total</p>
               </div>
               <BarChart3 className="w-8 h-8 text-orange-600" />
