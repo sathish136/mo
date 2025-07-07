@@ -18,6 +18,15 @@ export function LicenseGuard({ children, feature }: LicenseGuardProps) {
   const [licenseKey, setLicenseKey] = useState('');
   const { toast } = useToast();
 
+  // Check if user is authenticated and current location
+  const isAuthenticated = localStorage.getItem("isAuthenticated") === "true";
+  const currentPath = window.location.pathname;
+
+  // Allow access to login page without license validation
+  if (currentPath === "/login" || !isAuthenticated) {
+    return <>{children}</>;
+  }
+
   // If a specific feature is required, check if it's enabled
   if (feature && !isFeatureEnabled(feature)) {
     return (
