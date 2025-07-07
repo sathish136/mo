@@ -1297,17 +1297,17 @@ export default function Reports() {
           </CardHeader>
           <CardContent className="p-0">
             <div className="overflow-x-auto">
-              <table className="min-w-full text-sm border-collapse">
+              <table className="min-w-full text-xs border-collapse">
                 <thead>
                   <tr className="bg-gray-50 border-b-2 border-gray-200">
-                    <th className="px-6 py-4 text-left font-semibold text-gray-700 border-r border-gray-200">S.No</th>
-                    <th className="px-6 py-4 text-left font-semibold text-gray-700 border-r border-gray-200">Employee ID</th>
-                    <th className="px-6 py-4 text-left font-semibold text-gray-700 border-r border-gray-200">Employee Name</th>
-                    <th className="px-6 py-4 text-left font-semibold text-gray-700 border-r border-gray-200">Group</th>
-                    <th className="px-6 py-4 text-left font-semibold text-gray-700 border-r border-gray-200">Date</th>
-                    <th className="px-6 py-4 text-left font-semibold text-gray-700 border-r border-gray-200">Check In Time</th>
-                    <th className="px-6 py-4 text-left font-semibold text-gray-700 border-r border-gray-200">Status</th>
-                    <th className="px-6 py-4 text-left font-semibold text-gray-700">Minutes Late</th>
+                    <th className="px-3 py-2 text-left font-semibold text-gray-700 border-r border-gray-200">S.No</th>
+                    <th className="px-3 py-2 text-left font-semibold text-gray-700 border-r border-gray-200">Employee ID</th>
+                    <th className="px-3 py-2 text-left font-semibold text-gray-700 border-r border-gray-200">Employee Name</th>
+                    <th className="px-3 py-2 text-left font-semibold text-gray-700 border-r border-gray-200">Group</th>
+                    <th className="px-3 py-2 text-left font-semibold text-gray-700 border-r border-gray-200">Date</th>
+                    <th className="px-3 py-2 text-left font-semibold text-gray-700 border-r border-gray-200">Check In Time</th>
+                    <th className="px-3 py-2 text-left font-semibold text-gray-700 border-r border-gray-200">Status</th>
+                    <th className="px-3 py-2 text-left font-semibold text-gray-700">Minutes Late</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
@@ -1319,11 +1319,11 @@ export default function Reports() {
                         record.employeeGroup === 'group_a' ? 'bg-blue-50' : 'bg-purple-50'
                       }`}
                     >
-                      <td className="px-6 py-4 text-gray-700 font-medium border-r border-gray-200">{index + 1}</td>
-                      <td className="px-6 py-4 text-gray-900 font-semibold border-r border-gray-200">{record.employeeId}</td>
-                      <td className="px-6 py-4 text-gray-900 border-r border-gray-200">{record.fullName}</td>
-                      <td className="px-6 py-4 border-r border-gray-200">
-                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
+                      <td className="px-3 py-2 text-gray-700 font-medium border-r border-gray-200">{index + 1}</td>
+                      <td className="px-3 py-2 text-gray-900 font-semibold border-r border-gray-200">{record.employeeId}</td>
+                      <td className="px-3 py-2 text-gray-900 border-r border-gray-200">{record.fullName}</td>
+                      <td className="px-3 py-2 border-r border-gray-200">
+                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
                           record.employeeGroup === 'group_a' 
                             ? 'bg-blue-100 text-blue-800 border border-blue-200' 
                             : 'bg-purple-100 text-purple-800 border border-purple-200'
@@ -1331,18 +1331,18 @@ export default function Reports() {
                           {record.employeeGroup === 'group_a' ? 'Group A' : 'Group B'}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-gray-700 border-r border-gray-200">
+                      <td className="px-3 py-2 text-gray-700 border-r border-gray-200">
                         {new Date(record.date).toLocaleDateString('en-GB', { 
                           day: '2-digit', 
                           month: 'short', 
                           year: 'numeric' 
                         })}
                       </td>
-                      <td className="px-6 py-4 text-gray-700 font-mono border-r border-gray-200">
+                      <td className="px-3 py-2 text-gray-700 font-mono border-r border-gray-200">
                         {record.checkInTime || 'N/A'}
                       </td>
-                      <td className="px-6 py-4 border-r border-gray-200">
-                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
+                      <td className="px-3 py-2 border-r border-gray-200">
+                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
                           record.status === 'half_day' ? 'bg-red-100 text-red-800 border border-red-200' :
                           record.status === 'late' ? 'bg-yellow-100 text-yellow-800 border border-yellow-200' :
                           'bg-green-100 text-green-800 border border-green-200'
@@ -1351,8 +1351,8 @@ export default function Reports() {
                            record.status === 'late' ? 'Late' : record.status}
                         </span>
                       </td>
-                      <td className="px-6 py-4">
-                        <span className="font-semibold text-gray-900">
+                      <td className="px-3 py-2">
+                        <span className="font-medium text-gray-900">
                           {record.minutesLate || 0} min
                         </span>
                       </td>
@@ -1371,90 +1371,147 @@ export default function Reports() {
   const renderHalfDayReport = () => {
     if (isHalfDayLoading) {
       return (
-        <Card>
-          <CardContent className="p-6">
-            <div className="text-center text-gray-500">Loading half day report...</div>
-          </CardContent>
-        </Card>
+        <div className="p-6">
+          <Card className="shadow-sm border border-gray-200">
+            <CardContent className="p-8 flex items-center justify-center">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-600 mx-auto mb-4"></div>
+                <div className="text-lg text-gray-600">Loading half day report...</div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       );
     }
 
     if (!halfDayData || halfDayData.length === 0) {
       return (
-        <Card>
-          <CardContent className="p-6">
-            <div className="text-center text-gray-500">No half day records found for the selected period.</div>
-          </CardContent>
-        </Card>
+        <div className="p-6">
+          <Card className="shadow-sm border border-gray-200">
+            <CardContent className="p-8">
+              <div className="text-center py-12">
+                <Calendar className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                <div className="text-xl text-gray-500 mb-2">No Half Day Records Found</div>
+                <div className="text-gray-400">No half day records found for the selected period.</div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       );
     }
 
+    const totalHalfDayRecords = halfDayData.length;
+
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Calendar className="h-5 w-5" />
-            Half Day Report
-          </CardTitle>
-          {groupSettings && (
-            <div className="text-sm text-gray-600 bg-purple-50 p-3 rounded-lg">
-              <h4 className="font-semibold mb-2">Current Policy Settings:</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <strong>Group A:</strong>
-                  <ul className="ml-4 list-disc">
-                    <li>Half Day: Arrival after {groupSettings.groupA?.lateArrivalPolicy?.halfDayAfter} but before {groupSettings.groupA?.lateArrivalPolicy?.halfDayBefore}</li>
-                  </ul>
+      <div className="p-6">
+        {/* Policy Settings */}
+        {groupSettings && (
+          <Card className="shadow-sm border border-gray-200 mb-6">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Settings className="h-5 w-5" />
+                Current Policy Settings
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                  <h4 className="font-semibold text-blue-800 mb-3 flex items-center gap-2">
+                    <Badge variant="default" className="bg-blue-600">Group A</Badge>
+                    Policy Rules
+                  </h4>
+                  <div className="space-y-2 text-sm text-blue-700">
+                    <div className="flex justify-between">
+                      <span>Half Day Rule:</span>
+                      <span className="font-medium">After {groupSettings.groupA?.lateArrivalPolicy?.halfDayAfter} before {groupSettings.groupA?.lateArrivalPolicy?.halfDayBefore}</span>
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <strong>Group B:</strong>
-                  <ul className="ml-4 list-disc">
-                    <li>Half Day: Arrival after {groupSettings.groupB?.lateArrivalPolicy?.halfDayAfter} but before {groupSettings.groupB?.lateArrivalPolicy?.halfDayBefore}</li>
-                  </ul>
+
+                <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
+                  <h4 className="font-semibold text-purple-800 mb-3 flex items-center gap-2">
+                    <Badge variant="secondary" className="bg-purple-600 text-white">Group B</Badge>
+                    Policy Rules
+                  </h4>
+                  <div className="space-y-2 text-sm text-purple-700">
+                    <div className="flex justify-between">
+                      <span>Half Day Rule:</span>
+                      <span className="font-medium">After {groupSettings.groupB?.lateArrivalPolicy?.halfDayAfter} before {groupSettings.groupB?.lateArrivalPolicy?.halfDayBefore}</span>
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <table className="min-w-full border-collapse border border-gray-300">
-              <thead>
-                <tr className="bg-gray-50">
-                  <th className="border border-gray-300 px-4 py-2 text-left">Employee ID</th>
-                  <th className="border border-gray-300 px-4 py-2 text-left">Name</th>
-                  <th className="border border-gray-300 px-4 py-2 text-left">Group</th>
-                  <th className="border border-gray-300 px-4 py-2 text-left">Date</th>
-                  <th className="border border-gray-300 px-4 py-2 text-left">Check In Time</th>
-                  <th className="border border-gray-300 px-4 py-2 text-left">Check Out Time</th>
-                  <th className="border border-gray-300 px-4 py-2 text-left">Reason</th>
-                  <th className="border border-gray-300 px-4 py-2 text-left">Deduction</th>
-                </tr>
-              </thead>
-              <tbody>
-                {halfDayData.map((record: any, index: number) => (
-                  <tr key={index} className="hover:bg-gray-50">
-                    <td className="border border-gray-300 px-4 py-2">{record.employeeId}</td>
-                    <td className="border border-gray-300 px-4 py-2">{record.fullName}</td>
-                    <td className="border border-gray-300 px-4 py-2">
-                      <Badge variant={record.employeeGroup === 'group_a' ? 'default' : 'secondary'}>
-                        {record.employeeGroup === 'group_a' ? 'Group A' : 'Group B'}
-                      </Badge>
-                    </td>
-                    <td className="border border-gray-300 px-4 py-2">{new Date(record.date).toLocaleDateString()}</td>
-                    <td className="border border-gray-300 px-4 py-2">{record.checkInTime || 'N/A'}</td>
-                    <td className="border border-gray-300 px-4 py-2">{record.checkOutTime || 'N/A'}</td>
-                    <td className="border border-gray-300 px-4 py-2">{record.reason}</td>
-                    <td className="border border-gray-300 px-4 py-2">
-                      <Badge variant="secondary">Half Day</Badge>
-                    </td>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Half Day Records Table */}
+        <Card className="shadow-sm border border-gray-200">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <FileText className="h-5 w-5" />
+              Half Day Records ({totalHalfDayRecords} entries)
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-xs border-collapse">
+                <thead>
+                  <tr className="bg-gray-50 border-b-2 border-gray-200">
+                    <th className="px-3 py-2 text-left font-semibold text-gray-700 border-r border-gray-200">S.No</th>
+                    <th className="px-3 py-2 text-left font-semibold text-gray-700 border-r border-gray-200">Employee ID</th>
+                    <th className="px-3 py-2 text-left font-semibold text-gray-700 border-r border-gray-200">Employee Name</th>
+                    <th className="px-3 py-2 text-left font-semibold text-gray-700 border-r border-gray-200">Group</th>
+                    <th className="px-3 py-2 text-left font-semibold text-gray-700 border-r border-gray-200">Date</th>
+                    <th className="px-3 py-2 text-left font-semibold text-gray-700 border-r border-gray-200">Check In Time</th>
+                    <th className="px-3 py-2 text-left font-semibold text-gray-700 border-r border-gray-200">Check Out Time</th>
+                    <th className="px-3 py-2 text-left font-semibold text-gray-700 border-r border-gray-200">Reason</th>
+                    <th className="px-3 py-2 text-left font-semibold text-gray-700">Deduction</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </CardContent>
-      </Card>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {halfDayData.map((record: any, index: number) => (
+                    <tr 
+                      key={index} 
+                      className={`hover:bg-gray-50 transition-colors duration-150 ${
+                        record.employeeGroup === 'group_a' ? 'bg-blue-50' : 'bg-purple-50'
+                      }`}
+                    >
+                      <td className="px-3 py-2 text-gray-700 font-medium border-r border-gray-200">{index + 1}</td>
+                      <td className="px-3 py-2 text-gray-900 font-semibold border-r border-gray-200">{record.employeeId}</td>
+                      <td className="px-3 py-2 text-gray-900 border-r border-gray-200">{record.fullName}</td>
+                      <td className="px-3 py-2 border-r border-gray-200">
+                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                          record.employeeGroup === 'group_a' 
+                            ? 'bg-blue-100 text-blue-800 border border-blue-200' 
+                            : 'bg-purple-100 text-purple-800 border border-purple-200'
+                        }`}>
+                          {record.employeeGroup === 'group_a' ? 'Group A' : 'Group B'}
+                        </span>
+                      </td>
+                      <td className="px-3 py-2 text-gray-700 border-r border-gray-200">
+                        {new Date(record.date).toLocaleDateString('en-GB', { 
+                          day: '2-digit', 
+                          month: 'short', 
+                          year: 'numeric' 
+                        })}
+                      </td>
+                      <td className="px-3 py-2 text-gray-700 font-mono border-r border-gray-200">{record.checkInTime || 'N/A'}</td>
+                      <td className="px-3 py-2 text-gray-700 font-mono border-r border-gray-200">{record.checkOutTime || 'N/A'}</td>
+                      <td className="px-3 py-2 text-gray-700 border-r border-gray-200">{record.reason || 'Late Arrival'}</td>
+                      <td className="px-3 py-2">
+                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800 border border-red-200">
+                          Half Day
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     );
   };
 
