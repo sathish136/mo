@@ -538,11 +538,63 @@ router.post("/api/leave-requests", async (req, res) => {
     const newRecord = await db.insert(leaveRequests).values(validatedData).returning();
     res.status(201).json(newRecord[0]);
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      return res.status(400).json({ message: "Invalid data", details: error.errors });
-    }
     console.error("Failed to create leave request:", error);
-    res.status(500).json({ message: "Failed to create leave request" });
+    if (error instanceof z.ZodError) {
+      res.status(400).json({ message: "Invalid data", details: error.errors });
+    } else {
+      res.status(500).json({ message: "Failed to create leave request" });
+    }
+  }
+});
+
+router.patch("/api/leave-requests/:id", async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const updateData = req.body;
+    
+    const updatedRecord = await db
+      .update(leaveRequests)
+      .set({
+        ...updateData,
+        approvedAt: updateData.approvedAt ? new Date(updateData.approvedAt) : undefined,
+      })
+      .where(eq(leaveRequests.id, id))
+      .returning();
+    
+    if (updatedRecord.length === 0) {
+      return res.status(404).json({ message: "Leave request not found" });
+    }
+    
+    res.json(updatedRecord[0]);
+  } catch (error) {
+    console.error("Failed to update leave request:", error);
+    res.status(500).json({ message: "Failed to update leave request" });
+  }
+});
+
+// --- Leave Types Routes ---
+router.get("/api/leave-types", async (req, res) => {
+  try {
+    const records = await db.select().from(leaveTypes).orderBy(leaveTypes.name);
+    res.json(records);
+  } catch (error) {
+    console.error("Failed to fetch leave types:", error);
+    res.status(500).json({ message: "Failed to fetch leave types" });
+  }
+});
+
+router.post("/api/leave-types", async (req, res) => {
+  try {
+    const validatedData = insertLeaveTypeSchema.parse(req.body);
+    const newRecord = await db.insert(leaveTypes).values(validatedData).returning();
+    res.status(201).json(newRecord[0]);
+  } catch (error) {
+    console.error("Failed to create leave type:", error);
+    if (error instanceof z.ZodError) {
+      res.status(400).json({ message: "Invalid data", details: error.errors });
+    } else {
+      res.status(500).json({ message: "Failed to create leave type" });
+    }
   }
 });
 

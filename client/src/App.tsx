@@ -9,7 +9,8 @@ import { LicenseGuard } from "@/components/LicenseGuard";
 import Dashboard from "@/components/Dashboard";
 import EmployeeManagement from "@/components/EmployeeManagement";
 import AttendanceTracker from "@/components/AttendanceTracker";
-import LeaveManagement from "@/components/LeaveManagement";
+import LeaveManagement from "@/pages/LeaveManagement";
+import LeaveReports from "@/pages/LeaveReports";
 import OvertimeManagement from "@/components/OvertimeManagement";
 import Reports from "@/components/Reports";
 import Settings from "@/components/Settings";
@@ -50,6 +51,7 @@ function App() {
             <Route path="/employees" component={EmployeeManagement} />
             <Route path="/attendance" component={AttendanceTracker} />
             <Route path="/leave" component={LeaveManagement} />
+            <Route path="/leave-reports" component={LeaveReports} />
             <Route path="/holidays" component={HolidayManagement} />
             <Route path="/overtime" component={OvertimeManagement} />
             <Route path="/reports" component={Reports} />
