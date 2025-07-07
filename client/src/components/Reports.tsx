@@ -533,6 +533,54 @@ export default function Reports() {
             size: A4;
             margin: 0.5in;
           }
+          
+          /* Enable layout options in print dialog */
+          @media print {
+            @page {
+              size: auto;
+              margin: 0.5in;
+            }
+            
+            /* Portrait layout support */
+            @page :left {
+              margin-left: 0.6in;
+              margin-right: 0.4in;
+            }
+            
+            @page :right {
+              margin-left: 0.4in;
+              margin-right: 0.6in;
+            }
+          }
+          
+          /* Landscape support */
+          @media print and (orientation: landscape) {
+            @page {
+              size: A4 landscape;
+              margin: 0.4in;
+            }
+            body { font-size: 10px; }
+            .company-name { font-size: 22px; }
+            .department { font-size: 15px; }
+            .report-title { font-size: 17px; }
+            table { font-size: 9px; }
+            th, td { padding: 5px 3px; }
+          }
+          
+          /* Portrait support */
+          @media print and (orientation: portrait) {
+            @page {
+              size: A4 portrait;
+              margin: 0.5in;
+            }
+            body { font-size: 11px; }
+            .company-name { font-size: 24px; }
+            .department { font-size: 16px; }
+            .report-title { font-size: 18px; }
+            table { font-size: 10px; }
+            th, td { padding: 6px 4px; }
+          }
+          
           * {
             box-sizing: border-box;
           }
@@ -544,6 +592,8 @@ export default function Reports() {
             line-height: 1.4;
             width: 100%;
             max-width: 100%;
+            color: black !important;
+            background: white !important;
           }
           .container {
             width: 100%;
@@ -660,13 +710,9 @@ export default function Reports() {
             color: #92400e;
           }
           @media print {
-            @page { 
-              size: A4;
-              margin: 0.5in;
-            }
             body { 
               margin: 0; 
-              padding: 0;
+              padding: 15px;
               color: black !important;
               background: white !important;
               font-size: 10px;
@@ -681,14 +727,23 @@ export default function Reports() {
               padding: 10px;
               margin-bottom: 15px;
             }
+            .table-container {
+              page-break-inside: auto;
+              margin-top: 15px;
+            }
             table { 
               font-size: 9px;
-              margin-top: 15px;
               page-break-inside: auto;
+              width: 100%;
             }
             th, td { 
-              padding: 6px 4px;
+              padding: 4px 3px;
               font-size: 9px;
+              border: 1px solid #000 !important;
+            }
+            th {
+              background-color: #f5f5f5 !important;
+              font-weight: bold !important;
             }
             tr { 
               page-break-inside: avoid; 
@@ -698,10 +753,13 @@ export default function Reports() {
               display: table-header-group; 
             }
             .footer { 
-              margin-top: 15px; 
-              padding-top: 10px;
+              margin-top: 20px; 
+              padding-top: 15px;
               page-break-inside: avoid;
+              border-top: 1px solid #000;
             }
+            /* Ensure content fits on page */
+            .no-print { display: none !important; }
           }
         </style>
       </head>
@@ -800,8 +858,26 @@ export default function Reports() {
         
         <script>
           window.onload = function() {
-            window.print();
-            setTimeout(() => window.close(), 1000);
+            // Add CSS to show layout options
+            const style = document.createElement('style');
+            style.textContent = \`
+              @media print {
+                @page { size: auto; margin: 0.5in; }
+              }
+            \`;
+            document.head.appendChild(style);
+            
+            // Delay to ensure rendering is complete
+            setTimeout(() => {
+              window.print();
+            }, 500);
+            
+            // Close window after printing (optional)
+            setTimeout(() => {
+              if (window.opener) {
+                window.close();
+              }
+            }, 2000);
           }
         </script>
       </body>
