@@ -2,12 +2,35 @@
   "groupA": {
     "startTime": "08:30",
     "endTime": "16:15",
-    "durationMinutes": 465,
-    "minHoursForOT": 7.75,
+    "durationMinutes": 450,
+    "minHoursForOT": 7.5,
     "lateArrivalPolicy": {
       "gracePeriodUntil": "09:00",
       "halfDayAfter": "10:00",
       "halfDayBefore": "14:45"
+    },
+    "shortLeavePolicy": {
+      "morningStart": "08:30",
+      "morningEnd": "10:00",
+      "eveningStart": "14:45",
+      "eveningEnd": "16:15",
+      "maxPerMonth": 2,
+      "preApprovalRequired": true,
+      "minimumWorkingHoursRequired": true
+    },
+    "halfDayRule": {
+      "appliesAfter": "10:00",
+      "appliesBefore": "14:45",
+      "shortLeaveExcusesHalfDay": false
+    },
+    "overtimePolicy": {
+      "normalDay": {
+        "minHoursForOT": 7.5,
+        "saturdaySundayFullOT": true
+      },
+      "holiday": {
+        "allHoursAsOT": true
+      }
     }
   },
   "groupB": {

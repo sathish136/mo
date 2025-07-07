@@ -21,8 +21,8 @@ const defaultSettings: GroupWorkingHours = {
   groupA: {
     startTime: '08:30',
     endTime: '16:15',
-    durationMinutes: 465, // 7.75 hours * 60 = 465 minutes
-    minHoursForOT: 7.75, // Overtime after 7.75 hours
+    durationMinutes: 450, // 7.5 hours * 60 = 450 minutes  
+    minHoursForOT: 7.5, // Overtime after 7.5 hours (user policy requirement)
     lateArrivalPolicy: {
       gracePeriodUntil: '09:00', // 30-minute grace period
       halfDayAfter: '10:00',     // Half day if arrival after 10:00 AM
