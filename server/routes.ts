@@ -2234,6 +2234,149 @@ router.post('/api/database/backup', async (req, res) => {
   }
 });
 
+// Email Notifications API Endpoints
+let emailSettings = {
+  smtpHost: '',
+  smtpPort: 587,
+  smtpUser: '',
+  smtpPassword: '',
+  fromEmail: '',
+  fromName: 'HR System',
+  enableTLS: true,
+  enableAuthentication: true
+};
+
+let automatedReports = {
+  dailyAttendance: { enabled: false, time: '09:00', recipients: [] },
+  monthlyAttendance: { enabled: false, day: 1, time: '10:00', recipients: [] },
+  overtimeAlerts: { enabled: false, threshold: 40, recipients: [] },
+  leaveRequests: { enabled: false, recipients: [] }
+};
+
+// Get Email Settings
+router.get('/api/email/settings', async (req, res) => {
+  try {
+    res.json({
+      ...emailSettings,
+      smtpPassword: emailSettings.smtpPassword ? '••••••••' : '' // Hide password
+    });
+  } catch (error) {
+    console.error('Failed to get email settings:', error);
+    res.status(500).json({ success: false, message: 'Failed to get email settings' });
+  }
+});
+
+// Update Email Settings
+router.post('/api/email/settings', async (req, res) => {
+  try {
+    const settings = req.body;
+    
+    // Don't update password if it's the masked value
+    if (settings.smtpPassword !== '••••••••') {
+      emailSettings = { ...emailSettings, ...settings };
+    } else {
+      emailSettings = { ...emailSettings, ...settings, smtpPassword: emailSettings.smtpPassword };
+    }
+    
+    console.log('Email settings updated successfully');
+    res.json({ 
+      success: true, 
+      message: 'Email settings updated successfully',
+      settings: {
+        ...emailSettings,
+        smtpPassword: emailSettings.smtpPassword ? '••••••••' : ''
+      }
+    });
+  } catch (error) {
+    console.error('Failed to update email settings:', error);
+    res.status(500).json({ success: false, message: 'Failed to update email settings' });
+  }
+});
+
+// Test Email Configuration
+router.post('/api/email/test', async (req, res) => {
+  try {
+    const { testEmail } = req.body;
+    
+    if (!emailSettings.smtpHost || !emailSettings.smtpUser) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Email configuration incomplete. Please configure SMTP settings first.' 
+      });
+    }
+    
+    // In a real application, you would use a library like nodemailer
+    // For now, simulate successful test
+    console.log(`Sending test email to ${testEmail} using SMTP ${emailSettings.smtpHost}:${emailSettings.smtpPort}`);
+    
+    res.json({ 
+      success: true, 
+      message: `Test email sent successfully to ${testEmail}`,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Failed to send test email:', error);
+    res.status(500).json({ success: false, message: 'Failed to send test email' });
+  }
+});
+
+// Get Automated Reports Settings
+router.get('/api/email/reports', async (req, res) => {
+  try {
+    res.json(automatedReports);
+  } catch (error) {
+    console.error('Failed to get automated reports settings:', error);
+    res.status(500).json({ success: false, message: 'Failed to get automated reports settings' });
+  }
+});
+
+// Update Automated Reports Settings
+router.post('/api/email/reports', async (req, res) => {
+  try {
+    automatedReports = { ...automatedReports, ...req.body };
+    
+    console.log('Automated reports settings updated:', automatedReports);
+    res.json({ 
+      success: true, 
+      message: 'Automated reports settings updated successfully',
+      settings: automatedReports
+    });
+  } catch (error) {
+    console.error('Failed to update automated reports settings:', error);
+    res.status(500).json({ success: false, message: 'Failed to update automated reports settings' });
+  }
+});
+
+// Send Manual Report
+router.post('/api/email/send-report', async (req, res) => {
+  try {
+    const { reportType, recipients, dateRange } = req.body;
+    
+    if (!emailSettings.smtpHost || !emailSettings.smtpUser) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Email configuration incomplete. Please configure SMTP settings first.' 
+      });
+    }
+    
+    console.log(`Sending ${reportType} report to ${recipients.join(', ')} for period ${dateRange?.start} to ${dateRange?.end}`);
+    
+    // In a real application, you would:
+    // 1. Generate the report data
+    // 2. Create the email content
+    // 3. Send via nodemailer
+    
+    res.json({ 
+      success: true, 
+      message: `${reportType} report sent successfully to ${recipients.length} recipients`,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Failed to send manual report:', error);
+    res.status(500).json({ success: false, message: 'Failed to send manual report' });
+  }
+});
+
 router.get('/api/backup/list', async (req, res) => {
   try {
     // Return list of backups

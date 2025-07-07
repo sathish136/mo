@@ -73,6 +73,80 @@ export default function Settings() {
     showDbManagement: false
   });
   const [activeSessions, setActiveSessions] = useState<any[]>([]);
+  const [emailSettings, setEmailSettings] = useState({
+    smtpHost: '',
+    smtpPort: 587,
+    smtpUser: '',
+    smtpPassword: '',
+    fromEmail: '',
+    fromName: 'HR System',
+    enableTLS: true,
+    enableAuthentication: true
+  });
+  const [testEmail, setTestEmail] = useState('');
+
+  // Email Settings Query
+  const { data: emailSettingsData, isLoading: emailSettingsLoading } = useQuery({
+    queryKey: ['/api/email/settings'],
+    queryFn: async () => {
+      const response = await fetch('/api/email/settings');
+      if (!response.ok) throw new Error('Failed to fetch email settings');
+      return response.json();
+    },
+  });
+
+  // Update Email Settings Mutation
+  const updateEmailSettingsMutation = useMutation({
+    mutationFn: async (settings: typeof emailSettings) => {
+      const response = await fetch('/api/email/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(settings),
+      });
+      if (!response.ok) throw new Error('Failed to update email settings');
+      return response.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/email/settings'] });
+      toast({
+        title: "Success",
+        description: "Email settings updated successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update email settings",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Test Email Mutation
+  const testEmailMutation = useMutation({
+    mutationFn: async (testEmail: string) => {
+      const response = await fetch('/api/email/test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ testEmail }),
+      });
+      if (!response.ok) throw new Error('Failed to send test email');
+      return response.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Success",
+        description: data.message || "Test email sent successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to send test email",
+        variant: "destructive",
+      });
+    },
+  });
 
   // Load auto sync settings on component mount
   useEffect(() => {
@@ -102,6 +176,13 @@ export default function Settings() {
       setCompanySettings(companyData);
     }
   }, [companyData]);
+
+  // Update email settings when data loads
+  useEffect(() => {
+    if (emailSettingsData) {
+      setEmailSettings(emailSettingsData);
+    }
+  }, [emailSettingsData]);
 
   const saveCompanySettingsMutation = useMutation({
     mutationFn: async (settings: typeof companySettings) => {
@@ -1586,19 +1667,59 @@ export default function Settings() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="smtpHost">SMTP Host</Label>
-                  <Input id="smtpHost" placeholder="smtp.gmail.com" defaultValue="smtp.gmail.com" />
+                  <Input 
+                    id="smtpHost" 
+                    placeholder="smtp.gmail.com" 
+                    value={emailSettings.smtpHost}
+                    onChange={(e) => setEmailSettings({...emailSettings, smtpHost: e.target.value})}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="smtpPort">SMTP Port</Label>
-                  <Input id="smtpPort" type="number" placeholder="587" defaultValue="587" />
+                  <Input 
+                    id="smtpPort" 
+                    type="number" 
+                    placeholder="587" 
+                    value={emailSettings.smtpPort}
+                    onChange={(e) => setEmailSettings({...emailSettings, smtpPort: parseInt(e.target.value)})}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="smtpUser">Username</Label>
-                  <Input id="smtpUser" placeholder="your-email@gmail.com" />
+                  <Input 
+                    id="smtpUser" 
+                    placeholder="your-email@gmail.com" 
+                    value={emailSettings.smtpUser}
+                    onChange={(e) => setEmailSettings({...emailSettings, smtpUser: e.target.value})}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="smtpPassword">Password</Label>
-                  <Input id="smtpPassword" type="password" placeholder="App Password" />
+                  <Input 
+                    id="smtpPassword" 
+                    type="password" 
+                    placeholder="App Password" 
+                    value={emailSettings.smtpPassword}
+                    onChange={(e) => setEmailSettings({...emailSettings, smtpPassword: e.target.value})}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="fromEmail">From Email</Label>
+                  <Input 
+                    id="fromEmail" 
+                    placeholder="hr@company.com" 
+                    value={emailSettings.fromEmail}
+                    onChange={(e) => setEmailSettings({...emailSettings, fromEmail: e.target.value})}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="fromName">From Name</Label>
+                  <Input 
+                    id="fromName" 
+                    placeholder="HR System" 
+                    value={emailSettings.fromName}
+                    onChange={(e) => setEmailSettings({...emailSettings, fromName: e.target.value})}
+                  />
                 </div>
               </div>
               
@@ -1643,8 +1764,29 @@ export default function Settings() {
               </Card>
 
               <div className="flex space-x-2">
-                <Button variant="outline" size="sm">Test Email</Button>
-                <Button className="bg-green-600 hover:bg-green-700">Save Configuration</Button>
+                <div className="flex items-center space-x-2">
+                  <Input
+                    placeholder="test@example.com"
+                    value={testEmail}
+                    onChange={(e) => setTestEmail(e.target.value)}
+                    className="w-40"
+                  />
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => testEmail && testEmailMutation.mutate(testEmail)}
+                    disabled={testEmailMutation.isPending || !testEmail}
+                  >
+                    {testEmailMutation.isPending ? 'Sending...' : 'Test Email'}
+                  </Button>
+                </div>
+                <Button 
+                  className="bg-green-600 hover:bg-green-700"
+                  onClick={() => updateEmailSettingsMutation.mutate(emailSettings)}
+                  disabled={updateEmailSettingsMutation.isPending}
+                >
+                  {updateEmailSettingsMutation.isPending ? 'Saving...' : 'Save Configuration'}
+                </Button>
               </div>
             </CardContent>
           </Card>
