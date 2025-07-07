@@ -1,8 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, Calendar, FileText, BarChart3, Users2, Clock, Download } from "lucide-react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import LeaveTypeManagement from "./LeaveTypeManagement";
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -14,16 +13,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { insertHolidaySchema, insertLeaveTypeSchema, type Holiday, type InsertHoliday, type LeaveType, type InsertLeaveType } from "@shared/schema";
+import { insertHolidaySchema, type Holiday, type InsertHoliday } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 
 export default function HolidayManagement() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [isLeaveTypeDialogOpen, setIsLeaveTypeDialogOpen] = useState(false);
   const [filterType, setFilterType] = useState("all");
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
-  const [activeTab, setActiveTab] = useState("holidays");
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -40,16 +37,7 @@ export default function HolidayManagement() {
     },
   });
 
-  const { data: leaveTypes, isLoading: isLoadingLeaveTypes } = useQuery({
-    queryKey: ["/api/leave-types"],
-    queryFn: async () => {
-      const response = await fetch("/api/leave-types");
-      if (!response.ok) {
-        throw new Error("Failed to fetch leave types");
-      }
-      return response.json();
-    },
-  });
+
 
   const createHolidayMutation = useMutation({
     mutationFn: async (holiday: InsertHoliday) => {
@@ -81,27 +69,7 @@ export default function HolidayManagement() {
     },
   });
 
-  const createLeaveTypeMutation = useMutation({
-    mutationFn: async (leaveType: InsertLeaveType) => {
-      const response = await apiRequest("POST", "/api/leave-types", leaveType);
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/leave-types"] });
-      toast({
-        title: "Success",
-        description: "Leave type created successfully",
-      });
-      setIsLeaveTypeDialogOpen(false);
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to create leave type",
-        variant: "destructive",
-      });
-    },
-  });
+
 
   const form = useForm<InsertHoliday>({
     resolver: zodResolver(insertHolidaySchema),
@@ -119,19 +87,7 @@ export default function HolidayManagement() {
     createHolidayMutation.mutate(data);
   };
 
-  const leaveTypeForm = useForm<InsertLeaveType>({
-    resolver: zodResolver(insertLeaveTypeSchema),
-    defaultValues: {
-      name: "",
-      description: "",
-      maxDaysPerYear: undefined,
-      isActive: true,
-    },
-  });
 
-  const onSubmitLeaveType = (data: InsertLeaveType) => {
-    createLeaveTypeMutation.mutate(data);
-  };
 
   // Calculate holiday statistics
   const holidayStats = {
@@ -170,19 +126,13 @@ export default function HolidayManagement() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Leave & Holiday</h1>
-          <p className="text-gray-600 mt-1">Leave types and holiday management</p>
+          <h1 className="text-3xl font-bold text-gray-900">Holiday Management</h1>
+          <p className="text-gray-600 mt-1">Manage government holidays and special dates</p>
         </div>
       </div>
 
       {/* Tabs for Holiday and Leave Type Management */}
-      <Tabs defaultValue="holidays" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="holidays">Holiday Management</TabsTrigger>
-          <TabsTrigger value="leave-types">Leave Types</TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="holidays" className="space-y-6">
+      <div className="space-y-6">
           {/* Holiday Management Header */}
           <div className="flex items-center justify-between">
             <div>
@@ -517,12 +467,7 @@ export default function HolidayManagement() {
           </div>
         </CardContent>
       </Card>
-        </TabsContent>
-        
-        <TabsContent value="leave-types" className="space-y-6">
-          <LeaveTypeManagement />
-        </TabsContent>
-      </Tabs>
+        </div>
     </div>
   );
 }
