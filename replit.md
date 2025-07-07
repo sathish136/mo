@@ -135,6 +135,9 @@ Changelog:
     - Progressive disclosure pattern for better user experience
     - Integrated workflow automation features
     - Enhanced loading states and empty state messaging
+    - Added subtle professional color coding for better visual hierarchy
+    - Fixed approval workflow error by correcting employeeId field validation
+    - Implemented proper datetime formatting for overtime request creation
     - Added bulk operations dialog with intuitive interface
     - Added select all/deselect all functionality
     - Enhanced table layout with better organization

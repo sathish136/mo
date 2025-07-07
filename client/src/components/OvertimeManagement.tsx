@@ -226,65 +226,65 @@ export default function OvertimeManagement() {
         </div>
       </div>
 
-      {/* Professional Dashboard Cards */}
+      {/* Professional Dashboard Cards with Subtle Colors */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card className="bg-white border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+        <Card className="bg-white border border-blue-200 shadow-sm hover:shadow-md transition-shadow">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-600 text-sm font-medium">Pending Approvals</p>
+                <p className="text-blue-600 text-sm font-medium">Pending Approvals</p>
                 <p className="text-3xl font-bold text-gray-900">{eligibleEmployees.length}</p>
                 <p className="text-gray-500 text-xs mt-1">Require action today</p>
               </div>
-              <div className="bg-gray-100 p-3 rounded-full">
-                <Users className="w-8 h-8 text-gray-600" />
+              <div className="bg-blue-50 p-3 rounded-full">
+                <Users className="w-8 h-8 text-blue-600" />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-white border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+        <Card className="bg-white border border-orange-200 shadow-sm hover:shadow-md transition-shadow">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-600 text-sm font-medium">Total OT Hours</p>
+                <p className="text-orange-600 text-sm font-medium">Total OT Hours</p>
                 <p className="text-3xl font-bold text-gray-900">{totalOTHours.toFixed(1)}h</p>
                 <p className="text-gray-500 text-xs mt-1">This period</p>
               </div>
-              <div className="bg-gray-100 p-3 rounded-full">
-                <Clock className="w-8 h-8 text-gray-600" />
+              <div className="bg-orange-50 p-3 rounded-full">
+                <Clock className="w-8 h-8 text-orange-600" />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-white border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+        <Card className="bg-white border border-green-200 shadow-sm hover:shadow-md transition-shadow">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-600 text-sm font-medium">Approval Rate</p>
+                <p className="text-green-600 text-sm font-medium">Approval Rate</p>
                 <p className="text-3xl font-bold text-gray-900">{approvalRate.toFixed(0)}%</p>
                 <div className="mt-2">
-                  <Progress value={approvalRate} className="h-2 bg-gray-200" />
+                  <Progress value={approvalRate} className="h-2" />
                 </div>
               </div>
-              <div className="bg-gray-100 p-3 rounded-full">
-                <TrendingUp className="w-8 h-8 text-gray-600" />
+              <div className="bg-green-50 p-3 rounded-full">
+                <TrendingUp className="w-8 h-8 text-green-600" />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-white border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+        <Card className="bg-white border border-purple-200 shadow-sm hover:shadow-md transition-shadow">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-600 text-sm font-medium">Selected</p>
+                <p className="text-purple-600 text-sm font-medium">Selected</p>
                 <p className="text-3xl font-bold text-gray-900">{selectedEmployees.size}</p>
                 <p className="text-gray-500 text-xs mt-1">{selectedOTHours.toFixed(1)}h selected</p>
               </div>
-              <div className="bg-gray-100 p-3 rounded-full">
-                <Check className="w-8 h-8 text-gray-600" />
+              <div className="bg-purple-50 p-3 rounded-full">
+                <Check className="w-8 h-8 text-purple-600" />
               </div>
             </div>
           </CardContent>
@@ -308,12 +308,12 @@ export default function OvertimeManagement() {
               </div>
               
               {selectedEmployees.size > 0 && (
-                <div className="flex items-center gap-3 px-4 py-2 bg-gray-50 rounded-lg border border-gray-200">
-                  <Badge variant="secondary" className="bg-gray-100 text-gray-800">
+                <div className="flex items-center gap-3 px-4 py-2 bg-blue-50 rounded-lg border border-blue-200">
+                  <Badge variant="secondary" className="bg-blue-100 text-blue-800">
                     {selectedEmployees.size} Selected
                   </Badge>
-                  <span className="text-sm text-gray-600">•</span>
-                  <span className="text-sm font-medium text-gray-700">{selectedOTHours.toFixed(1)}h total</span>
+                  <span className="text-sm text-blue-600">•</span>
+                  <span className="text-sm font-medium text-blue-700">{selectedOTHours.toFixed(1)}h total</span>
                 </div>
               )}
             </div>
@@ -366,12 +366,12 @@ export default function OvertimeManagement() {
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <Award className="w-5 h-5 text-gray-600" />
+                  <Award className="w-5 h-5 text-orange-600" />
                   <h3 className="text-lg font-semibold text-gray-800">
                     Overtime Approvals Required - {new Date(selectedDate).toLocaleDateString()}
                   </h3>
                 </div>
-                <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200">
+                <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200">
                   {eligibleEmployees.length} Pending
                 </Badge>
               </div>
@@ -432,7 +432,7 @@ export default function OvertimeManagement() {
                           <TableCell className="font-semibold text-gray-700">{employee.actualHours}h</TableCell>
                           <TableCell className="text-gray-600">{employee.requiredHours}h</TableCell>
                           <TableCell>
-                            <Badge className="bg-orange-100 text-orange-800 font-bold border border-orange-200">
+                            <Badge className="bg-orange-100 text-orange-700 font-bold border border-orange-300">
                               +{employee.otHours}h
                             </Badge>
                           </TableCell>
@@ -468,11 +468,11 @@ export default function OvertimeManagement() {
           </TabsContent>
 
           <TabsContent value="approved" className="mt-6">
-            <div className="text-center py-12 bg-green-50 rounded-lg">
-              <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-4" />
+            <div className="text-center py-12 bg-green-50 rounded-lg border border-green-200">
+              <CheckCircle className="w-12 h-12 text-green-600 mx-auto mb-4" />
               <h4 className="text-lg font-medium text-green-800 mb-2">Approved Overtime Requests</h4>
               <p className="text-green-700">{approvedRequests} requests have been approved</p>
-              <Button variant="outline" className="mt-4 border-green-200 text-green-700 hover:bg-green-100">
+              <Button variant="outline" className="mt-4 border-green-300 text-green-700 hover:bg-green-100">
                 <FileText className="w-4 h-4 mr-2" />
                 View Approved Requests
               </Button>
@@ -480,11 +480,11 @@ export default function OvertimeManagement() {
           </TabsContent>
 
           <TabsContent value="rejected" className="mt-6">
-            <div className="text-center py-12 bg-red-50 rounded-lg">
-              <XCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+            <div className="text-center py-12 bg-red-50 rounded-lg border border-red-200">
+              <XCircle className="w-12 h-12 text-red-600 mx-auto mb-4" />
               <h4 className="text-lg font-medium text-red-800 mb-2">Rejected Overtime Requests</h4>
               <p className="text-red-700">{rejectedRequests} requests have been rejected</p>
-              <Button variant="outline" className="mt-4 border-red-200 text-red-700 hover:bg-red-100">
+              <Button variant="outline" className="mt-4 border-red-300 text-red-700 hover:bg-red-100">
                 <FileText className="w-4 h-4 mr-2" />
                 View Rejected Requests
               </Button>
