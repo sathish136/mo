@@ -1191,11 +1191,11 @@ export default function Reports() {
   const renderLateArrivalReport = () => {
     if (isLateArrivalLoading) {
       return (
-        <div className="bg-gradient-to-br from-orange-50 to-red-50 min-h-screen p-6">
-          <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm">
+        <div className="p-6">
+          <Card className="shadow-sm border border-gray-200">
             <CardContent className="p-8 flex items-center justify-center">
               <div className="text-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600 mx-auto mb-4"></div>
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-600 mx-auto mb-4"></div>
                 <div className="text-lg text-gray-600">Loading late arrival report...</div>
               </div>
             </CardContent>
@@ -1206,9 +1206,9 @@ export default function Reports() {
 
     if (!lateArrivalData || lateArrivalData.length === 0) {
       return (
-        <div className="bg-gradient-to-br from-orange-50 to-red-50 min-h-screen p-6">
-          <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm">
-            <CardHeader className="bg-gradient-to-r from-orange-600 to-red-600 text-white rounded-t-lg">
+        <div className="p-6">
+          <Card className="shadow-sm border border-gray-200">
+            <CardHeader>
               <CardTitle className="flex items-center gap-3 text-xl">
                 <Clock className="h-6 w-6" />
                 Late Arrival Report
@@ -1234,75 +1234,24 @@ export default function Reports() {
     const avgMinutesLate = lateArrivalData.reduce((sum: number, record: any) => sum + (record.minutesLate || 0), 0) / totalLateArrivals;
 
     return (
-      <div className="bg-gradient-to-br from-orange-50 to-red-50 min-h-screen p-6">
+      <div className="p-6">
         {/* Header Section */}
-        <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm mb-6">
-          <CardHeader className="bg-gradient-to-r from-orange-600 to-red-600 text-white rounded-t-lg">
-            <CardTitle className="flex items-center gap-3 text-2xl">
-              <Clock className="h-8 w-8" />
+        <Card className="shadow-lg border border-gray-200 mb-6">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-3 text-xl">
+              <Clock className="h-6 w-6" />
               Late Arrival Report
-              <span className="ml-auto text-sm bg-white/20 px-3 py-1 rounded-full">
+              <span className="ml-auto text-sm text-gray-500 bg-gray-100 px-3 py-1 rounded">
                 {new Date(startDate).toLocaleDateString()} - {new Date(endDate).toLocaleDateString()}
               </span>
             </CardTitle>
           </CardHeader>
         </Card>
 
-        {/* Statistics Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-          <Card className="bg-gradient-to-br from-red-500 to-red-600 text-white shadow-lg border-0">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-sm font-medium text-red-100">Total Late Arrivals</h3>
-                  <p className="text-3xl font-bold">{totalLateArrivals}</p>
-                </div>
-                <Clock className="h-8 w-8 text-red-200" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gradient-to-br from-orange-500 to-orange-600 text-white shadow-lg border-0">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-sm font-medium text-orange-100">Half Day Violations</h3>
-                  <p className="text-3xl font-bold">{halfDayCount}</p>
-                </div>
-                <AlertTriangle className="h-8 w-8 text-orange-200" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-lg border-0">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-sm font-medium text-blue-100">Group A Late</h3>
-                  <p className="text-3xl font-bold">{groupACount}</p>
-                </div>
-                <Users className="h-8 w-8 text-blue-200" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gradient-to-br from-purple-500 to-purple-600 text-white shadow-lg border-0">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-sm font-medium text-purple-100">Group B Late</h3>
-                  <p className="text-3xl font-bold">{groupBCount}</p>
-                </div>
-                <Users className="h-8 w-8 text-purple-200" />
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
         {/* Policy Settings */}
         {groupSettings && (
-          <Card className="shadow-lg border-0 bg-white/90 backdrop-blur-sm mb-6">
-            <CardHeader className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-t-lg">
+          <Card className="shadow-sm border border-gray-200 mb-6">
+            <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
                 <Settings className="h-5 w-5" />
                 Current Policy Settings
@@ -1310,7 +1259,7 @@ export default function Reports() {
             </CardHeader>
             <CardContent className="p-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="bg-blue-50 p-4 rounded-lg border-l-4 border-blue-500">
+                <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
                   <h4 className="font-semibold text-blue-800 mb-3 flex items-center gap-2">
                     <Badge variant="default" className="bg-blue-600">Group A</Badge>
                     Policy Rules
@@ -1331,7 +1280,7 @@ export default function Reports() {
                   </div>
                 </div>
 
-                <div className="bg-purple-50 p-4 rounded-lg border-l-4 border-purple-500">
+                <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
                   <h4 className="font-semibold text-purple-800 mb-3 flex items-center gap-2">
                     <Badge variant="secondary" className="bg-purple-600 text-white">Group B</Badge>
                     Policy Rules
@@ -1352,23 +1301,13 @@ export default function Reports() {
                   </div>
                 </div>
               </div>
-
-              <div className="mt-4 p-4 bg-amber-50 rounded-lg border border-amber-200">
-                <div className="flex items-center gap-2 text-amber-800 mb-2">
-                  <TrendingUp className="h-4 w-4" />
-                  <span className="font-medium">Report Summary</span>
-                </div>
-                <div className="text-sm text-amber-700">
-                  Average minutes late: <span className="font-bold">{avgMinutesLate.toFixed(1)} minutes</span>
-                </div>
-              </div>
             </CardContent>
           </Card>
         )}
 
         {/* Late Arrival Records Table */}
-        <Card className="shadow-lg border-0 bg-white/90 backdrop-blur-sm">
-          <CardHeader className="bg-gradient-to-r from-gray-700 to-gray-800 text-white rounded-t-lg">
+        <Card className="shadow-sm border border-gray-200">
+          <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
               <FileText className="h-5 w-5" />
               Late Arrival Records ({totalLateArrivals} entries)
@@ -1393,7 +1332,7 @@ export default function Reports() {
                   {lateArrivalData.map((record: any, index: number) => (
                     <tr 
                       key={index} 
-                      className={`hover:bg-gradient-to-r hover:from-orange-50 hover:to-red-50 transition-colors duration-200 ${
+                      className={`hover:bg-gray-50 ${
                         record.status === 'half_day' ? 'bg-red-50' : 'bg-white'
                       }`}
                     >
@@ -1401,14 +1340,7 @@ export default function Reports() {
                       <td className="px-4 py-3 text-gray-900 font-medium">{record.employeeId}</td>
                       <td className="px-4 py-3 text-gray-900">{record.fullName}</td>
                       <td className="px-4 py-3">
-                        <Badge 
-                          variant={record.employeeGroup === 'group_a' ? 'default' : 'secondary'}
-                          className={
-                            record.employeeGroup === 'group_a' 
-                              ? 'bg-blue-100 text-blue-800 border-blue-200' 
-                              : 'bg-purple-100 text-purple-800 border-purple-200'
-                          }
-                        >
+                        <Badge variant={record.employeeGroup === 'group_a' ? 'default' : 'secondary'}>
                           {record.employeeGroup === 'group_a' ? 'Group A' : 'Group B'}
                         </Badge>
                       </td>
@@ -1428,21 +1360,13 @@ export default function Reports() {
                             record.status === 'half_day' ? 'destructive' : 
                             record.status === 'late' ? 'secondary' : 'default'
                           }
-                          className={
-                            record.status === 'half_day' ? 'bg-red-100 text-red-800 border-red-200' :
-                            record.status === 'late' ? 'bg-orange-100 text-orange-800 border-orange-200' :
-                            'bg-green-100 text-green-800 border-green-200'
-                          }
                         >
                           {record.status === 'half_day' ? 'Half Day' : 
                            record.status === 'late' ? 'Late' : record.status}
                         </Badge>
                       </td>
                       <td className="px-4 py-3">
-                        <span className={`font-bold ${
-                          (record.minutesLate || 0) > 60 ? 'text-red-600' :
-                          (record.minutesLate || 0) > 30 ? 'text-orange-600' : 'text-yellow-600'
-                        }`}>
+                        <span className="font-medium">
                           {record.minutesLate || 0} min
                         </span>
                       </td>
