@@ -1392,12 +1392,7 @@ export default function Settings() {
 
         {/* System Tab */}
         <TabsContent value="system" className="space-y-6">
-          {/* License Information Display */}
-          {license.isValid && (
-            <LicenseInfo />
-          )}
-          
-          {/* License Management */}
+          {/* Combined License Section */}
           <Card className="border border-gray-200">
             <CardHeader>
               <CardTitle className="text-lg font-semibold text-gray-900 flex items-center">
@@ -1405,47 +1400,45 @@ export default function Settings() {
                 License Management
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                <div className="flex items-center">
+            <CardContent className="space-y-4">
+              {/* License Status and Input */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {/* License Status */}
+                <div className="flex items-center p-3 bg-gray-50 rounded-lg">
                   {license.isValid ? (
                     <CheckCircle className="w-5 h-5 mr-3 text-green-600" />
                   ) : (
                     <XCircle className="w-5 h-5 mr-3 text-red-600" />
                   )}
                   <div>
-                    <div className="font-medium">
-                      {license.isValid ? 'License Valid' : 'License Required'}
+                    <div className="font-medium text-sm">
+                      {license.isValid ? 'License Active' : 'License Required'}
                     </div>
-                    <div className="text-sm text-gray-500">
-                      {license.isValid 
-                        ? `Licensed to: ${license.licensedTo || 'Ministry of Finance'}`
-                        : 'Enter a valid license key to use the system'
-                      }
-                    </div>
-                  </div>
-                </div>
-                {license.isValid && (
-                  <div className="text-right">
-                    <div className="text-sm font-medium">Valid Until</div>
                     <div className="text-xs text-gray-500">
-                      Unlimited
+                      {license.isValid ? license.tier : 'Enter license key'}
                     </div>
                   </div>
-                )}
-              </div>
-              
-              <div className="space-y-4">
+                  {license.isValid && (
+                    <div className="ml-auto text-right">
+                      <div className="text-xs font-medium">Valid Until</div>
+                      <div className="text-xs text-gray-500">Unlimited</div>
+                    </div>
+                  )}
+                </div>
+                
+                {/* License Input */}
                 <div className="space-y-2">
-                  <Label htmlFor="licenseKey">License Key</Label>
+                  <Label htmlFor="licenseKey" className="text-sm">License Key</Label>
                   <div className="flex gap-2">
                     <Input
                       id="licenseKey"
                       type="text"
                       placeholder="XXXX-XXXX-XXXX-XXXX"
                       defaultValue={license.licenseKey}
+                      className="text-sm"
                     />
                     <Button 
+                      size="sm"
                       onClick={() => {
                         const key = (document.getElementById('licenseKey') as HTMLInputElement)?.value;
                         if (!key) {
@@ -1459,7 +1452,7 @@ export default function Settings() {
                         const isValid = validateLicense(key);
                         toast({
                           title: isValid ? "License Valid" : "Invalid License",
-                          description: isValid ? "License has been activated successfully" : "Please enter a valid license key",
+                          description: isValid ? "License activated successfully" : "Please enter a valid license key",
                           variant: isValid ? "default" : "destructive"
                         });
                       }}
@@ -1468,38 +1461,31 @@ export default function Settings() {
                     </Button>
                   </div>
                 </div>
-                
-                {license.isValid && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 p-4 bg-green-50 rounded-lg border border-green-200">
-                    <div>
-                      <div className="text-sm font-medium text-green-800">Status</div>
-                      <div className="text-xs text-green-600">Active</div>
-                    </div>
-                    <div>
-                      <div className="text-sm font-medium text-green-800">Tier</div>
-                      <div className="text-xs text-green-600">{license.tier}</div>
-                    </div>
-                    <div>
-                      <div className="text-sm font-medium text-green-800">Web Logins</div>
-                      <div className="text-xs text-green-600">
-                        {license.currentLogins}/{license.maxWebLogins === 999 ? '∞' : license.maxWebLogins}
-                      </div>
-                    </div>
-                    <div>
-                      <div className="text-sm font-medium text-green-800">Features</div>
-                      <div className="text-xs text-green-600">
-                        {license.features.length} enabled
-                      </div>
-                    </div>
-                    <div className="md:col-span-2 lg:col-span-4">
-                      <div className="text-sm font-medium text-green-800 mb-1">Available Features:</div>
-                      <div className="text-xs text-green-600">
-                        {license.features.join(' • ')}
-                      </div>
+              </div>
+              
+              {/* License Details (Compact) */}
+              {license.isValid && (
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 p-3 bg-green-50 rounded-lg border border-green-200">
+                  <div className="text-center">
+                    <div className="text-xs font-medium text-green-800">Tier</div>
+                    <div className="text-xs text-green-600">{license.tier}</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-xs font-medium text-green-800">Logins</div>
+                    <div className="text-xs text-green-600">
+                      {license.currentLogins}/{license.maxWebLogins === 999 ? '∞' : license.maxWebLogins}
                     </div>
                   </div>
-                )}
-              </div>
+                  <div className="text-center">
+                    <div className="text-xs font-medium text-green-800">Features</div>
+                    <div className="text-xs text-green-600">{license.features.length}</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-xs font-medium text-green-800">Licensed To</div>
+                    <div className="text-xs text-green-600">MOF</div>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
 
