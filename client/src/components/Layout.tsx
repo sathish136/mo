@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { Building, ChartLine, Users, Clock, Calendar, Watch, ChartBar, Settings, User, Bell, UserCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -18,6 +18,42 @@ const navigation = [
 export default function Layout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [companyInfo, setCompanyInfo] = useState({
+    companyName: "WTT INTERNATIONAL",
+    tagline: "Water Loving Technology"
+  });
+
+  // Load company settings for sidebar
+  useEffect(() => {
+    const fetchCompanySettings = async () => {
+      try {
+        const response = await fetch("/api/company-settings");
+        if (response.ok) {
+          const data = await response.json();
+          setCompanyInfo({
+            companyName: data.companyName || "WTT INTERNATIONAL",
+            tagline: data.tagline || "Water Loving Technology"
+          });
+        }
+      } catch (error) {
+        console.error("Failed to fetch company settings for sidebar:", error);
+      }
+    };
+
+    fetchCompanySettings();
+    
+    // Listen for company settings updates
+    const handleCompanyUpdate = () => {
+      fetchCompanySettings();
+    };
+    
+    // Custom event listener for real-time updates
+    window.addEventListener('companySettingsUpdated', handleCompanyUpdate);
+    
+    return () => {
+      window.removeEventListener('companySettingsUpdated', handleCompanyUpdate);
+    };
+  }, []);
 
   return (
     <div className="flex h-screen bg-gray-50">
@@ -30,8 +66,8 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               <Building className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h1 className="text-white font-semibold text-sm">WTT INTERNATIONAL</h1>
-              <p className="text-slate-300 text-xs">Water Loving Technology</p>
+              <h1 className="text-white font-semibold text-sm">{companyInfo.companyName}</h1>
+              <p className="text-slate-300 text-xs">{companyInfo.tagline}</p>
             </div>
           </div>
         </div>

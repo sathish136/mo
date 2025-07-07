@@ -116,6 +116,8 @@ export default function Settings() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/company-settings"] });
+      // Trigger immediate sidebar update
+      window.dispatchEvent(new CustomEvent('companySettingsUpdated'));
       toast({
         title: "Success",
         description: "Company settings saved successfully",
