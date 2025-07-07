@@ -25,7 +25,11 @@
     },
     "overtimePolicy": {
       "normalDay": {
-        "minHoursForOT": 9.5
+        "minHoursForOT": 7.5,
+        "saturdaySundayFullOT": true
+      },
+      "holiday": {
+        "allHoursAsOT": true
       }
     }
   },
@@ -54,6 +58,7 @@
     },
     "overtimePolicy": {
       "normalDay": {
+        "minHoursForOT": 7,
         "saturdaySundayFullOT": true,
         "preApprovalRequired": true
       },

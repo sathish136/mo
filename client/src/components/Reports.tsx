@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { FileText, Download, Calendar, Users, Clock, TrendingUp } from "lucide-react";
+import { FileText, Download, Calendar, Users, Clock, TrendingUp, AlertTriangle, Settings } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -1191,94 +1191,269 @@ export default function Reports() {
   const renderLateArrivalReport = () => {
     if (isLateArrivalLoading) {
       return (
-        <Card>
-          <CardContent className="p-6">
-            <div className="text-center text-gray-500">Loading late arrival report...</div>
-          </CardContent>
-        </Card>
+        <div className="bg-gradient-to-br from-orange-50 to-red-50 min-h-screen p-6">
+          <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm">
+            <CardContent className="p-8 flex items-center justify-center">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600 mx-auto mb-4"></div>
+                <div className="text-lg text-gray-600">Loading late arrival report...</div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       );
     }
 
     if (!lateArrivalData || lateArrivalData.length === 0) {
       return (
-        <Card>
-          <CardContent className="p-6">
-            <div className="text-center text-gray-500">No late arrival data found for the selected period.</div>
-          </CardContent>
-        </Card>
+        <div className="bg-gradient-to-br from-orange-50 to-red-50 min-h-screen p-6">
+          <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm">
+            <CardHeader className="bg-gradient-to-r from-orange-600 to-red-600 text-white rounded-t-lg">
+              <CardTitle className="flex items-center gap-3 text-xl">
+                <Clock className="h-6 w-6" />
+                Late Arrival Report
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-8">
+              <div className="text-center py-12">
+                <Clock className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                <div className="text-xl text-gray-500 mb-2">No Late Arrivals Found</div>
+                <div className="text-gray-400">No late arrival data found for the selected period.</div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       );
     }
 
+    // Calculate summary statistics
+    const totalLateArrivals = lateArrivalData.length;
+    const groupACount = lateArrivalData.filter((record: any) => record.employeeGroup === 'group_a').length;
+    const groupBCount = lateArrivalData.filter((record: any) => record.employeeGroup === 'group_b').length;
+    const halfDayCount = lateArrivalData.filter((record: any) => record.status === 'half_day').length;
+    const avgMinutesLate = lateArrivalData.reduce((sum: number, record: any) => sum + (record.minutesLate || 0), 0) / totalLateArrivals;
+
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Clock className="h-5 w-5" />
-            Late Arrival Report
-          </CardTitle>
-          {groupSettings && (
-            <div className="text-sm text-gray-600 bg-blue-50 p-3 rounded-lg">
-              <h4 className="font-semibold mb-2">Current Policy Settings:</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="bg-gradient-to-br from-orange-50 to-red-50 min-h-screen p-6">
+        {/* Header Section */}
+        <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm mb-6">
+          <CardHeader className="bg-gradient-to-r from-orange-600 to-red-600 text-white rounded-t-lg">
+            <CardTitle className="flex items-center gap-3 text-2xl">
+              <Clock className="h-8 w-8" />
+              Late Arrival Report
+              <span className="ml-auto text-sm bg-white/20 px-3 py-1 rounded-full">
+                {new Date(startDate).toLocaleDateString()} - {new Date(endDate).toLocaleDateString()}
+              </span>
+            </CardTitle>
+          </CardHeader>
+        </Card>
+
+        {/* Statistics Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+          <Card className="bg-gradient-to-br from-red-500 to-red-600 text-white shadow-lg border-0">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
                 <div>
-                  <strong>Group A:</strong>
-                  <ul className="ml-4 list-disc">
-                    <li>Grace Period: Until {groupSettings.groupA?.lateArrivalPolicy?.gracePeriodUntil}</li>
-                    <li>Late: After {groupSettings.groupA?.lateArrivalPolicy?.gracePeriodUntil}</li>
-                    <li>Half Day: After {groupSettings.groupA?.lateArrivalPolicy?.halfDayAfter}</li>
-                  </ul>
+                  <h3 className="text-sm font-medium text-red-100">Total Late Arrivals</h3>
+                  <p className="text-3xl font-bold">{totalLateArrivals}</p>
                 </div>
+                <Clock className="h-8 w-8 text-red-200" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-orange-500 to-orange-600 text-white shadow-lg border-0">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
                 <div>
-                  <strong>Group B:</strong>
-                  <ul className="ml-4 list-disc">
-                    <li>Grace Period: Until {groupSettings.groupB?.lateArrivalPolicy?.gracePeriodUntil}</li>
-                    <li>Late: After {groupSettings.groupB?.lateArrivalPolicy?.gracePeriodUntil}</li>
-                    <li>Half Day: After {groupSettings.groupB?.lateArrivalPolicy?.halfDayAfter}</li>
-                  </ul>
+                  <h3 className="text-sm font-medium text-orange-100">Half Day Violations</h3>
+                  <p className="text-3xl font-bold">{halfDayCount}</p>
+                </div>
+                <AlertTriangle className="h-8 w-8 text-orange-200" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-lg border-0">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-medium text-blue-100">Group A Late</h3>
+                  <p className="text-3xl font-bold">{groupACount}</p>
+                </div>
+                <Users className="h-8 w-8 text-blue-200" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-purple-500 to-purple-600 text-white shadow-lg border-0">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-medium text-purple-100">Group B Late</h3>
+                  <p className="text-3xl font-bold">{groupBCount}</p>
+                </div>
+                <Users className="h-8 w-8 text-purple-200" />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Policy Settings */}
+        {groupSettings && (
+          <Card className="shadow-lg border-0 bg-white/90 backdrop-blur-sm mb-6">
+            <CardHeader className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-t-lg">
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Settings className="h-5 w-5" />
+                Current Policy Settings
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="bg-blue-50 p-4 rounded-lg border-l-4 border-blue-500">
+                  <h4 className="font-semibold text-blue-800 mb-3 flex items-center gap-2">
+                    <Badge variant="default" className="bg-blue-600">Group A</Badge>
+                    Policy Rules
+                  </h4>
+                  <div className="space-y-2 text-sm text-blue-700">
+                    <div className="flex justify-between">
+                      <span>Grace Period:</span>
+                      <span className="font-medium">Until {groupSettings.groupA?.lateArrivalPolicy?.gracePeriodUntil}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Late Arrival:</span>
+                      <span className="font-medium">After {groupSettings.groupA?.lateArrivalPolicy?.gracePeriodUntil}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Half Day Rule:</span>
+                      <span className="font-medium">After {groupSettings.groupA?.lateArrivalPolicy?.halfDayAfter}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-purple-50 p-4 rounded-lg border-l-4 border-purple-500">
+                  <h4 className="font-semibold text-purple-800 mb-3 flex items-center gap-2">
+                    <Badge variant="secondary" className="bg-purple-600 text-white">Group B</Badge>
+                    Policy Rules
+                  </h4>
+                  <div className="space-y-2 text-sm text-purple-700">
+                    <div className="flex justify-between">
+                      <span>Grace Period:</span>
+                      <span className="font-medium">Until {groupSettings.groupB?.lateArrivalPolicy?.gracePeriodUntil}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Late Arrival:</span>
+                      <span className="font-medium">After {groupSettings.groupB?.lateArrivalPolicy?.gracePeriodUntil}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Half Day Rule:</span>
+                      <span className="font-medium">After {groupSettings.groupB?.lateArrivalPolicy?.halfDayAfter}</span>
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <table className="min-w-full border-collapse border border-gray-300">
-              <thead>
-                <tr className="bg-gray-50">
-                  <th className="border border-gray-300 px-4 py-2 text-left">Employee ID</th>
-                  <th className="border border-gray-300 px-4 py-2 text-left">Name</th>
-                  <th className="border border-gray-300 px-4 py-2 text-left">Group</th>
-                  <th className="border border-gray-300 px-4 py-2 text-left">Date</th>
-                  <th className="border border-gray-300 px-4 py-2 text-left">Check In Time</th>
-                  <th className="border border-gray-300 px-4 py-2 text-left">Status</th>
-                  <th className="border border-gray-300 px-4 py-2 text-left">Minutes Late</th>
-                </tr>
-              </thead>
-              <tbody>
-                {lateArrivalData.map((record: any, index: number) => (
-                  <tr key={index} className="hover:bg-gray-50">
-                    <td className="border border-gray-300 px-4 py-2">{record.employeeId}</td>
-                    <td className="border border-gray-300 px-4 py-2">{record.fullName}</td>
-                    <td className="border border-gray-300 px-4 py-2">
-                      <Badge variant={record.employeeGroup === 'group_a' ? 'default' : 'secondary'}>
-                        {record.employeeGroup === 'group_a' ? 'Group A' : 'Group B'}
-                      </Badge>
-                    </td>
-                    <td className="border border-gray-300 px-4 py-2">{new Date(record.date).toLocaleDateString()}</td>
-                    <td className="border border-gray-300 px-4 py-2">{record.checkInTime || 'N/A'}</td>
-                    <td className="border border-gray-300 px-4 py-2">
-                      <Badge variant={record.status === 'late' ? 'destructive' : record.status === 'half_day' ? 'secondary' : 'default'}>
-                        {record.status}
-                      </Badge>
-                    </td>
-                    <td className="border border-gray-300 px-4 py-2">{record.minutesLate || 0}</td>
+
+              <div className="mt-4 p-4 bg-amber-50 rounded-lg border border-amber-200">
+                <div className="flex items-center gap-2 text-amber-800 mb-2">
+                  <TrendingUp className="h-4 w-4" />
+                  <span className="font-medium">Report Summary</span>
+                </div>
+                <div className="text-sm text-amber-700">
+                  Average minutes late: <span className="font-bold">{avgMinutesLate.toFixed(1)} minutes</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Late Arrival Records Table */}
+        <Card className="shadow-lg border-0 bg-white/90 backdrop-blur-sm">
+          <CardHeader className="bg-gradient-to-r from-gray-700 to-gray-800 text-white rounded-t-lg">
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <FileText className="h-5 w-5" />
+              Late Arrival Records ({totalLateArrivals} entries)
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-xs">
+                <thead>
+                  <tr className="bg-gray-100 border-b border-gray-200">
+                    <th className="px-4 py-3 text-left font-semibold text-gray-700">S.No</th>
+                    <th className="px-4 py-3 text-left font-semibold text-gray-700">Employee ID</th>
+                    <th className="px-4 py-3 text-left font-semibold text-gray-700">Employee Name</th>
+                    <th className="px-4 py-3 text-left font-semibold text-gray-700">Group</th>
+                    <th className="px-4 py-3 text-left font-semibold text-gray-700">Date</th>
+                    <th className="px-4 py-3 text-left font-semibold text-gray-700">Check In Time</th>
+                    <th className="px-4 py-3 text-left font-semibold text-gray-700">Status</th>
+                    <th className="px-4 py-3 text-left font-semibold text-gray-700">Minutes Late</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </CardContent>
-      </Card>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {lateArrivalData.map((record: any, index: number) => (
+                    <tr 
+                      key={index} 
+                      className={`hover:bg-gradient-to-r hover:from-orange-50 hover:to-red-50 transition-colors duration-200 ${
+                        record.status === 'half_day' ? 'bg-red-50' : 'bg-white'
+                      }`}
+                    >
+                      <td className="px-4 py-3 text-gray-600 font-medium">{index + 1}</td>
+                      <td className="px-4 py-3 text-gray-900 font-medium">{record.employeeId}</td>
+                      <td className="px-4 py-3 text-gray-900">{record.fullName}</td>
+                      <td className="px-4 py-3">
+                        <Badge 
+                          variant={record.employeeGroup === 'group_a' ? 'default' : 'secondary'}
+                          className={
+                            record.employeeGroup === 'group_a' 
+                              ? 'bg-blue-100 text-blue-800 border-blue-200' 
+                              : 'bg-purple-100 text-purple-800 border-purple-200'
+                          }
+                        >
+                          {record.employeeGroup === 'group_a' ? 'Group A' : 'Group B'}
+                        </Badge>
+                      </td>
+                      <td className="px-4 py-3 text-gray-700">
+                        {new Date(record.date).toLocaleDateString('en-GB', { 
+                          day: '2-digit', 
+                          month: 'short', 
+                          year: 'numeric' 
+                        })}
+                      </td>
+                      <td className="px-4 py-3 text-gray-700 font-mono">
+                        {record.checkInTime || 'N/A'}
+                      </td>
+                      <td className="px-4 py-3">
+                        <Badge 
+                          variant={
+                            record.status === 'half_day' ? 'destructive' : 
+                            record.status === 'late' ? 'secondary' : 'default'
+                          }
+                          className={
+                            record.status === 'half_day' ? 'bg-red-100 text-red-800 border-red-200' :
+                            record.status === 'late' ? 'bg-orange-100 text-orange-800 border-orange-200' :
+                            'bg-green-100 text-green-800 border-green-200'
+                          }
+                        >
+                          {record.status === 'half_day' ? 'Half Day' : 
+                           record.status === 'late' ? 'Late' : record.status}
+                        </Badge>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className={`font-bold ${
+                          (record.minutesLate || 0) > 60 ? 'text-red-600' :
+                          (record.minutesLate || 0) > 30 ? 'text-orange-600' : 'text-yellow-600'
+                        }`}>
+                          {record.minutesLate || 0} min
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     );
   };
 
