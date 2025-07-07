@@ -162,22 +162,7 @@ export default function Login() {
           </CardContent>
         </Card>
 
-        {/* Demo Credentials */}
-        <Card className="bg-amber-50 border-amber-200">
-          <CardContent className="p-4">
-            <div className="flex items-start space-x-2">
-              <AlertCircle className="w-4 h-4 text-amber-600 mt-0.5" />
-              <div className="text-sm">
-                <p className="font-medium text-amber-800">Demo Access</p>
-                <p className="text-amber-700 mt-1">
-                  Username: <code className="bg-amber-100 px-1 rounded">admin</code>
-                  <br />
-                  Password: <code className="bg-amber-100 px-1 rounded">admin123</code>
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+
       </div>
     </div>
   );

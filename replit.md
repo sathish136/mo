@@ -325,5 +325,5 @@ Changelog:
     - Updated license system to show "Ministry of Finance" instead of company branding
     - Fixed JavaScript errors (rememberMe variable) for proper functionality
     - Maintained clean light blue gradient background design
-    - Professional styling with clear demo credentials display (admin/admin123)
+    - Removed demo credentials display for cleaner professional appearance
     - Modified LicenseGuard to allow login page access without license validation
