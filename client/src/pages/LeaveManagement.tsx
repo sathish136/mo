@@ -95,9 +95,11 @@ export default function LeaveManagement() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(data),
+        credentials: "include",
       });
       if (!response.ok) {
-        throw new Error("Failed to create leave request");
+        const errorText = await response.text();
+        throw new Error(`Failed to create leave request: ${errorText}`);
       }
       return response.json();
     },
@@ -127,9 +129,11 @@ export default function LeaveManagement() {
           approvedAt: new Date().toISOString(),
           rejectionReason: reason 
         }),
+        credentials: "include",
       });
       if (!response.ok) {
-        throw new Error("Failed to update leave request");
+        const errorText = await response.text();
+        throw new Error(`Failed to update leave request: ${errorText}`);
       }
       return response.json();
     },
@@ -320,11 +324,11 @@ export default function LeaveManagement() {
                               <SelectValue placeholder="Select leave type" />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="annual">Annual Leave</SelectItem>
-                              <SelectItem value="sick">Sick Leave</SelectItem>
-                              <SelectItem value="casual">Casual Leave</SelectItem>
-                              <SelectItem value="maternity">Maternity Leave</SelectItem>
-                              <SelectItem value="paternity">Paternity Leave</SelectItem>
+                              {leaveTypes.map((leaveType) => (
+                                <SelectItem key={leaveType.id} value={leaveType.name}>
+                                  {leaveType.description || leaveType.name.charAt(0).toUpperCase() + leaveType.name.slice(1)} Leave
+                                </SelectItem>
+                              ))}
                             </SelectContent>
                           </Select>
                         </FormControl>
