@@ -1519,102 +1519,175 @@ export default function Reports() {
   const renderShortLeaveUsageReport = () => {
     if (isShortLeaveUsageLoading) {
       return (
-        <Card>
-          <CardContent className="p-6">
-            <div className="text-center text-gray-500">Loading short leave usage report...</div>
-          </CardContent>
-        </Card>
+        <div className="p-6">
+          <Card className="shadow-sm border border-gray-200">
+            <CardContent className="p-8 flex items-center justify-center">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-600 mx-auto mb-4"></div>
+                <div className="text-lg text-gray-600">Loading short leave usage report...</div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       );
     }
 
     if (!shortLeaveUsageData || shortLeaveUsageData.length === 0) {
       return (
-        <Card>
-          <CardContent className="p-6">
-            <div className="text-center text-gray-500">No short leave usage data found for the selected period.</div>
-          </CardContent>
-        </Card>
+        <div className="p-6">
+          <Card className="shadow-sm border border-gray-200">
+            <CardContent className="p-8">
+              <div className="text-center py-12">
+                <Users className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                <div className="text-xl text-gray-500 mb-2">No Short Leave Usage Data Found</div>
+                <div className="text-gray-400">No short leave usage data found for the selected period.</div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       );
     }
 
+    const totalShortLeaveRecords = shortLeaveUsageData.length;
+
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Users className="h-5 w-5" />
-            Short Leave Usage Report
-          </CardTitle>
-          {groupSettings && (
-            <div className="text-sm text-gray-600 bg-cyan-50 p-3 rounded-lg">
-              <h4 className="font-semibold mb-2">Current Policy Settings:</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <strong>Group A:</strong>
-                  <ul className="ml-4 list-disc">
-                    <li>Max per month: {groupSettings.groupA?.shortLeavePolicy?.maxPerMonth}</li>
-                    <li>Morning: {groupSettings.groupA?.shortLeavePolicy?.morningStart} - {groupSettings.groupA?.shortLeavePolicy?.morningEnd}</li>
-                    <li>Evening: {groupSettings.groupA?.shortLeavePolicy?.eveningStart} - {groupSettings.groupA?.shortLeavePolicy?.eveningEnd}</li>
-                    <li>Pre-approval: {groupSettings.groupA?.shortLeavePolicy?.preApprovalRequired ? 'Required' : 'Not Required'}</li>
-                  </ul>
+      <div className="p-6">
+        {/* Policy Settings */}
+        {groupSettings && (
+          <Card className="shadow-sm border border-gray-200 mb-6">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Settings className="h-5 w-5" />
+                Current Policy Settings
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                  <h4 className="font-semibold text-blue-800 mb-3 flex items-center gap-2">
+                    <Badge variant="default" className="bg-blue-600">Group A</Badge>
+                    Short Leave Policy
+                  </h4>
+                  <div className="space-y-2 text-sm text-blue-700">
+                    <div className="flex justify-between">
+                      <span>Max per month:</span>
+                      <span className="font-medium">{groupSettings.groupA?.shortLeavePolicy?.maxPerMonth}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Morning:</span>
+                      <span className="font-medium">{groupSettings.groupA?.shortLeavePolicy?.morningStart} - {groupSettings.groupA?.shortLeavePolicy?.morningEnd}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Evening:</span>
+                      <span className="font-medium">{groupSettings.groupA?.shortLeavePolicy?.eveningStart} - {groupSettings.groupA?.shortLeavePolicy?.eveningEnd}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Pre-approval:</span>
+                      <span className="font-medium">{groupSettings.groupA?.shortLeavePolicy?.preApprovalRequired ? 'Required' : 'Not Required'}</span>
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <strong>Group B:</strong>
-                  <ul className="ml-4 list-disc">
-                    <li>Max per month: {groupSettings.groupB?.shortLeavePolicy?.maxPerMonth}</li>
-                    <li>Morning: {groupSettings.groupB?.shortLeavePolicy?.morningStart} - {groupSettings.groupB?.shortLeavePolicy?.morningEnd}</li>
-                    <li>Evening: {groupSettings.groupB?.shortLeavePolicy?.eveningStart} - {groupSettings.groupB?.shortLeavePolicy?.eveningEnd}</li>
-                    <li>Pre-approval: {groupSettings.groupB?.shortLeavePolicy?.preApprovalRequired ? 'Required' : 'Not Required'}</li>
-                  </ul>
+
+                <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
+                  <h4 className="font-semibold text-purple-800 mb-3 flex items-center gap-2">
+                    <Badge variant="secondary" className="bg-purple-600 text-white">Group B</Badge>
+                    Short Leave Policy
+                  </h4>
+                  <div className="space-y-2 text-sm text-purple-700">
+                    <div className="flex justify-between">
+                      <span>Max per month:</span>
+                      <span className="font-medium">{groupSettings.groupB?.shortLeavePolicy?.maxPerMonth}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Morning:</span>
+                      <span className="font-medium">{groupSettings.groupB?.shortLeavePolicy?.morningStart} - {groupSettings.groupB?.shortLeavePolicy?.morningEnd}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Evening:</span>
+                      <span className="font-medium">{groupSettings.groupB?.shortLeavePolicy?.eveningStart} - {groupSettings.groupB?.shortLeavePolicy?.eveningEnd}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Pre-approval:</span>
+                      <span className="font-medium">{groupSettings.groupB?.shortLeavePolicy?.preApprovalRequired ? 'Required' : 'Not Required'}</span>
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <table className="min-w-full border-collapse border border-gray-300">
-              <thead>
-                <tr className="bg-gray-50">
-                  <th className="border border-gray-300 px-4 py-2 text-left">Employee ID</th>
-                  <th className="border border-gray-300 px-4 py-2 text-left">Name</th>
-                  <th className="border border-gray-300 px-4 py-2 text-left">Group</th>
-                  <th className="border border-gray-300 px-4 py-2 text-left">Month</th>
-                  <th className="border border-gray-300 px-4 py-2 text-left">Short Leaves Used</th>
-                  <th className="border border-gray-300 px-4 py-2 text-left">Remaining</th>
-                  <th className="border border-gray-300 px-4 py-2 text-left">Usage %</th>
-                  <th className="border border-gray-300 px-4 py-2 text-left">Last Used</th>
-                </tr>
-              </thead>
-              <tbody>
-                {shortLeaveUsageData.map((record: any, index: number) => (
-                  <tr key={index} className="hover:bg-gray-50">
-                    <td className="border border-gray-300 px-4 py-2">{record.employeeId}</td>
-                    <td className="border border-gray-300 px-4 py-2">{record.fullName}</td>
-                    <td className="border border-gray-300 px-4 py-2">
-                      <Badge variant={record.employeeGroup === 'group_a' ? 'default' : 'secondary'}>
-                        {record.employeeGroup === 'group_a' ? 'Group A' : 'Group B'}
-                      </Badge>
-                    </td>
-                    <td className="border border-gray-300 px-4 py-2">{record.month}</td>
-                    <td className="border border-gray-300 px-4 py-2">
-                      <Badge variant={record.shortLeavesUsed >= record.maxAllowed ? 'destructive' : 'default'}>
-                        {record.shortLeavesUsed} / {record.maxAllowed}
-                      </Badge>
-                    </td>
-                    <td className="border border-gray-300 px-4 py-2">{record.remaining}</td>
-                    <td className="border border-gray-300 px-4 py-2">
-                      <Badge variant={record.usagePercentage >= 100 ? 'destructive' : record.usagePercentage >= 50 ? 'secondary' : 'default'}>
-                        {record.usagePercentage}%
-                      </Badge>
-                    </td>
-                    <td className="border border-gray-300 px-4 py-2">{record.lastUsed || 'Never'}</td>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Short Leave Usage Records Table */}
+        <Card className="shadow-sm border border-gray-200">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <FileText className="h-5 w-5" />
+              Short Leave Usage Records ({totalShortLeaveRecords} entries)
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-xs border-collapse">
+                <thead>
+                  <tr className="bg-gray-50 border-b-2 border-gray-200">
+                    <th className="px-3 py-2 text-left font-semibold text-gray-700 border-r border-gray-200">S.No</th>
+                    <th className="px-3 py-2 text-left font-semibold text-gray-700 border-r border-gray-200">Employee ID</th>
+                    <th className="px-3 py-2 text-left font-semibold text-gray-700 border-r border-gray-200">Employee Name</th>
+                    <th className="px-3 py-2 text-left font-semibold text-gray-700 border-r border-gray-200">Group</th>
+                    <th className="px-3 py-2 text-left font-semibold text-gray-700 border-r border-gray-200">Month</th>
+                    <th className="px-3 py-2 text-left font-semibold text-gray-700 border-r border-gray-200">Used</th>
+                    <th className="px-3 py-2 text-left font-semibold text-gray-700 border-r border-gray-200">Remaining</th>
+                    <th className="px-3 py-2 text-left font-semibold text-gray-700 border-r border-gray-200">Usage %</th>
+                    <th className="px-3 py-2 text-left font-semibold text-gray-700">Last Used</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </CardContent>
-      </Card>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {shortLeaveUsageData.map((record: any, index: number) => (
+                    <tr 
+                      key={index} 
+                      className={`hover:bg-gray-50 transition-colors duration-150 ${
+                        record.employeeGroup === 'group_a' ? 'bg-blue-50' : 'bg-purple-50'
+                      }`}
+                    >
+                      <td className="px-3 py-2 text-gray-700 font-medium border-r border-gray-200">{index + 1}</td>
+                      <td className="px-3 py-2 text-gray-900 font-semibold border-r border-gray-200">{record.employeeId}</td>
+                      <td className="px-3 py-2 text-gray-900 border-r border-gray-200">{record.fullName}</td>
+                      <td className="px-3 py-2 border-r border-gray-200">
+                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                          record.employeeGroup === 'group_a' 
+                            ? 'bg-blue-100 text-blue-800 border border-blue-200' 
+                            : 'bg-purple-100 text-purple-800 border border-purple-200'
+                        }`}>
+                          {record.employeeGroup === 'group_a' ? 'Group A' : 'Group B'}
+                        </span>
+                      </td>
+                      <td className="px-3 py-2 text-gray-700 border-r border-gray-200">{record.month}</td>
+                      <td className="px-3 py-2 text-center border-r border-gray-200">
+                        <span className={`font-semibold ${
+                          record.shortLeavesUsed >= record.maxAllowed ? 'text-red-600' : 'text-gray-900'
+                        }`}>
+                          {record.shortLeavesUsed} / {record.maxAllowed}
+                        </span>
+                      </td>
+                      <td className="px-3 py-2 text-center font-semibold border-r border-gray-200">{record.remaining}</td>
+                      <td className="px-3 py-2 text-center border-r border-gray-200">
+                        <span className={`font-bold ${
+                          record.usagePercentage >= 100 ? 'text-red-600' : 
+                          record.usagePercentage >= 50 ? 'text-orange-600' : 
+                          'text-green-600'
+                        }`}>
+                          {record.usagePercentage}%
+                        </span>
+                      </td>
+                      <td className="px-3 py-2 text-gray-700">{record.lastUsed || 'Never'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     );
   };
 
@@ -1645,7 +1718,7 @@ export default function Reports() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Clock className="h-5 w-5" />
-            Offer-Attendance Report ({formatDate(new Date(startDate))} - {formatDate(new Date(endDate))})
+            1/4 Offer-Attendance Report ({formatDate(new Date(startDate))} - {formatDate(new Date(endDate))})
           </CardTitle>
           <div className="text-sm text-gray-600 space-y-1">
             <p>• Group A: Overtime calculated from 4:15 PM onwards</p>
@@ -1773,15 +1846,11 @@ export default function Reports() {
                 <SelectItem value="late-arrival">Late Arrival Report</SelectItem>
                 <SelectItem value="half-day">Half Day Report</SelectItem>
                 <SelectItem value="short-leave-usage">Short Leave Usage Report</SelectItem>
-                <SelectItem value="offer-attendance">Offer-Attendance Report</SelectItem>
-                <SelectItem value="attendance">Attendance Summary</SelectItem>
-                <SelectItem value="overtime">Overtime Report</SelectItem>
-                <SelectItem value="leave">Leave Report</SelectItem>
-                <SelectItem value="employee">Employee Report</SelectItem>
+                <SelectItem value="offer-attendance">1/4 Offer-Attendance Report</SelectItem>
               </SelectContent>
             </Select>
           </div>
-          {reportType !== "employee" && reportType !== "leave" && reportType !== "overtime" && (
+          {(
             <>
               {reportType === "daily-attendance" || reportType === "daily-ot" ? (
                 <div>
@@ -1852,10 +1921,6 @@ export default function Reports() {
       </Card>
 
       {/* Report Content */}
-      {reportType === "attendance" && renderAttendanceReport()}
-      {reportType === "leave" && renderLeaveReport()}
-      {reportType === "overtime" && renderOvertimeReport()}
-      {reportType === "employee" && renderEmployeeReport()}
       {reportType === "daily-attendance" && renderDailyAttendanceReport()}
       {reportType === "daily-ot" && renderDailyOtReport()}
       {reportType === "monthly-attendance" && renderMonthlyAttendanceSheet()}
