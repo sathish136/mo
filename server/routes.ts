@@ -542,6 +542,81 @@ router.put("/api/overtime-requests/:id", async (req, res) => {
   }
 });
 
+// Get eligible employees for overtime (worked overtime but no request submitted)
+router.get("/api/overtime-eligible", async (req, res) => {
+  try {
+    const { date } = z.object({
+      date: z.string().optional().default(() => new Date().toISOString().split('T')[0])
+    }).parse(req.query);
+
+    const targetDate = new Date(date);
+    const startOfDay = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate());
+    const endOfDay = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate() + 1);
+
+    // Fetch HR policy for group time thresholds
+    const groupWorkingHours = await getGroupWorkingHours();
+
+    // Get all employees
+    const allEmployees = await db.select({
+      id: employees.id,
+      employeeId: employees.employeeId,
+      fullName: employees.fullName,
+      employeeGroup: employees.employeeGroup,
+    }).from(employees);
+
+    // Get attendance records for the date
+    const attendanceRecords = await db.select()
+      .from(attendance)
+      .where(and(
+        gte(attendance.date, startOfDay),
+        lt(attendance.date, endOfDay)
+      ));
+
+    // Get existing overtime requests for the date
+    const existingRequests = await db.select()
+      .from(overtimeRequests)
+      .where(and(
+        gte(overtimeRequests.date, startOfDay),
+        lt(overtimeRequests.date, endOfDay)
+      ));
+
+    const eligibleEmployees = allEmployees.map(emp => {
+      let requiredHours = 8;
+      if (emp.employeeGroup === 'group_a' && groupWorkingHours.groupA?.minHoursForOT) {
+        requiredHours = groupWorkingHours.groupA.minHoursForOT;
+      } else if (emp.employeeGroup === 'group_b' && groupWorkingHours.groupB?.minHoursForOT) {
+        requiredHours = groupWorkingHours.groupB.minHoursForOT;
+      }
+
+      let actualHours = 0;
+      const empAttendance = attendanceRecords.find(a => a.employeeId === emp.id);
+      if (empAttendance && empAttendance.checkIn && empAttendance.checkOut) {
+        const diffMs = new Date(empAttendance.checkOut).getTime() - new Date(empAttendance.checkIn).getTime();
+        actualHours = diffMs / (1000 * 60 * 60);
+      }
+
+      const otHours = Math.max(0, actualHours - requiredHours);
+      const hasExistingRequest = existingRequests.some(req => req.employeeId === emp.id);
+
+      return {
+        ...emp,
+        actualHours: actualHours.toFixed(2),
+        requiredHours: requiredHours.toFixed(2),
+        otHours: otHours.toFixed(2),
+        date: startOfDay.toISOString().split('T')[0],
+        hasOvertimeHours: otHours > 0,
+        hasExistingRequest
+      };
+    })
+    .filter(emp => emp.hasOvertimeHours && !emp.hasExistingRequest);
+
+    res.json(eligibleEmployees);
+  } catch (error) {
+    console.error('Failed to fetch eligible employees:', error);
+    res.status(500).json({ message: 'Failed to fetch eligible employees' });
+  }
+});
+
 // --- Attendance Routes ---
 router.get("/api/attendance/summary", async (req, res) => {
   try {

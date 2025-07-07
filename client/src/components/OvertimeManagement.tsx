@@ -39,12 +39,19 @@ export default function OvertimeManagement() {
     },
   });
 
+  const { data: eligibleEmployees, isLoading: isEligibleLoading } = useQuery({
+    queryKey: ["/api/overtime-eligible"],
+    queryFn: async () => {
+      const response = await fetch("/api/overtime-eligible");
+      if (!response.ok) throw new Error("Failed to fetch eligible employees");
+      return response.json();
+    },
+  });
+
   const createOvertimeRequestMutation = useMutation({
     mutationFn: async (overtimeRequest: InsertOvertimeRequest) => {
-      return await apiRequest("/api/overtime-requests", {
-        method: "POST",
-        body: JSON.stringify(overtimeRequest),
-      });
+      const response = await apiRequest("POST", "/api/overtime-requests", overtimeRequest);
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/overtime-requests"] });
@@ -66,10 +73,8 @@ export default function OvertimeManagement() {
 
   const updateOvertimeRequestMutation = useMutation({
     mutationFn: async ({ id, status }: { id: number; status: string }) => {
-      return await apiRequest(`/api/overtime-requests/${id}`, {
-        method: "PUT",
-        body: JSON.stringify({ status }),
-      });
+      const response = await apiRequest("PUT", `/api/overtime-requests/${id}`, { status });
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/overtime-requests"] });
@@ -82,6 +87,68 @@ export default function OvertimeManagement() {
       toast({
         title: "Error",
         description: error.message || "Failed to update overtime request",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const approveEligibleEmployeeMutation = useMutation({
+    mutationFn: async (employee: any) => {
+      const overtimeRequest = {
+        employeeId: employee.id,
+        date: new Date(employee.date),
+        startTime: new Date(),
+        endTime: new Date(),
+        hours: employee.otHours,
+        reason: "Auto-approved for overtime hours worked",
+        status: "approved",
+      };
+      const response = await apiRequest("POST", "/api/overtime-requests", overtimeRequest);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/overtime-requests"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/overtime-eligible"] });
+      toast({
+        title: "Success",
+        description: "Overtime approved successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to approve overtime",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const rejectEligibleEmployeeMutation = useMutation({
+    mutationFn: async (employee: any) => {
+      const overtimeRequest = {
+        employeeId: employee.id,
+        date: new Date(employee.date),
+        startTime: new Date(),
+        endTime: new Date(),
+        hours: employee.otHours,
+        reason: "Rejected - overtime not authorized",
+        status: "rejected",
+      };
+      const response = await apiRequest("POST", "/api/overtime-requests", overtimeRequest);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/overtime-requests"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/overtime-eligible"] });
+      toast({
+        title: "Success",
+        description: "Overtime rejected successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to reject overtime",
         variant: "destructive",
       });
     },
@@ -350,6 +417,106 @@ export default function OvertimeManagement() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Eligible Employees for Overtime Approval */}
+      {eligibleEmployees && eligibleEmployees.length > 0 && (
+        <Card className="border border-orange-200 bg-orange-50">
+          <CardHeader>
+            <CardTitle className="text-lg font-semibold text-orange-900 flex items-center gap-2">
+              <AlertCircle className="w-5 h-5" />
+              Employees Eligible for Overtime Approval ({eligibleEmployees.length})
+            </CardTitle>
+            <p className="text-sm text-orange-700">
+              These employees have worked overtime hours but haven't applied for approval yet.
+            </p>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-orange-100">
+                  <tr>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-orange-800 uppercase tracking-wider">
+                      Employee ID
+                    </th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-orange-800 uppercase tracking-wider">
+                      Name
+                    </th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-orange-800 uppercase tracking-wider">
+                      Group
+                    </th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-orange-800 uppercase tracking-wider">
+                      Date
+                    </th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-orange-800 uppercase tracking-wider">
+                      Actual Hours
+                    </th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-orange-800 uppercase tracking-wider">
+                      Required Hours
+                    </th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-orange-800 uppercase tracking-wider">
+                      OT Hours
+                    </th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-orange-800 uppercase tracking-wider">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-orange-200">
+                  {eligibleEmployees.map((employee: any) => (
+                    <tr key={`${employee.employeeId}-${employee.date}`} className="hover:bg-orange-50">
+                      <td className="px-4 py-2 text-sm font-medium text-gray-900">
+                        {employee.employeeId}
+                      </td>
+                      <td className="px-4 py-2 text-sm text-gray-900">
+                        {employee.fullName}
+                      </td>
+                      <td className="px-4 py-2 text-sm">
+                        <Badge variant={employee.employeeGroup === 'group_a' ? 'default' : 'secondary'}>
+                          {employee.employeeGroup === 'group_a' ? 'Group A' : 'Group B'}
+                        </Badge>
+                      </td>
+                      <td className="px-4 py-2 text-sm text-gray-900">
+                        {new Date(employee.date).toLocaleDateString()}
+                      </td>
+                      <td className="px-4 py-2 text-sm text-gray-900 font-medium">
+                        {employee.actualHours}h
+                      </td>
+                      <td className="px-4 py-2 text-sm text-gray-900">
+                        {employee.requiredHours}h
+                      </td>
+                      <td className="px-4 py-2 text-sm font-bold text-orange-600">
+                        {employee.otHours}h
+                      </td>
+                      <td className="px-4 py-2 text-sm">
+                        <div className="flex space-x-2">
+                          <Button
+                            size="sm"
+                            className="bg-green-600 hover:bg-green-700 text-white"
+                            onClick={() => approveEligibleEmployeeMutation.mutate(employee)}
+                            disabled={approveEligibleEmployeeMutation.isPending || rejectEligibleEmployeeMutation.isPending}
+                          >
+                            <CheckCircle className="w-4 h-4 mr-1" />
+                            Approve
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => rejectEligibleEmployeeMutation.mutate(employee)}
+                            disabled={approveEligibleEmployeeMutation.isPending || rejectEligibleEmployeeMutation.isPending}
+                          >
+                            <XCircle className="w-4 h-4 mr-1" />
+                            Reject
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Overtime Requests Table */}
       <Card className="border border-gray-200">
