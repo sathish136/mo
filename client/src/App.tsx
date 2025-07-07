@@ -17,6 +17,9 @@ import Settings from "@/components/Settings";
 // Renamed from GroupPolicies to HRSettings
 import HRSettings from "@/components/HRSettings";
 import HolidayManagement from "@/components/HolidayManagement";
+import Login from "@/components/Login";
+import UserProfile from "@/components/UserProfile";
+import Notifications from "@/components/Notifications";
 
 function App() {
   const [showSplash, setShowSplash] = useState(true);
@@ -57,6 +60,9 @@ function App() {
             <Route path="/reports" component={Reports} />
             <Route path="/settings" component={Settings} />
             <Route path="/hr-settings" component={HRSettings} />
+            <Route path="/login" component={Login} />
+            <Route path="/profile" component={UserProfile} />
+            <Route path="/notifications" component={Notifications} />
           </Layout>
           <Toaster />
         </div>

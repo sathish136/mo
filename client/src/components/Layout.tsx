@@ -123,12 +123,16 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                 <p className="text-sm text-slate-600">Welcome back, Admin User</p>
               </div>
               <div className="flex items-center space-x-4">
-                <Button variant="ghost" size="sm" className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100">
-                  <Bell className="w-5 h-5" />
-                </Button>
-                <Button variant="ghost" size="sm" className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100">
-                  <UserCircle className="w-6 h-6" />
-                </Button>
+                <Link href="/notifications">
+                  <Button variant="ghost" size="sm" className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100">
+                    <Bell className="w-5 h-5" />
+                  </Button>
+                </Link>
+                <Link href="/profile">
+                  <Button variant="ghost" size="sm" className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100">
+                    <UserCircle className="w-6 h-6" />
+                  </Button>
+                </Link>
               </div>
             </div>
           </div>

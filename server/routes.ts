@@ -2951,6 +2951,147 @@ export default router;
 export function registerRoutes(app: any) {
   app.use(router);
 
+  // Authentication Routes
+  app.post("/api/auth/login", async (req, res) => {
+    try {
+      const { username, password } = req.body;
+      
+      // Simple demo authentication - in production, use proper password hashing
+      if (username === "admin" && password === "admin123") {
+        const user = {
+          id: "USR001",
+          username: "admin",
+          fullName: "System Administrator",
+          email: "admin@mof.gov.lk",
+          role: "admin",
+          department: "IT Department",
+          position: "System Administrator"
+        };
+        
+        res.json({
+          message: "Login successful",
+          user,
+          token: "demo-jwt-token"
+        });
+      } else {
+        res.status(401).json({ message: "Invalid credentials" });
+      }
+    } catch (error) {
+      console.error("Login error:", error);
+      res.status(500).json({ message: "Login failed" });
+    }
+  });
+
+  app.post("/api/auth/logout", async (req, res) => {
+    try {
+      // Clear any session data here
+      res.json({ message: "Logout successful" });
+    } catch (error) {
+      console.error("Logout error:", error);
+      res.status(500).json({ message: "Logout failed" });
+    }
+  });
+
+  app.get("/api/auth/user", async (req, res) => {
+    try {
+      // In a real app, verify the JWT token here
+      const user = {
+        id: "USR001",
+        username: "admin",
+        fullName: "System Administrator",
+        email: "admin@mof.gov.lk",
+        role: "admin",
+        department: "IT Department",
+        position: "System Administrator"
+      };
+      
+      res.json(user);
+    } catch (error) {
+      console.error("Get user error:", error);
+      res.status(500).json({ message: "Failed to get user" });
+    }
+  });
+
+  // User Notifications API
+  app.get("/api/notifications", async (req, res) => {
+    try {
+      // Mock notifications data for demo
+      const notifications = [
+        {
+          id: 1,
+          title: "Leave Request Approved",
+          message: "Your leave request for July 15-16 has been approved.",
+          type: "success",
+          timestamp: new Date("2025-07-07T09:00:00Z"),
+          read: false,
+          category: "Leave"
+        },
+        {
+          id: 2,
+          title: "Overtime Request Submitted",
+          message: "Your overtime request for July 5 has been submitted and is pending approval.",
+          type: "info",
+          timestamp: new Date("2025-07-06T17:30:00Z"),
+          read: false,
+          category: "Overtime"
+        },
+        {
+          id: 3,
+          title: "System Maintenance",
+          message: "System maintenance scheduled for July 8, 2025 from 10:00 PM to 12:00 AM.",
+          type: "warning",
+          timestamp: new Date("2025-07-05T15:00:00Z"),
+          read: true,
+          category: "System"
+        },
+        {
+          id: 4,
+          title: "Monthly Report Available",
+          message: "June 2025 attendance report is now available for download.",
+          type: "info",
+          timestamp: new Date("2025-07-01T10:00:00Z"),
+          read: true,
+          category: "Reports"
+        },
+        {
+          id: 5,
+          title: "Profile Updated",
+          message: "Your profile information has been successfully updated.",
+          type: "success",
+          timestamp: new Date("2025-06-30T14:20:00Z"),
+          read: true,
+          category: "Profile"
+        }
+      ];
+      
+      res.json(notifications);
+    } catch (error) {
+      console.error("Error fetching notifications:", error);
+      res.status(500).json({ message: "Failed to fetch notifications" });
+    }
+  });
+
+  app.patch("/api/notifications/:id/read", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      // In a real app, update the notification as read in the database
+      res.json({ message: "Notification marked as read", id });
+    } catch (error) {
+      console.error("Error marking notification as read:", error);
+      res.status(500).json({ message: "Failed to update notification" });
+    }
+  });
+
+  app.post("/api/notifications/mark-all-read", async (req, res) => {
+    try {
+      // In a real app, mark all notifications as read in the database
+      res.json({ message: "All notifications marked as read" });
+    } catch (error) {
+      console.error("Error marking all notifications as read:", error);
+      res.status(500).json({ message: "Failed to update notifications" });
+    }
+  });
+
   // Holiday Management Routes  
   app.get("/api/holidays", async (req, res) => {
     try {
