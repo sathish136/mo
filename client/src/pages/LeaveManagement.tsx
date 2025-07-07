@@ -58,14 +58,10 @@ export default function LeaveManagement() {
     queryKey: ["/api/employees"],
   });
 
-  // Get leave types from holiday types instead of separate leave types table
+  // Simple 2-category leave system integrated with holiday data
   const leaveTypes = [
-    { id: 1, name: "annual", description: "Annual Leave" },
-    { id: 2, name: "sick", description: "Sick Leave" },
-    { id: 3, name: "casual", description: "Casual Leave" },
-    { id: 4, name: "maternity", description: "Maternity Leave" },
-    { id: 5, name: "paternity", description: "Paternity Leave" },
-    { id: 6, name: "special", description: "Special Leave" },
+    { id: 1, name: "annual", description: "Annual Leave", maxDays: 21 },
+    { id: 2, name: "special", description: "Special Leave", maxDays: 24 },
   ];
 
   const { data: attendance = [] } = useQuery({
@@ -79,7 +75,7 @@ export default function LeaveManagement() {
   // Define today's date
   const today = new Date().toISOString().split('T')[0];
 
-  // Get absent employees for selected date
+  // Get absent employees for selected date with leave balance info
   const absentEmployees = employees.filter(emp => {
     const hasAttendanceOnDate = attendance.some(att => 
       att.employeeId === emp.id && 
@@ -92,6 +88,30 @@ export default function LeaveManagement() {
       new Date(leave.endDate).toISOString().split('T')[0] >= selectedDate
     );
     return !hasAttendanceOnDate && !hasLeaveOnDate;
+  }).map(emp => {
+    // Calculate used leave days for current year
+    const currentYear = new Date().getFullYear();
+    const usedAnnualDays = leaveRequests.filter(req => 
+      req.employeeId === emp.id && 
+      req.leaveType === 'annual' && 
+      req.status === 'approved' &&
+      new Date(req.startDate).getFullYear() === currentYear
+    ).reduce((total, req) => total + (req.days || 0), 0);
+    
+    const usedSpecialDays = leaveRequests.filter(req => 
+      req.employeeId === emp.id && 
+      req.leaveType === 'special' && 
+      req.status === 'approved' &&
+      new Date(req.startDate).getFullYear() === currentYear
+    ).reduce((total, req) => total + (req.days || 0), 0);
+
+    return {
+      ...emp,
+      leaveBalance: {
+        annual: { used: usedAnnualDays, remaining: 21 - usedAnnualDays },
+        special: { used: usedSpecialDays, remaining: 24 - usedSpecialDays }
+      }
+    };
   });
 
   // Create leave request mutation
@@ -181,12 +201,13 @@ export default function LeaveManagement() {
     createLeaveRequestMutation.mutate(submitData);
   };
 
-  const handleQuickLeaveFromAbsent = (employee: Employee) => {
+  const handleQuickLeaveFromAbsent = (employee: any, leaveType: string) => {
     form.setValue("employeeId", employee.id.toString());
+    form.setValue("leaveType", leaveType);
     form.setValue("startDate", selectedDate);
     form.setValue("endDate", selectedDate);
     form.setValue("days", 1);
-    form.setValue("reason", `Absent on ${selectedDate} - leave request`);
+    form.setValue("reason", `Absent on ${selectedDate} - ${leaveType} leave encashment request`);
     setSelectedEmployee(employee);
     setUseAbsentData(false); // Switch to manual mode to show the form
   };
@@ -260,25 +281,49 @@ export default function LeaveManagement() {
               </div>
             )}
 
-            {/* Absent employees quick selection */}
+            {/* Absent employees leave encashment */}
             {useAbsentData && (
               <div className="mb-4">
                 <h4 className="text-sm font-medium mb-2">
-                  Absent Employees on {new Date(selectedDate).toLocaleDateString()}:
+                  Absent Employees on {new Date(selectedDate).toLocaleDateString()} - Leave Encashment Available:
                 </h4>
                 {absentEmployees.length > 0 ? (
-                  <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto">
+                  <div className="space-y-2 max-h-40 overflow-y-auto">
                     {absentEmployees.map((employee) => (
-                      <Button
-                        key={employee.id}
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleQuickLeaveFromAbsent(employee)}
-                        className="justify-start text-xs"
-                      >
-                        <User className="mr-1 h-3 w-3" />
-                        {employee.fullName} ({employee.employeeId})
-                      </Button>
+                      <div key={employee.id} className="border rounded-lg p-3 bg-gray-50">
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <p className="font-medium text-sm">{employee.fullName}</p>
+                            <p className="text-xs text-gray-500">{employee.employeeId} - {employee.position}</p>
+                            <div className="flex gap-3 mt-1 text-xs">
+                              <span className="text-blue-600">
+                                Annual: {employee.leaveBalance.annual.remaining}/{21} days left
+                              </span>
+                              <span className="text-green-600">
+                                Special: {employee.leaveBalance.special.remaining}/{24} days left
+                              </span>
+                            </div>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              onClick={() => handleQuickLeaveFromAbsent(employee, 'annual')}
+                              disabled={employee.leaveBalance.annual.remaining <= 0}
+                              className="bg-blue-600 hover:bg-blue-700 text-white text-xs"
+                            >
+                              Annual
+                            </Button>
+                            <Button
+                              size="sm"
+                              onClick={() => handleQuickLeaveFromAbsent(employee, 'special')}
+                              disabled={employee.leaveBalance.special.remaining <= 0}
+                              className="bg-green-600 hover:bg-green-700 text-white text-xs"
+                            >
+                              Special
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
                     ))}
                   </div>
                 ) : (
