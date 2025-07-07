@@ -722,7 +722,7 @@ export default function Reports() {
       return (
         <Card>
           <CardContent className="p-6">
-            <div className="text-center text-gray-500">No overtime data available for {new Date(startDate).toLocaleDateString()}.</div>
+            <div className="text-center text-gray-500">No employees eligible for overtime on {new Date(startDate).toLocaleDateString()}.</div>
           </CardContent>
         </Card>
       );
@@ -787,6 +787,7 @@ export default function Reports() {
                         record.otApprovalStatus === 'Approved' ? 'bg-green-100 text-green-800' :
                         record.otApprovalStatus === 'Pending' ? 'bg-yellow-100 text-yellow-800' :
                         record.otApprovalStatus === 'Rejected' ? 'bg-red-100 text-red-800' :
+                        record.otApprovalStatus === 'Not Applied' ? 'bg-orange-100 text-orange-800' :
                         'bg-gray-100 text-gray-800'
                       }`}>
                         {record.otApprovalStatus}

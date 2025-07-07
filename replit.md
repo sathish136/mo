@@ -108,3 +108,11 @@ Changelog:
     - Added month/year header display
     - Removed duplicate export options
     - Show "-" instead of "0" for empty overtime values
+  - Daily reports styling improvements:
+    - Reduced text size to extra small (text-xs) for compact layout
+    - Enhanced color-coded status indicators (green/red/yellow/orange)
+    - Professional card layouts with proper headers and statistics
+    - Better group badge styling (Group A/Group B)
+    - Improved OT eligibility filtering - only shows employees with OT hours > 0
+    - Enhanced OT approval status display (Approved/Pending/Rejected/Not Applied/N/A)
+    - Added total OT hours and approved OT hours summary in daily OT report

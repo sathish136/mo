@@ -1125,14 +1125,29 @@ router.get("/api/reports/daily-ot", async (req, res) => {
 
       const otHours = Math.max(0, actualHours - requiredHours);
 
+      // Check for overtime request and its status
+      const overtimeRequest = otRecords.find(ot => ot.employeeId === parseInt(emp.id));
+      let otApprovalStatus = 'N/A';
+      
+      if (otHours > 0) {
+        if (overtimeRequest) {
+          otApprovalStatus = overtimeRequest.status === 'approved' ? 'Approved' : 
+                           overtimeRequest.status === 'rejected' ? 'Rejected' : 'Pending';
+        } else {
+          otApprovalStatus = 'Not Applied';
+        }
+      }
+
       return {
         ...emp,
         actualHours: actualHours.toFixed(2),
         requiredHours: requiredHours.toFixed(2),
         otHours: otHours.toFixed(2),
-        otApprovalStatus: 'N/A', // Placeholder
+        otApprovalStatus,
+        isEligible: otHours > 0,
       };
-    });
+    })
+    .filter(record => record.isEligible); // Only show employees eligible for OT
 
     res.json(reportData);
   } catch (error) {
