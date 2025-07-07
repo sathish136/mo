@@ -10,6 +10,7 @@ export const attendanceStatusEnum = pgEnum("attendance_status", ["present", "abs
 export const leaveStatusEnum = pgEnum("leave_status", ["pending", "approved", "rejected"]);
 export const leaveTypeEnum = pgEnum("leave_type", ["annual", "sick", "casual", "maternity", "paternity"]);
 export const overtimeStatusEnum = pgEnum("overtime_status", ["pending", "approved", "rejected"]);
+export const holidayTypeEnum = pgEnum("holiday_type", ["annual", "special", "weekend"]);
 
 export const departments = pgTable("departments", {
   id: serial("id").primaryKey(),
@@ -86,6 +87,18 @@ export const biometricDevices = pgTable("biometric_devices", {
   ip: varchar("ip", { length: 45 }).notNull(),
   port: integer("port").default(4370).notNull(),
   isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const holidays = pgTable("holidays", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 100 }).notNull(),
+  date: timestamp("date").notNull(),
+  type: holidayTypeEnum("type").notNull(),
+  description: text("description"),
+  isRecurring: boolean("is_recurring").default(false).notNull(),
+  applicableGroups: varchar("applicable_groups", { length: 50 }).array().default(["group_a", "group_b"]).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -228,6 +241,14 @@ export const insertBiometricDeviceSchema = createInsertSchema(biometricDevices).
   updatedAt: true,
 });
 
+export const insertHolidaySchema = createInsertSchema(holidays, {
+  date: z.coerce.date(),
+}).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Types
 export type Attendance = typeof attendance.$inferSelect;
 export type InsertAttendance = z.infer<typeof insertAttendanceSchema>;
@@ -237,3 +258,5 @@ export type OvertimeRequest = typeof overtimeRequests.$inferSelect;
 export type InsertOvertimeRequest = z.infer<typeof insertOvertimeRequestSchema>;
 export type BiometricDevice = typeof biometricDevices.$inferSelect;
 export type InsertBiometricDevice = z.infer<typeof insertBiometricDeviceSchema>;
+export type Holiday = typeof holidays.$inferSelect;
+export type InsertHoliday = z.infer<typeof insertHolidaySchema>;

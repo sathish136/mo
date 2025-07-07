@@ -1,253 +1,519 @@
-import React, { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Plus, Trash2 } from 'lucide-react';
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Plus, Calendar, FileText, BarChart3, Users2, Clock, Download } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { insertHolidaySchema, type Holiday, type InsertHoliday } from "@shared/schema";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 
-const HolidayManagement = () => {
-  const [holidays, setHolidays] = useState([
-    { id: 1, type: 'Annual Holidays', days: 21 },
-    { id: 2, type: 'Special Holidays', days: 24 }
-  ]);
-  const [newHolidayType, setNewHolidayType] = useState('');
-  const [newHolidayDays, setNewHolidayDays] = useState('');
-  const [editingHoliday, setEditingHoliday] = useState<any>(null);
-  const [editHolidayType, setEditHolidayType] = useState('');
-  const [editHolidayDays, setEditHolidayDays] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+export default function HolidayManagement() {
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [filterType, setFilterType] = useState("all");
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    // Fetch holidays data if needed
-    // This is a placeholder for API call
-  }, []);
+  const { data: holidays, isLoading } = useQuery({
+    queryKey: ["/api/holidays", selectedYear],
+    queryFn: async () => {
+      const response = await fetch(`/api/holidays?year=${selectedYear}`);
+      if (!response.ok) {
+        // Return empty array if holidays endpoint doesn't exist yet
+        if (response.status === 404) return [];
+        throw new Error("Failed to fetch holidays");
+      }
+      return response.json();
+    },
+  });
 
-  const addHoliday = () => {
-    if (!newHolidayType || !newHolidayDays) {
-      setError('Please fill in all fields');
-      return;
-    }
-    const newHoliday = {
-      id: holidays.length + 1,
-      type: newHolidayType,
-      days: parseInt(newHolidayDays)
-    };
-    setHolidays([...holidays, newHoliday]);
-    setNewHolidayType('');
-    setNewHolidayDays('');
-    setError(null);
+  const createHolidayMutation = useMutation({
+    mutationFn: async (holiday: InsertHoliday) => {
+      const response = await apiRequest("POST", "/api/holidays", holiday);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/holidays"] });
+      toast({
+        title: "Success",
+        description: "Holiday created successfully",
+      });
+      setIsDialogOpen(false);
+      form.reset({
+        name: "",
+        date: new Date(),
+        type: "annual",
+        description: "",
+        isRecurring: false,
+        applicableGroups: ["group_a", "group_b"],
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create holiday",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const form = useForm<InsertHoliday>({
+    resolver: zodResolver(insertHolidaySchema),
+    defaultValues: {
+      name: "",
+      date: new Date(),
+      type: "annual",
+      description: "",
+      isRecurring: false,
+      applicableGroups: ["group_a", "group_b"],
+    },
+  });
+
+  const onSubmit = (data: InsertHoliday) => {
+    createHolidayMutation.mutate(data);
   };
 
-  const updateHoliday = () => {
-    if (!editHolidayType || !editHolidayDays) {
-      setError('Please fill in all fields');
-      return;
-    }
-    if (editingHoliday) {
-      const updatedHolidays = holidays.map(h => 
-        h.id === editingHoliday.id 
-          ? { ...h, type: editHolidayType, days: parseInt(editHolidayDays) } 
-          : h
-      );
-      setHolidays(updatedHolidays);
-      setEditingHoliday(null);
-      setEditHolidayType('');
-      setEditHolidayDays('');
-      setError(null);
-    }
+  // Calculate holiday statistics
+  const holidayStats = {
+    annual: holidays?.filter((h: Holiday) => h.type === "annual").length || 0,
+    special: holidays?.filter((h: Holiday) => h.type === "special").length || 0,
+    weekend: holidays?.filter((h: Holiday) => h.type === "weekend").length || 0,
+    total: holidays?.length || 0,
   };
 
-  const removeHoliday = (id: number) => {
-    setHolidays(holidays.filter(holiday => holiday.id !== id));
-  };
+  const filteredHolidays = holidays?.filter((holiday: Holiday) => {
+    if (filterType === "all") return true;
+    return holiday.type === filterType;
+  }) || [];
 
-  const saveHolidays = async () => {
-    setIsLoading(true);
-    try {
-      // Placeholder for API call to save holidays
-      setTimeout(() => {
-        setIsLoading(false);
-        // Notification can be added here
-      }, 1000);
-    } catch (err) {
-      setError('Failed to save holidays');
-      setIsLoading(false);
-    }
-  };
+  // Export holiday report
+  const exportReport = () => {
+    const csvContent = [
+      ["Holiday Type", "Number of Days"],
+      ["Annual Holidays", holidayStats.annual],
+      ["Special Holidays", holidayStats.special],
+      ["Weekend Days", holidayStats.weekend],
+      ["Total Holidays", holidayStats.total]
+    ].map(row => row.join(",")).join("\n");
 
-  const totalDays = holidays.reduce((sum, holiday) => sum + holiday.days, 0);
+    const blob = new Blob([csvContent], { type: "text/csv" });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `holiday-report-${selectedYear}.csv`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+  };
 
   return (
-    <div className="space-y-6 max-w-6xl mx-auto p-6 bg-gray-50 min-h-screen">
+    <div className="p-6 max-w-7xl mx-auto space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+      <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Holiday Management</h2>
-          <p className="text-sm text-gray-600">Manage holiday allocations and view summary</p>
+          <h1 className="text-3xl font-bold text-gray-900">Holiday Management</h1>
+          <p className="text-gray-600 mt-1">Manage holidays and generate reports for both employee groups</p>
+        </div>
+        <div className="flex items-center space-x-4">
+          <Select value={selectedYear.toString()} onValueChange={(value) => setSelectedYear(parseInt(value))}>
+            <SelectTrigger className="w-32">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {Array.from({ length: 5 }, (_, i) => {
+                const year = new Date().getFullYear() + i - 2;
+                return (
+                  <SelectItem key={year} value={year.toString()}>
+                    {year}
+                  </SelectItem>
+                );
+              })}
+            </SelectContent>
+          </Select>
+          <Button variant="outline" onClick={exportReport}>
+            <Download className="w-4 h-4 mr-2" />
+            Export Report
+          </Button>
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button className="bg-[hsl(var(--gov-navy))] hover:bg-[hsl(var(--gov-navy-light))]">
+                <Plus className="w-4 h-4 mr-2" />
+                Add Holiday
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>Add New Holiday</DialogTitle>
+              </DialogHeader>
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <FormField
+                      control={form.control}
+                      name="name"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Holiday Name</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Enter holiday name..." {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="type"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Holiday Type</FormLabel>
+                          <FormControl>
+                            <Select onValueChange={field.onChange} value={field.value}>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select holiday type" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="annual">Annual Holiday</SelectItem>
+                                <SelectItem value="special">Special Holiday</SelectItem>
+                                <SelectItem value="weekend">Weekend</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="date"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Date</FormLabel>
+                          <FormControl>
+                            <Input 
+                              type="date" 
+                              value={field.value instanceof Date ? field.value.toISOString().split('T')[0] : ''}
+                              onChange={(e) => field.onChange(new Date(e.target.value))}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="isRecurring"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                          <FormControl>
+                            <Checkbox
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                            />
+                          </FormControl>
+                          <div className="space-y-1 leading-none">
+                            <FormLabel>Recurring Holiday</FormLabel>
+                            <p className="text-sm text-gray-500">
+                              This holiday occurs annually
+                            </p>
+                          </div>
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  <FormField
+                    control={form.control}
+                    name="description"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Description</FormLabel>
+                        <FormControl>
+                          <Textarea 
+                            placeholder="Enter holiday description..."
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="applicableGroups"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Applicable Groups</FormLabel>
+                        <div className="flex space-x-4">
+                          <div className="flex items-center space-x-2">
+                            <Checkbox
+                              checked={field.value?.includes("group_a")}
+                              onCheckedChange={(checked) => {
+                                const current = field.value || [];
+                                if (checked) {
+                                  field.onChange([...current.filter(g => g !== "group_a"), "group_a"]);
+                                } else {
+                                  field.onChange(current.filter(g => g !== "group_a"));
+                                }
+                              }}
+                            />
+                            <span>Group A</span>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <Checkbox
+                              checked={field.value?.includes("group_b")}
+                              onCheckedChange={(checked) => {
+                                const current = field.value || [];
+                                if (checked) {
+                                  field.onChange([...current.filter(g => g !== "group_b"), "group_b"]);
+                                } else {
+                                  field.onChange(current.filter(g => g !== "group_b"));
+                                }
+                              }}
+                            />
+                            <span>Group B</span>
+                          </div>
+                        </div>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <div className="flex justify-end space-x-4">
+                    <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+                      Cancel
+                    </Button>
+                    <Button 
+                      type="submit" 
+                      className="bg-[hsl(var(--gov-navy))] hover:bg-[hsl(var(--gov-navy-light))]"
+                      disabled={createHolidayMutation.isPending}
+                    >
+                      {createHolidayMutation.isPending ? "Adding..." : "Add Holiday"}
+                    </Button>
+                  </div>
+                </form>
+              </Form>
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
 
-      {/* Holiday Summary Report */}
-      <Card className="border border-gray-200 shadow-md overflow-hidden bg-white">
-        <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-gray-200">
-          <CardTitle className="text-lg font-semibold text-gray-900">Holiday Summary Report</CardTitle>
-          <CardDescription className="text-gray-600">Overview of holiday allocations</CardDescription>
-        </CardHeader>
-        <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Holiday Type</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Number of Days</th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {holidays.map(holiday => (
-                  <tr key={holiday.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{holiday.type}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{holiday.days}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-right">
-                      <div className="flex justify-end space-x-2">
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          onClick={() => {
-                            setEditingHoliday(holiday);
-                            setEditHolidayType(holiday.type);
-                            setEditHolidayDays(holiday.days.toString());
-                          }}
-                          className="border-blue-300 text-blue-600 hover:bg-blue-50"
-                        >
-                          Edit
-                        </Button>
-                        <Button 
-                          variant="destructive" 
-                          size="sm" 
-                          onClick={() => removeHoliday(holiday.id)}
-                          className="hover:bg-red-50"
-                        >
-                          <Trash2 size={16} />
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-                <tr className="bg-gray-50 font-bold">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">Total Holidays</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{holidays.reduce((total, holiday) => total + holiday.days, 0)}</td>
-                  <td className="px-6 py-4"></td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Holiday Management Form */}
-      <Card className="shadow-md border border-gray-200 bg-white overflow-hidden">
-        <CardHeader className="border-b border-gray-100 pb-3 bg-gradient-to-r from-green-50 to-teal-50">
-          <CardTitle className="text-xl text-center text-gray-900 font-semibold">Add New Holiday Type</CardTitle>
-          <CardDescription className="text-center text-gray-600">Configure new holiday types and their allocated days</CardDescription>
-        </CardHeader>
-        <CardContent className="p-6">
-          <div className="space-y-6 max-w-3xl mx-auto">
-            {error && <div className="text-red-500 text-sm bg-red-50 px-3 py-1 rounded-md text-center">{error}</div>}
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
-              <div className="space-y-2 md:col-span-1">
-                <Label htmlFor="holiday-type" className="text-gray-700 font-medium">Holiday Type</Label>
-                <Input
-                  id="holiday-type"
-                  placeholder="e.g., Casual Leave"
-                  value={newHolidayType}
-                  onChange={(e) => setNewHolidayType(e.target.value)}
-                  className="w-full border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 shadow-sm"
-                />
+      {/* Holiday Statistics Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <Card className="border border-blue-200 bg-gradient-to-br from-blue-50 to-blue-100">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-blue-700">Annual Holidays</p>
+                <p className="text-3xl font-bold text-blue-900">{holidayStats.annual}</p>
+                <p className="text-xs text-blue-600 mt-1">21 days standard</p>
               </div>
-              <div className="space-y-2 md:col-span-1">
-                <Label htmlFor="holiday-days" className="text-gray-700 font-medium">Number of Days</Label>
-                <Input
-                  id="holiday-days"
-                  type="number"
-                  placeholder="e.g., 10"
-                  value={newHolidayDays}
-                  onChange={(e) => setNewHolidayDays(e.target.value)}
-                  className="w-full border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 shadow-sm"
-                />
-              </div>
-              <div className="md:col-span-2 flex justify-end">
-                <Button onClick={addHoliday} className="bg-green-600 hover:bg-green-700 text-white shadow-md">
-                  <Plus size={18} className="mr-2" /> Add Holiday
-                </Button>
-              </div>
+              <Calendar className="w-8 h-8 text-blue-600" />
             </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
 
-      {/* Edit Holiday Modal */}
-      {editingHoliday && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-xl border border-gray-200">
-            <h3 className="text-xl font-bold mb-4 text-gray-900">Edit Holiday</h3>
+        <Card className="border border-purple-200 bg-gradient-to-br from-purple-50 to-purple-100">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-purple-700">Special Holidays</p>
+                <p className="text-3xl font-bold text-purple-900">{holidayStats.special}</p>
+                <p className="text-xs text-purple-600 mt-1">24 days standard</p>
+              </div>
+              <FileText className="w-8 h-8 text-purple-600" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border border-green-200 bg-gradient-to-br from-green-50 to-green-100">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-green-700">Weekends</p>
+                <p className="text-3xl font-bold text-green-900">{holidayStats.weekend}</p>
+                <p className="text-xs text-green-600 mt-1">Saturday & Sunday</p>
+              </div>
+              <Clock className="w-8 h-8 text-green-600" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border border-orange-200 bg-gradient-to-br from-orange-50 to-orange-100">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-orange-700">Total Holidays</p>
+                <p className="text-3xl font-bold text-orange-900">{holidayStats.total}</p>
+                <p className="text-xs text-orange-600 mt-1">45 days target</p>
+              </div>
+              <BarChart3 className="w-8 h-8 text-orange-600" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Separate Holiday Reports */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card className="border border-gray-200">
+          <CardHeader>
+            <CardTitle className="text-lg font-semibold text-gray-900 flex items-center">
+              <BarChart3 className="w-5 h-5 mr-2" />
+              Holiday Summary Report
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
             <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="edit-holiday-type" className="text-gray-700 font-medium">Holiday Type</Label>
-                <Input
-                  id="edit-holiday-type"
-                  value={editHolidayType}
-                  onChange={(e) => setEditHolidayType(e.target.value)}
-                  className="w-full border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 shadow-sm"
-                />
+              <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
+                <span className="font-medium text-blue-900">Annual Holidays</span>
+                <span className="text-xl font-bold text-blue-700">{holidayStats.annual} days</span>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="edit-holiday-days" className="text-gray-700 font-medium">Number of Days</Label>
-                <Input
-                  id="edit-holiday-days"
-                  type="number"
-                  value={editHolidayDays}
-                  onChange={(e) => setEditHolidayDays(e.target.value)}
-                  className="w-full border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 shadow-sm"
-                />
+              <div className="flex justify-between items-center p-3 bg-purple-50 rounded-lg">
+                <span className="font-medium text-purple-900">Special Holidays</span>
+                <span className="text-xl font-bold text-purple-700">{holidayStats.special} days</span>
               </div>
-              <div className="flex justify-end space-x-2">
-                <Button 
-                  variant="outline" 
-                  onClick={() => {
-                    setEditingHoliday(null);
-                    setEditHolidayType('');
-                    setEditHolidayDays('');
-                  }}
-                  className="border-gray-300"
-                >
-                  Cancel
-                </Button>
-                <Button 
-                  onClick={updateHoliday}
-                  className="bg-blue-600 hover:bg-blue-700 text-white"
-                >
-                  Save Changes
-                </Button>
+              <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg">
+                <span className="font-medium text-green-900">Weekend Days</span>
+                <span className="text-xl font-bold text-green-700">{holidayStats.weekend} days</span>
+              </div>
+              <div className="border-t pt-3">
+                <div className="flex justify-between items-center p-3 bg-orange-50 rounded-lg">
+                  <span className="font-bold text-orange-900">Total Holidays</span>
+                  <span className="text-2xl font-bold text-orange-700">{holidayStats.total} days</span>
+                </div>
               </div>
             </div>
-          </div>
-        </div>
-      )}
+          </CardContent>
+        </Card>
 
-      <div className="flex justify-end max-w-3xl mx-auto">
-        <Button 
-          onClick={saveHolidays} 
-          disabled={isLoading}
-          className="bg-blue-600 hover:bg-blue-700 text-white shadow-md px-6 py-2"
-        >
-          {isLoading ? "Saving..." : "Save Holiday Settings"}
-        </Button>
+        <Card className="border border-gray-200">
+          <CardHeader>
+            <CardTitle className="text-lg font-semibold text-gray-900 flex items-center">
+              <Users2 className="w-5 h-5 mr-2" />
+              Group Application Report
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="p-4 bg-gradient-to-r from-blue-100 to-indigo-100 rounded-lg">
+                <h4 className="font-semibold text-indigo-900 mb-2">Group A Holidays</h4>
+                <p className="text-sm text-indigo-700">
+                  Working Hours: 08:30 - 16:15 (7.75 hours)
+                </p>
+                <p className="text-lg font-bold text-indigo-800 mt-2">
+                  {holidays?.filter((h: Holiday) => h.applicableGroups?.includes("group_a")).length || 0} applicable holidays
+                </p>
+              </div>
+              <div className="p-4 bg-gradient-to-r from-green-100 to-emerald-100 rounded-lg">
+                <h4 className="font-semibold text-emerald-900 mb-2">Group B Holidays</h4>
+                <p className="text-sm text-emerald-700">
+                  Working Hours: 08:00 - 16:45 (8.75 hours)
+                </p>
+                <p className="text-lg font-bold text-emerald-800 mt-2">
+                  {holidays?.filter((h: Holiday) => h.applicableGroups?.includes("group_b")).length || 0} applicable holidays
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
+
+      {/* Holiday List */}
+      <Card className="border border-gray-200">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-lg font-semibold text-gray-900">Holiday Calendar {selectedYear}</CardTitle>
+            <Select value={filterType} onValueChange={setFilterType}>
+              <SelectTrigger className="w-40">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Types</SelectItem>
+                <SelectItem value="annual">Annual</SelectItem>
+                <SelectItem value="special">Special</SelectItem>
+                <SelectItem value="weekend">Weekend</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <div className="text-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[hsl(var(--gov-navy))] mx-auto"></div>
+              <p className="text-gray-500 mt-2">Loading holidays...</p>
+            </div>
+          ) : filteredHolidays.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr className="border-b bg-gray-50">
+                    <th className="text-left p-3 font-semibold text-gray-900">Date</th>
+                    <th className="text-left p-3 font-semibold text-gray-900">Holiday Name</th>
+                    <th className="text-left p-3 font-semibold text-gray-900">Type</th>
+                    <th className="text-left p-3 font-semibold text-gray-900">Groups</th>
+                    <th className="text-left p-3 font-semibold text-gray-900">Recurring</th>
+                    <th className="text-left p-3 font-semibold text-gray-900">Description</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredHolidays.map((holiday: Holiday) => (
+                    <tr key={holiday.id} className="border-b hover:bg-gray-50">
+                      <td className="p-3 text-sm">
+                        {new Date(holiday.date).toLocaleDateString()}
+                      </td>
+                      <td className="p-3 font-medium text-gray-900">{holiday.name}</td>
+                      <td className="p-3">
+                        <Badge
+                          className={`${
+                            holiday.type === "annual"
+                              ? "bg-blue-100 text-blue-800"
+                              : holiday.type === "special"
+                              ? "bg-purple-100 text-purple-800"
+                              : "bg-green-100 text-green-800"
+                          }`}
+                        >
+                          {holiday.type}
+                        </Badge>
+                      </td>
+                      <td className="p-3 text-sm">
+                        <div className="flex space-x-1">
+                          {holiday.applicableGroups?.map((group) => (
+                            <Badge key={group} variant="outline" className="text-xs">
+                              {group === "group_a" ? "Group A" : "Group B"}
+                            </Badge>
+                          ))}
+                        </div>
+                      </td>
+                      <td className="p-3 text-sm">
+                        {holiday.isRecurring ? (
+                          <Badge className="bg-yellow-100 text-yellow-800">Yes</Badge>
+                        ) : (
+                          <Badge variant="outline">No</Badge>
+                        )}
+                      </td>
+                      <td className="p-3 text-sm text-gray-600 max-w-xs truncate">
+                        {holiday.description || "—"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+              <p className="text-gray-500">No holidays found for the selected criteria</p>
+              <p className="text-sm text-gray-400 mt-2">Add holidays using the "Add Holiday" button above</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
-};
-
-export default HolidayManagement;
+}

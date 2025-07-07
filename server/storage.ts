@@ -4,6 +4,7 @@ import {
   leaveRequests, 
   overtimeRequests, 
   biometricDevices,
+  holidays,
   type Employee, 
   type InsertEmployee,
   type Attendance,
@@ -13,7 +14,9 @@ import {
   type OvertimeRequest,
   type InsertOvertimeRequest,
   type BiometricDevice,
-  type InsertBiometricDevice
+  type InsertBiometricDevice,
+  type Holiday,
+  type InsertHoliday
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, gte, lte, sql, count, sum } from "drizzle-orm";
@@ -61,6 +64,13 @@ export interface IStorage {
   
   // Attendance summary
   getAttendanceSummary(startDate: Date, endDate: Date): Promise<any[]>;
+  
+  // Holiday operations
+  getHolidays(year?: number): Promise<Holiday[]>;
+  getHoliday(id: number): Promise<Holiday | undefined>;
+  createHoliday(holiday: InsertHoliday): Promise<Holiday>;
+  updateHoliday(id: number, holiday: Partial<InsertHoliday>): Promise<Holiday>;
+  deleteHoliday(id: number): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -315,6 +325,44 @@ export class DatabaseStorage implements IStorage {
       ))
       .groupBy(attendance.date)
       .orderBy(attendance.date);
+  }
+
+  // Holiday operations
+  async getHolidays(year?: number): Promise<Holiday[]> {
+    let query = db.select().from(holidays);
+    
+    if (year) {
+      const startOfYear = new Date(year, 0, 1);
+      const endOfYear = new Date(year, 11, 31, 23, 59, 59);
+      query = query.where(and(
+        gte(holidays.date, startOfYear),
+        lte(holidays.date, endOfYear)
+      ));
+    }
+    
+    return await query.orderBy(holidays.date);
+  }
+
+  async getHoliday(id: number): Promise<Holiday | undefined> {
+    const result = await db.select().from(holidays).where(eq(holidays.id, id));
+    return result[0];
+  }
+
+  async createHoliday(holiday: InsertHoliday): Promise<Holiday> {
+    const result = await db.insert(holidays).values(holiday).returning();
+    return result[0];
+  }
+
+  async updateHoliday(id: number, holiday: Partial<InsertHoliday>): Promise<Holiday> {
+    const result = await db.update(holidays)
+      .set({ ...holiday, updatedAt: new Date() })
+      .where(eq(holidays.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async deleteHoliday(id: number): Promise<void> {
+    await db.delete(holidays).where(eq(holidays.id, id));
   }
 }
 
