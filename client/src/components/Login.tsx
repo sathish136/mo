@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { AlertCircle, Eye, EyeOff, Shield } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -54,31 +55,39 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-      <div className="w-full max-w-md space-y-6">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 flex items-center justify-center p-4">
+      <div className="absolute inset-0 opacity-20">
+        <div className="h-full w-full bg-repeat" style={{backgroundImage: "url(\"data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.03'%3E%3Ccircle cx='30' cy='30' r='2'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E\")"}}></div>
+      </div>
+      
+      <div className="relative w-full max-w-md space-y-8">
         {/* Header */}
         <div className="text-center">
-          <div className="flex justify-center mb-4">
-            <div className="bg-blue-600 p-3 rounded-full">
-              <Shield className="w-8 h-8 text-white" />
+          <div className="flex justify-center mb-6">
+            <div className="relative">
+              <div className="bg-gradient-to-r from-blue-500 to-cyan-500 p-4 rounded-2xl shadow-2xl">
+                <Shield className="w-10 h-10 text-white" />
+              </div>
+              <div className="absolute -inset-1 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-2xl blur opacity-25"></div>
             </div>
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">HR Attendance System</h1>
-          <p className="text-gray-600 mt-2">Ministry of Finance Sri Lanka</p>
+          <h1 className="text-3xl font-bold text-white mb-2">HR Attendance System</h1>
+          <p className="text-blue-200 text-lg">Ministry of Finance Sri Lanka</p>
+          <div className="w-24 h-1 bg-gradient-to-r from-blue-400 to-cyan-400 mx-auto mt-4 rounded-full"></div>
         </div>
 
         {/* Login Form */}
-        <Card className="shadow-xl border-0">
-          <CardHeader className="space-y-1">
-            <CardTitle className="text-xl text-center">Sign In</CardTitle>
-            <p className="text-sm text-gray-600 text-center">
+        <Card className="backdrop-blur-lg bg-white/10 border border-white/20 shadow-2xl">
+          <CardHeader className="space-y-1 pb-8">
+            <CardTitle className="text-2xl text-center text-white font-semibold">Sign In</CardTitle>
+            <p className="text-sm text-blue-200 text-center">
               Enter your credentials to access the system
             </p>
           </CardHeader>
-          <CardContent>
-            <form onSubmit={handleLogin} className="space-y-4">
+          <CardContent className="pb-8">
+            <form onSubmit={handleLogin} className="space-y-6">
               <div className="space-y-2">
-                <Label htmlFor="username">Username</Label>
+                <Label htmlFor="username" className="text-white text-sm font-medium">Username</Label>
                 <Input
                   id="username"
                   type="text"
@@ -86,12 +95,12 @@ export default function Login() {
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   required
-                  className="h-11"
+                  className="h-12 bg-white/10 border-white/20 text-white placeholder:text-blue-200 focus:border-blue-400 focus:ring-blue-400/20"
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
+                <Label htmlFor="password" className="text-white text-sm font-medium">Password</Label>
                 <div className="relative">
                   <Input
                     id="password"
@@ -100,7 +109,7 @@ export default function Login() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
-                    className="h-11 pr-10"
+                    className="h-12 bg-white/10 border-white/20 text-white placeholder:text-blue-200 focus:border-blue-400 focus:ring-blue-400/20 pr-10"
                   />
                   <button
                     type="button"
@@ -108,9 +117,9 @@ export default function Login() {
                     onClick={() => setShowPassword(!showPassword)}
                   >
                     {showPassword ? (
-                      <EyeOff className="h-4 w-4 text-gray-400" />
+                      <EyeOff className="h-4 w-4 text-blue-300 hover:text-white" />
                     ) : (
-                      <Eye className="h-4 w-4 text-gray-400" />
+                      <Eye className="h-4 w-4 text-blue-300 hover:text-white" />
                     )}
                   </button>
                 </div>
@@ -118,39 +127,50 @@ export default function Login() {
 
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
-                  <input
-                    id="remember"
-                    type="checkbox"
-                    className="rounded border-gray-300"
+                  <Checkbox 
+                    id="remember" 
+                    checked={rememberMe}
+                    onCheckedChange={(checked) => setRememberMe(checked as boolean)}
+                    className="border-white/20 data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500"
                   />
-                  <Label htmlFor="remember" className="text-sm text-gray-600">
+                  <Label htmlFor="remember" className="text-sm text-blue-200">
                     Remember me
                   </Label>
                 </div>
-                <a href="#" className="text-sm text-blue-600 hover:text-blue-500">
+                <button
+                  type="button"
+                  className="text-sm text-blue-300 hover:text-white transition-colors"
+                >
                   Forgot password?
-                </a>
+                </button>
               </div>
 
               <Button
                 type="submit"
-                className="w-full h-11 bg-blue-600 hover:bg-blue-700"
+                className="w-full h-12 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-200"
                 disabled={isLoading}
               >
-                {isLoading ? "Signing in..." : "Sign In"}
+                {isLoading ? (
+                  <div className="flex items-center space-x-2">
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                    <span>Signing in...</span>
+                  </div>
+                ) : (
+                  "Sign In"
+                )}
               </Button>
             </form>
 
             <div className="mt-6 text-center">
               <div className="relative">
                 <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-gray-200"></div>
+                  <div className="w-full border-t border-white/20"></div>
                 </div>
                 <div className="relative flex justify-center text-sm">
-                  <span className="px-2 bg-white text-gray-500">Need help?</span>
+                  <span className="px-2 bg-white/10 text-blue-200">Need help?</span>
                 </div>
               </div>
-              <p className="mt-4 text-xs text-gray-500">
+              <p className="mt-4 text-xs text-blue-300">
                 Contact IT Support for account assistance
               </p>
             </div>
@@ -158,17 +178,22 @@ export default function Login() {
         </Card>
 
         {/* Demo Credentials */}
-        <Card className="bg-amber-50 border-amber-200">
-          <CardContent className="p-4">
-            <div className="flex items-start space-x-2">
-              <AlertCircle className="w-4 h-4 text-amber-600 mt-0.5" />
+        <Card className="backdrop-blur-lg bg-gradient-to-r from-amber-500/20 to-orange-500/20 border border-amber-400/30 shadow-lg">
+          <CardContent className="p-6">
+            <div className="flex items-start space-x-3">
+              <div className="flex-shrink-0">
+                <AlertCircle className="w-5 h-5 text-amber-300 mt-0.5" />
+              </div>
               <div className="text-sm">
-                <p className="font-medium text-amber-800">Demo Access</p>
-                <p className="text-amber-700 mt-1">
-                  Username: <code className="bg-amber-100 px-1 rounded">admin</code>
-                  <br />
-                  Password: <code className="bg-amber-100 px-1 rounded">admin123</code>
-                </p>
+                <p className="font-semibold text-amber-200 mb-2">Demo Access</p>
+                <div className="space-y-1">
+                  <p className="text-amber-100">
+                    Username: <code className="bg-white/20 px-2 py-1 rounded text-white font-mono">admin</code>
+                  </p>
+                  <p className="text-amber-100">
+                    Password: <code className="bg-white/20 px-2 py-1 rounded text-white font-mono">admin123</code>
+                  </p>
+                </div>
               </div>
             </div>
           </CardContent>
