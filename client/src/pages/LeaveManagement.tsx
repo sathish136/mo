@@ -72,7 +72,10 @@ export default function LeaveManagement() {
   
   const leaveTypes = [
     { id: 1, name: "annual", description: "Annual Leave", maxDays: annualHolidayCount },
-    { id: 2, name: "special", description: "Special Leave", maxDays: specialHolidayCount },
+    { id: 2, name: "sick", description: "Sick Leave", maxDays: 14 },
+    { id: 3, name: "casual", description: "Casual Leave", maxDays: 7 },
+    { id: 4, name: "maternity", description: "Maternity Leave", maxDays: 84 },
+    { id: 5, name: "paternity", description: "Paternity Leave", maxDays: 7 },
   ];
 
   // Define today's date
@@ -101,9 +104,9 @@ export default function LeaveManagement() {
       new Date(req.startDate).getFullYear() === currentYear
     ).reduce((total, req) => total + (req.days || 0), 0);
     
-    const usedSpecialDays = leaveRequests.filter(req => 
+    const usedSickDays = leaveRequests.filter(req => 
       req.employeeId === emp.id && 
-      req.leaveType === 'special' && 
+      req.leaveType === 'sick' && 
       req.status === 'approved' &&
       new Date(req.startDate).getFullYear() === currentYear
     ).reduce((total, req) => total + (req.days || 0), 0);
@@ -116,7 +119,7 @@ export default function LeaveManagement() {
       ...emp,
       leaveBalance: {
         annual: { used: usedAnnualDays, remaining: Math.max(0, annualHolidays - usedAnnualDays) },
-        special: { used: usedSpecialDays, remaining: Math.max(0, specialHolidays - usedSpecialDays) }
+        sick: { used: usedSickDays, remaining: Math.max(0, 14 - usedSickDays) }
       }
     };
   });
@@ -322,11 +325,11 @@ export default function LeaveManagement() {
                             </Button>
                             <Button
                               size="sm"
-                              onClick={() => handleQuickLeaveFromAbsent(employee, 'special')}
-                              disabled={employee.leaveBalance.special.remaining <= 0}
+                              onClick={() => handleQuickLeaveFromAbsent(employee, 'sick')}
+                              disabled={employee.leaveBalance.sick.remaining <= 0}
                               className="bg-green-600 hover:bg-green-700 text-white text-xs"
                             >
-                              Special
+                              Sick
                             </Button>
                           </div>
                         </div>
