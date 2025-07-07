@@ -60,6 +60,18 @@ export default function Settings() {
     syncOnStartup: true,
     notifications: true
   });
+
+  // Load auto sync settings on component mount
+  useEffect(() => {
+    const savedSettings = localStorage.getItem('autoSyncSettings');
+    if (savedSettings) {
+      const parsed = JSON.parse(savedSettings);
+      if (parsed.lastSync) {
+        parsed.lastSync = new Date(parsed.lastSync);
+      }
+      setAutoSyncSettings(parsed);
+    }
+  }, []);
   const [isViewUsersDialogOpen, setIsViewUsersDialogOpen] = useState(false);
   const [viewingDevice, setViewingDevice] = useState<BiometricDevice | null>(null);
   const [deviceUsers, setDeviceUsers] = useState<DeviceUser[]>([]);
@@ -650,7 +662,12 @@ export default function Settings() {
                 </div>
                 <Switch
                   checked={autoSyncSettings.enabled}
-                  onCheckedChange={(checked) => setAutoSyncSettings({...autoSyncSettings, enabled: checked})}
+                  onCheckedChange={(checked) => {
+                    const newSettings = {...autoSyncSettings, enabled: checked};
+                    setAutoSyncSettings(newSettings);
+                    // Auto-save when toggling enable/disable
+                    localStorage.setItem('autoSyncSettings', JSON.stringify(newSettings));
+                  }}
                 />
               </div>
               
@@ -660,7 +677,11 @@ export default function Settings() {
                     <Label htmlFor="syncInterval">Sync Interval (minutes)</Label>
                     <Select 
                       value={autoSyncSettings.interval.toString()} 
-                      onValueChange={(value) => setAutoSyncSettings({...autoSyncSettings, interval: parseInt(value)})}
+                      onValueChange={(value) => {
+                        const newSettings = {...autoSyncSettings, interval: parseInt(value)};
+                        setAutoSyncSettings(newSettings);
+                        localStorage.setItem('autoSyncSettings', JSON.stringify(newSettings));
+                      }}
                     >
                       <SelectTrigger>
                         <SelectValue />
@@ -683,7 +704,11 @@ export default function Settings() {
                       <Label className="text-sm font-medium">Sync on startup</Label>
                       <Switch
                         checked={autoSyncSettings.syncOnStartup}
-                        onCheckedChange={(checked) => setAutoSyncSettings({...autoSyncSettings, syncOnStartup: checked})}
+                        onCheckedChange={(checked) => {
+                          const newSettings = {...autoSyncSettings, syncOnStartup: checked};
+                          setAutoSyncSettings(newSettings);
+                          localStorage.setItem('autoSyncSettings', JSON.stringify(newSettings));
+                        }}
                       />
                     </div>
                     
@@ -691,7 +716,11 @@ export default function Settings() {
                       <Label className="text-sm font-medium">Sync notifications</Label>
                       <Switch
                         checked={autoSyncSettings.notifications}
-                        onCheckedChange={(checked) => setAutoSyncSettings({...autoSyncSettings, notifications: checked})}
+                        onCheckedChange={(checked) => {
+                          const newSettings = {...autoSyncSettings, notifications: checked};
+                          setAutoSyncSettings(newSettings);
+                          localStorage.setItem('autoSyncSettings', JSON.stringify(newSettings));
+                        }}
                       />
                     </div>
                   </div>
@@ -714,7 +743,9 @@ export default function Settings() {
                           biometricDevices?.forEach(device => {
                             syncDeviceMutation.mutate(device.deviceId);
                           });
-                          setAutoSyncSettings({...autoSyncSettings, lastSync: new Date()});
+                          const newSettings = {...autoSyncSettings, lastSync: new Date()};
+                          setAutoSyncSettings(newSettings);
+                          localStorage.setItem('autoSyncSettings', JSON.stringify(newSettings));
                         }}
                         disabled={syncDeviceMutation.isPending}
                         className="bg-blue-600 hover:bg-blue-700"
@@ -727,7 +758,8 @@ export default function Settings() {
                   <div className="md:col-span-2 flex justify-end">
                     <Button 
                       onClick={() => {
-                        // Save auto sync settings
+                        // Save auto sync settings to localStorage
+                        localStorage.setItem('autoSyncSettings', JSON.stringify(autoSyncSettings));
                         toast({
                           title: "Settings Saved",
                           description: "Auto sync settings have been saved successfully.",
