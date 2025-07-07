@@ -20,7 +20,7 @@ import type { LeaveRequest, Employee, LeaveType } from "@shared/schema";
 
 const leaveRequestSchema = z.object({
   employeeId: z.string().min(1, "Employee is required"),
-  leaveType: z.enum(["annual", "special"]),
+  leaveType: z.enum(["annual", "sick", "casual", "maternity", "paternity"]),
   startDate: z.string().min(1, "Start date is required"),
   endDate: z.string().min(1, "End date is required"),
   days: z.number().min(1, "Days must be at least 1"),
@@ -68,7 +68,7 @@ export default function LeaveManagement() {
 
   // Calculate actual leave allowances from Holiday Management data
   const annualHolidayCount = holidays.filter(h => h.type === 'annual').length || 0;
-  const specialHolidayCount = holidays.filter(h => h.type === 'special').length || 2;
+  const sickLeaveAllowance = 14; // Standard sick leave days per year
   
   const leaveTypes = [
     { id: 1, name: "annual", description: "Annual Leave", maxDays: annualHolidayCount },
@@ -113,7 +113,7 @@ export default function LeaveManagement() {
 
     // Get actual holiday counts from Holiday Management data
     const annualHolidays = holidays.filter(h => h.type === 'annual').length || 0;
-    const specialHolidays = holidays.filter(h => h.type === 'special').length || 2; // Default based on current data
+    const sickLeaveDays = 14; // Standard sick leave allowance
 
     return {
       ...emp,
@@ -310,7 +310,7 @@ export default function LeaveManagement() {
                                 Annual: {employee.leaveBalance.annual.remaining}/{annualHolidayCount} days left
                               </span>
                               <span className="text-green-600">
-                                Special: {employee.leaveBalance.special.remaining}/{specialHolidayCount} days left
+                                Sick: {employee.leaveBalance.sick.remaining}/14 days left
                               </span>
                             </div>
                           </div>
