@@ -1208,12 +1208,6 @@ export default function Reports() {
       return (
         <div className="p-6">
           <Card className="shadow-sm border border-gray-200">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-3 text-xl">
-                <Clock className="h-6 w-6" />
-                Late Arrival Report
-              </CardTitle>
-            </CardHeader>
             <CardContent className="p-8">
               <div className="text-center py-12">
                 <Clock className="h-16 w-16 text-gray-300 mx-auto mb-4" />
@@ -1235,18 +1229,6 @@ export default function Reports() {
 
     return (
       <div className="p-6">
-        {/* Header Section */}
-        <Card className="shadow-lg border border-gray-200 mb-6">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-3 text-xl">
-              <Clock className="h-6 w-6" />
-              Late Arrival Report
-              <span className="ml-auto text-sm text-gray-500 bg-gray-100 px-3 py-1 rounded">
-                {new Date(startDate).toLocaleDateString()} - {new Date(endDate).toLocaleDateString()}
-              </span>
-            </CardTitle>
-          </CardHeader>
-        </Card>
 
         {/* Policy Settings */}
         {groupSettings && (
@@ -1315,58 +1297,62 @@ export default function Reports() {
           </CardHeader>
           <CardContent className="p-0">
             <div className="overflow-x-auto">
-              <table className="min-w-full text-xs">
+              <table className="min-w-full text-sm border-collapse">
                 <thead>
-                  <tr className="bg-gray-100 border-b border-gray-200">
-                    <th className="px-4 py-3 text-left font-semibold text-gray-700">S.No</th>
-                    <th className="px-4 py-3 text-left font-semibold text-gray-700">Employee ID</th>
-                    <th className="px-4 py-3 text-left font-semibold text-gray-700">Employee Name</th>
-                    <th className="px-4 py-3 text-left font-semibold text-gray-700">Group</th>
-                    <th className="px-4 py-3 text-left font-semibold text-gray-700">Date</th>
-                    <th className="px-4 py-3 text-left font-semibold text-gray-700">Check In Time</th>
-                    <th className="px-4 py-3 text-left font-semibold text-gray-700">Status</th>
-                    <th className="px-4 py-3 text-left font-semibold text-gray-700">Minutes Late</th>
+                  <tr className="bg-gray-50 border-b-2 border-gray-200">
+                    <th className="px-6 py-4 text-left font-semibold text-gray-700 border-r border-gray-200">S.No</th>
+                    <th className="px-6 py-4 text-left font-semibold text-gray-700 border-r border-gray-200">Employee ID</th>
+                    <th className="px-6 py-4 text-left font-semibold text-gray-700 border-r border-gray-200">Employee Name</th>
+                    <th className="px-6 py-4 text-left font-semibold text-gray-700 border-r border-gray-200">Group</th>
+                    <th className="px-6 py-4 text-left font-semibold text-gray-700 border-r border-gray-200">Date</th>
+                    <th className="px-6 py-4 text-left font-semibold text-gray-700 border-r border-gray-200">Check In Time</th>
+                    <th className="px-6 py-4 text-left font-semibold text-gray-700 border-r border-gray-200">Status</th>
+                    <th className="px-6 py-4 text-left font-semibold text-gray-700">Minutes Late</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100">
+                <tbody className="divide-y divide-gray-200">
                   {lateArrivalData.map((record: any, index: number) => (
                     <tr 
                       key={index} 
-                      className={`hover:bg-gray-50 ${
-                        record.status === 'half_day' ? 'bg-red-50' : 'bg-white'
+                      className={`hover:bg-gray-50 transition-colors duration-150 ${
+                        record.status === 'half_day' ? 'bg-red-50' : 
+                        record.employeeGroup === 'group_a' ? 'bg-blue-50' : 'bg-purple-50'
                       }`}
                     >
-                      <td className="px-4 py-3 text-gray-600 font-medium">{index + 1}</td>
-                      <td className="px-4 py-3 text-gray-900 font-medium">{record.employeeId}</td>
-                      <td className="px-4 py-3 text-gray-900">{record.fullName}</td>
-                      <td className="px-4 py-3">
-                        <Badge variant={record.employeeGroup === 'group_a' ? 'default' : 'secondary'}>
+                      <td className="px-6 py-4 text-gray-700 font-medium border-r border-gray-200">{index + 1}</td>
+                      <td className="px-6 py-4 text-gray-900 font-semibold border-r border-gray-200">{record.employeeId}</td>
+                      <td className="px-6 py-4 text-gray-900 border-r border-gray-200">{record.fullName}</td>
+                      <td className="px-6 py-4 border-r border-gray-200">
+                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
+                          record.employeeGroup === 'group_a' 
+                            ? 'bg-blue-100 text-blue-800 border border-blue-200' 
+                            : 'bg-purple-100 text-purple-800 border border-purple-200'
+                        }`}>
                           {record.employeeGroup === 'group_a' ? 'Group A' : 'Group B'}
-                        </Badge>
+                        </span>
                       </td>
-                      <td className="px-4 py-3 text-gray-700">
+                      <td className="px-6 py-4 text-gray-700 border-r border-gray-200">
                         {new Date(record.date).toLocaleDateString('en-GB', { 
                           day: '2-digit', 
                           month: 'short', 
                           year: 'numeric' 
                         })}
                       </td>
-                      <td className="px-4 py-3 text-gray-700 font-mono">
+                      <td className="px-6 py-4 text-gray-700 font-mono border-r border-gray-200">
                         {record.checkInTime || 'N/A'}
                       </td>
-                      <td className="px-4 py-3">
-                        <Badge 
-                          variant={
-                            record.status === 'half_day' ? 'destructive' : 
-                            record.status === 'late' ? 'secondary' : 'default'
-                          }
-                        >
+                      <td className="px-6 py-4 border-r border-gray-200">
+                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
+                          record.status === 'half_day' ? 'bg-red-100 text-red-800 border border-red-200' :
+                          record.status === 'late' ? 'bg-yellow-100 text-yellow-800 border border-yellow-200' :
+                          'bg-green-100 text-green-800 border border-green-200'
+                        }`}>
                           {record.status === 'half_day' ? 'Half Day' : 
                            record.status === 'late' ? 'Late' : record.status}
-                        </Badge>
+                        </span>
                       </td>
-                      <td className="px-4 py-3">
-                        <span className="font-medium">
+                      <td className="px-6 py-4">
+                        <span className="font-semibold text-gray-900">
                           {record.minutesLate || 0} min
                         </span>
                       </td>
