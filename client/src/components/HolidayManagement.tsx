@@ -565,7 +565,85 @@ export default function HolidayManagement() {
                         </FormItem>
                       )}
                     />
+                    <FormField
+                      control={form.control}
+                      name="isRecurring"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                          <FormControl>
+                            <Checkbox
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                            />
+                          </FormControl>
+                          <div className="space-y-1 leading-none">
+                            <FormLabel>Recurring Holiday</FormLabel>
+                            <p className="text-sm text-gray-500">
+                              This holiday occurs annually
+                            </p>
+                          </div>
+                        </FormItem>
+                      )}
+                    />
                   </div>
+                  
+                  <FormField
+                    control={form.control}
+                    name="description"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Description</FormLabel>
+                        <FormControl>
+                          <Textarea 
+                            placeholder="Enter holiday description..."
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="applicableGroups"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Applicable Groups</FormLabel>
+                        <div className="flex space-x-4">
+                          <div className="flex items-center space-x-2">
+                            <Checkbox
+                              checked={field.value?.includes("group_a")}
+                              onCheckedChange={(checked) => {
+                                const current = field.value || [];
+                                if (checked) {
+                                  field.onChange([...current.filter(g => g !== "group_a"), "group_a"]);
+                                } else {
+                                  field.onChange(current.filter(g => g !== "group_a"));
+                                }
+                              }}
+                            />
+                            <span>Group A</span>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <Checkbox
+                              checked={field.value?.includes("group_b")}
+                              onCheckedChange={(checked) => {
+                                const current = field.value || [];
+                                if (checked) {
+                                  field.onChange([...current.filter(g => g !== "group_b"), "group_b"]);
+                                } else {
+                                  field.onChange(current.filter(g => g !== "group_b"));
+                                }
+                              }}
+                            />
+                            <span>Group B</span>
+                          </div>
+                        </div>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
                   <div className="flex justify-end space-x-4">
                     <Button 
