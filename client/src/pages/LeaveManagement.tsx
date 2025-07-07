@@ -34,6 +34,7 @@ export default function LeaveManagement() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [useAbsentData, setUseAbsentData] = useState(true);
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const queryClient = useQueryClient();
 
   const form = useForm<LeaveRequestFormData>({
@@ -69,20 +70,19 @@ export default function LeaveManagement() {
     queryKey: ["/api/holidays"],
   });
 
-  // Get absent employees (employees without attendance today)
-  const today = new Date().toISOString().split('T')[0];
+  // Get absent employees for selected date
   const absentEmployees = employees.filter(emp => {
-    const hasAttendanceToday = attendance.some(att => 
+    const hasAttendanceOnDate = attendance.some(att => 
       att.employeeId === emp.id && 
-      new Date(att.date).toISOString().split('T')[0] === today
+      new Date(att.date).toISOString().split('T')[0] === selectedDate
     );
-    const hasLeaveToday = leaveRequests.some(leave => 
+    const hasLeaveOnDate = leaveRequests.some(leave => 
       leave.employeeId === emp.id && 
       leave.status === 'approved' &&
-      new Date(leave.startDate) <= new Date() &&
-      new Date(leave.endDate) >= new Date()
+      new Date(leave.startDate).toISOString().split('T')[0] <= selectedDate &&
+      new Date(leave.endDate).toISOString().split('T')[0] >= selectedDate
     );
-    return !hasAttendanceToday && !hasLeaveToday;
+    return !hasAttendanceOnDate && !hasLeaveOnDate;
   });
 
   // Create leave request mutation
@@ -151,13 +151,12 @@ export default function LeaveManagement() {
 
   const handleQuickLeaveFromAbsent = (employee: Employee) => {
     form.setValue("employeeId", employee.id.toString());
-    form.setValue("startDate", today);
-    form.setValue("endDate", today);
+    form.setValue("startDate", selectedDate);
+    form.setValue("endDate", selectedDate);
     form.setValue("days", 1);
-    form.setValue("reason", "Absent today - leave request");
+    form.setValue("reason", `Absent on ${selectedDate} - leave request`);
     setSelectedEmployee(employee);
     setUseAbsentData(false); // Switch to manual mode to show the form
-    setIsDialogOpen(true);
   };
 
   const getStatusColor = (status: string) => {
@@ -216,24 +215,45 @@ export default function LeaveManagement() {
               </span>
             </div>
 
-            {/* Absent employees quick selection */}
-            {useAbsentData && absentEmployees.length > 0 && (
+            {/* Date picker for absent employees */}
+            {useAbsentData && (
               <div className="mb-4">
-                <h4 className="text-sm font-medium mb-2">Absent Employees Today:</h4>
-                <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto">
-                  {absentEmployees.map((employee) => (
-                    <Button
-                      key={employee.id}
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleQuickLeaveFromAbsent(employee)}
-                      className="justify-start text-xs"
-                    >
-                      <User className="mr-1 h-3 w-3" />
-                      {employee.fullName} ({employee.employeeId})
-                    </Button>
-                  ))}
-                </div>
+                <label className="text-sm font-medium mb-2 block">Select Date:</label>
+                <Input
+                  type="date"
+                  value={selectedDate}
+                  onChange={(e) => setSelectedDate(e.target.value)}
+                  className="w-full max-w-xs"
+                />
+              </div>
+            )}
+
+            {/* Absent employees quick selection */}
+            {useAbsentData && (
+              <div className="mb-4">
+                <h4 className="text-sm font-medium mb-2">
+                  Absent Employees on {new Date(selectedDate).toLocaleDateString()}:
+                </h4>
+                {absentEmployees.length > 0 ? (
+                  <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto">
+                    {absentEmployees.map((employee) => (
+                      <Button
+                        key={employee.id}
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleQuickLeaveFromAbsent(employee)}
+                        className="justify-start text-xs"
+                      >
+                        <User className="mr-1 h-3 w-3" />
+                        {employee.fullName} ({employee.employeeId})
+                      </Button>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    No absent employees found for selected date
+                  </p>
+                )}
               </div>
             )}
 
