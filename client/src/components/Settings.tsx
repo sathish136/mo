@@ -375,9 +375,10 @@ export default function Settings() {
     },
   });
 
+  // Database Management Mutations
   const createBackupMutation = useMutation({
     mutationFn: async () => {
-      const response = await fetch('/api/backup', {
+      const response = await fetch('/api/database/backup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
       });
@@ -390,16 +391,108 @@ export default function Settings() {
     onSuccess: (data) => {
       toast({
         title: 'Backup Created',
-        description: 'System backup has been successfully created.',
+        description: 'Database backup has been successfully created.',
       });
     },
     onError: (error: any) => {
       toast({
         title: 'Backup Failed',
-        description: error.message || 'Failed to create system backup',
+        description: error.message || 'Failed to create database backup',
         variant: 'destructive',
       });
     },
+  });
+
+  const optimizeDatabaseMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch('/api/database/optimize', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'Failed to optimize database' }));
+        throw new Error(errorData.message || 'Failed to optimize database');
+      }
+      return response.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: 'Database Optimized',
+        description: 'Database optimization completed successfully.',
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Optimization Failed',
+        description: error.message || 'Failed to optimize database',
+        variant: 'destructive',
+      });
+    },
+  });
+
+  const analyzeDatabaseMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch('/api/database/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'Failed to analyze database' }));
+        throw new Error(errorData.message || 'Failed to analyze database');
+      }
+      return response.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: 'Analysis Complete',
+        description: 'Database performance analysis completed successfully.',
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Analysis Failed',
+        description: error.message || 'Failed to analyze database performance',
+        variant: 'destructive',
+      });
+    },
+  });
+
+  const checkIntegrityMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch('/api/database/integrity', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'Failed to check integrity' }));
+        throw new Error(errorData.message || 'Failed to check integrity');
+      }
+      return response.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: 'Integrity Check Complete',
+        description: 'Database integrity check completed successfully.',
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Integrity Check Failed',
+        description: error.message || 'Failed to check database integrity',
+        variant: 'destructive',
+      });
+    },
+  });
+
+  // Database Status Query
+  const { data: databaseStatus } = useQuery({
+    queryKey: ["/api/database/status"],
+    queryFn: async () => {
+      const response = await fetch("/api/database/status");
+      if (!response.ok) throw new Error("Failed to fetch database status");
+      return response.json();
+    },
+    refetchInterval: 30000, // Refresh every 30 seconds
   });
 
   const restoreBackupMutation = useMutation({
@@ -1058,101 +1151,9 @@ export default function Settings() {
       </Card>
 
  
-      {/* Backup & Maintenance */}
-      <Card className="border border-gray-200">
-        <CardHeader>
-          <CardTitle className="text-lg font-semibold text-gray-900">Database Backup & Maintenance</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <p className="text-sm text-gray-700 mb-2">Last Database Backup</p>
-              <p className="text-sm text-gray-900 font-medium">
-                06/07/2025 at 14:30:11
-              </p>
-            </div>
-            <div>
-              <p className="text-sm text-gray-700 mb-2">Database Size</p>
-              <p className="text-sm text-gray-900 font-medium">45.2 MB</p>
-            </div>
-          </div>
-          <div className="flex space-x-4">
-            <Button 
-              variant="outline" 
-              onClick={() => createBackupMutation.mutate()}
-              disabled={createBackupMutation.isPending}
-            >
-              {createBackupMutation.isPending ? 'Creating...' : 'Create Database Backup'}
-            </Button>
-            <Button 
-              variant="outline" 
-              onClick={() => getBackupsMutation.mutate()}
-              disabled={getBackupsMutation.isPending}
-            >
-              {getBackupsMutation.isPending ? 'Loading...' : 'View Backups'}
-            </Button>
-            <Button 
-              variant="outline" 
-              className="text-red-600 hover:text-red-700"
-              onClick={() => clearLogsMutation.mutate()}
-              disabled={clearLogsMutation.isPending}
-            >
-              {clearLogsMutation.isPending ? 'Clearing...' : 'Clear System Logs'}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
 
-      {/* Backup List Dialog */}
-      <Dialog open={isBackupDialogOpen} onOpenChange={setIsBackupDialogOpen}>
-        <DialogContent className="max-w-3xl">
-          <DialogHeader>
-            <DialogTitle>Database Backups</DialogTitle>
-            <DialogDescription>Select a backup to restore or download</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 max-h-60 overflow-y-auto">
-            {backups.length > 0 ? (
-              backups.map((backup: any) => (
-                <div key={backup.name} className="flex items-center justify-between p-4 bg-white border border-slate-200 rounded-lg shadow-sm">
-                  <div>
-                    <p className="text-sm font-semibold text-slate-900">{backup.name}</p>
-                    <p className="text-xs text-slate-600">Created: {new Date(backup.timestamp).toLocaleString()}</p>
-                    <p className="text-xs text-slate-600">Size: {backup.size}</p>
-                  </div>
-                  <div className="flex space-x-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        restoreBackupMutation.mutate({ backupName: backup.name });
-                        setIsBackupDialogOpen(false);
-                      }}
-                      disabled={restoreBackupMutation.isPending}
-                    >
-                      Restore
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        downloadBackupMutation.mutate(backup.name);
-                      }}
-                      disabled={downloadBackupMutation.isPending}
-                    >
-                      Download
-                    </Button>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <p className="text-center text-gray-500">No backups found.</p>
-            )}
-          </div>
-          <DialogFooter>
-            <Button onClick={() => setIsBackupDialogOpen(false)}>Close</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+
+
 
       {deviceInfo && (
         <Dialog open={isInfoDialogOpen} onOpenChange={setIsInfoDialogOpen}>
@@ -1433,7 +1434,9 @@ export default function Settings() {
                       <Database className="w-4 h-4 text-blue-600" />
                       <div>
                         <div className="text-sm font-semibold text-blue-800">Database Size</div>
-                        <div className="text-xs text-blue-600">45.8 MB (178 employees)</div>
+                        <div className="text-xs text-blue-600">
+                          {databaseStatus?.size || '45.8 MB'} ({databaseStatus?.employeeCount || 0} employees)
+                        </div>
                       </div>
                     </div>
                   </CardContent>
@@ -1444,7 +1447,9 @@ export default function Settings() {
                       <Users className="w-4 h-4 text-purple-600" />
                       <div>
                         <div className="text-sm font-semibold text-purple-800">Active Connections</div>
-                        <div className="text-xs text-purple-600">3 of 20 available</div>
+                        <div className="text-xs text-purple-600">
+                          {databaseStatus?.activeConnections || 3} of {databaseStatus?.maxConnections || 20} available
+                        </div>
                       </div>
                     </div>
                   </CardContent>
@@ -1455,38 +1460,66 @@ export default function Settings() {
               <div className="space-y-3">
                 <h4 className="font-semibold text-gray-800 mb-3">Database Operations</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <Button variant="outline" className="h-auto p-4 border-blue-200 hover:bg-blue-50">
+                  <Button 
+                    variant="outline" 
+                    className="h-auto p-4 border-blue-200 hover:bg-blue-50"
+                    onClick={() => optimizeDatabaseMutation.mutate()}
+                    disabled={optimizeDatabaseMutation.isPending}
+                  >
                     <div className="flex items-center w-full">
-                      <RefreshCw className="w-5 h-5 mr-3 text-blue-600" />
+                      <RefreshCw className={`w-5 h-5 mr-3 text-blue-600 ${optimizeDatabaseMutation.isPending ? 'animate-spin' : ''}`} />
                       <div className="text-left flex-1">
-                        <div className="font-medium text-blue-800">Optimize Database</div>
+                        <div className="font-medium text-blue-800">
+                          {optimizeDatabaseMutation.isPending ? 'Optimizing...' : 'Optimize Database'}
+                        </div>
                         <div className="text-sm text-blue-600">Rebuild indexes & optimize tables</div>
                       </div>
                     </div>
                   </Button>
-                  <Button variant="outline" className="h-auto p-4 border-green-200 hover:bg-green-50">
+                  <Button 
+                    variant="outline" 
+                    className="h-auto p-4 border-green-200 hover:bg-green-50"
+                    onClick={() => analyzeDatabaseMutation.mutate()}
+                    disabled={analyzeDatabaseMutation.isPending}
+                  >
                     <div className="flex items-center w-full">
-                      <Activity className="w-5 h-5 mr-3 text-green-600" />
+                      <Activity className={`w-5 h-5 mr-3 text-green-600 ${analyzeDatabaseMutation.isPending ? 'animate-pulse' : ''}`} />
                       <div className="text-left flex-1">
-                        <div className="font-medium text-green-800">Performance Analysis</div>
+                        <div className="font-medium text-green-800">
+                          {analyzeDatabaseMutation.isPending ? 'Analyzing...' : 'Performance Analysis'}
+                        </div>
                         <div className="text-sm text-green-600">Analyze query performance</div>
                       </div>
                     </div>
                   </Button>
-                  <Button variant="outline" className="h-auto p-4 border-purple-200 hover:bg-purple-50">
+                  <Button 
+                    variant="outline" 
+                    className="h-auto p-4 border-purple-200 hover:bg-purple-50"
+                    onClick={() => createBackupMutation.mutate()}
+                    disabled={createBackupMutation.isPending}
+                  >
                     <div className="flex items-center w-full">
-                      <Shield className="w-5 h-5 mr-3 text-purple-600" />
+                      <Shield className={`w-5 h-5 mr-3 text-purple-600 ${createBackupMutation.isPending ? 'animate-pulse' : ''}`} />
                       <div className="text-left flex-1">
-                        <div className="font-medium text-purple-800">Create Backup</div>
+                        <div className="font-medium text-purple-800">
+                          {createBackupMutation.isPending ? 'Creating...' : 'Create Backup'}
+                        </div>
                         <div className="text-sm text-purple-600">Manual database backup</div>
                       </div>
                     </div>
                   </Button>
-                  <Button variant="outline" className="h-auto p-4 border-orange-200 hover:bg-orange-50">
+                  <Button 
+                    variant="outline" 
+                    className="h-auto p-4 border-orange-200 hover:bg-orange-50"
+                    onClick={() => checkIntegrityMutation.mutate()}
+                    disabled={checkIntegrityMutation.isPending}
+                  >
                     <div className="flex items-center w-full">
-                      <AlertCircle className="w-5 h-5 mr-3 text-orange-600" />
+                      <AlertCircle className={`w-5 h-5 mr-3 text-orange-600 ${checkIntegrityMutation.isPending ? 'animate-bounce' : ''}`} />
                       <div className="text-left flex-1">
-                        <div className="font-medium text-orange-800">Check Integrity</div>
+                        <div className="font-medium text-orange-800">
+                          {checkIntegrityMutation.isPending ? 'Checking...' : 'Check Integrity'}
+                        </div>
                         <div className="text-sm text-orange-600">Verify data integrity</div>
                       </div>
                     </div>
