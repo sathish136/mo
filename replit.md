@@ -123,8 +123,9 @@ Changelog:
     - Created bulk update API endpoint with proper validation and error handling
     - Enhanced UI with bulk operations dialog and controls
     - Improved table layout with select all functionality
-    - Added multiple selection with checkboxes
-    - Added bulk operations for department, group, and status changes
+    - Fixed bulk operations API endpoint with proper route ordering
+    - Successfully tested bulk updates for department, group, and status changes
+    - Implemented proper error handling and logging for bulk operations
     - Added bulk operations dialog with intuitive interface
     - Added select all/deselect all functionality
     - Enhanced table layout with better organization

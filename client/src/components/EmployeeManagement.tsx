@@ -217,25 +217,39 @@ function BulkOperations({ selectedEmployees, onBulkUpdate, onClose, departments,
   const [bulkGroup, setBulkGroup] = useState("");
   const [bulkStatus, setBulkStatus] = useState("");
 
+  const resetForm = () => {
+    setOperation("");
+    setBulkDepartmentId(undefined);
+    setBulkGroup("");
+    setBulkStatus("");
+  };
+
+  const handleClose = () => {
+    resetForm();
+    onClose();
+  };
+
   const handleBulkUpdate = () => {
-    const updates: Partial<Employee> = {};
+    const updates: any = {};
     
     if (operation === "department" && bulkDepartmentId) {
-      updates.departmentId = Number(bulkDepartmentId);
+      updates.departmentId = bulkDepartmentId; // Send as number, backend will parse
     } else if (operation === "group" && bulkGroup) {
-      updates.employeeGroup = bulkGroup as "group_a" | "group_b";
+      updates.employeeGroup = bulkGroup;
     } else if (operation === "status" && bulkStatus) {
-      updates.status = bulkStatus as "active" | "inactive";
+      updates.status = bulkStatus;
     }
+
+    console.log("Frontend sending bulk updates:", updates);
 
     if (Object.keys(updates).length > 0) {
       onBulkUpdate(updates);
-      onClose();
+      resetForm();
     }
   };
 
   return (
-    <Dialog open={selectedEmployees.length > 0} onOpenChange={() => onClose()}>
+    <Dialog open={selectedEmployees.length > 0} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Bulk Operations ({selectedEmployees.length} selected)</DialogTitle>
@@ -304,7 +318,7 @@ function BulkOperations({ selectedEmployees, onBulkUpdate, onClose, departments,
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={onClose}>Cancel</Button>
+          <Button variant="outline" onClick={handleClose}>Cancel</Button>
           <Button onClick={handleBulkUpdate} disabled={isPending || !operation}>
             {isPending ? "Updating..." : "Update Selected"}
           </Button>

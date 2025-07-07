@@ -282,6 +282,61 @@ router.post("/api/employees", upload.single("photo"), async (req, res) => {
   }
 });
 
+router.put("/api/employees/bulk", async (req, res) => {
+  try {
+    const { employeeIds, updates } = req.body;
+    
+    if (!Array.isArray(employeeIds) || employeeIds.length === 0) {
+      return res.status(400).json({ message: "Employee IDs are required" });
+    }
+
+    if (!updates || Object.keys(updates).length === 0) {
+      return res.status(400).json({ message: "Updates are required" });
+    }
+
+    console.log("Raw updates received:", updates);
+    console.log("Employee IDs:", employeeIds);
+    
+    // Build update object based on what fields are provided
+    const updateFields: any = { updatedAt: new Date() };
+    
+    if (updates.departmentId !== undefined && updates.departmentId !== null) {
+      updateFields.departmentId = Number(updates.departmentId);
+      console.log("Setting departmentId to:", updateFields.departmentId);
+    }
+    
+    if (updates.employeeGroup !== undefined && updates.employeeGroup !== null) {
+      updateFields.employeeGroup = updates.employeeGroup;
+      console.log("Setting employeeGroup to:", updateFields.employeeGroup);
+    }
+    
+    if (updates.status !== undefined && updates.status !== null) {
+      updateFields.status = updates.status;
+      console.log("Setting status to:", updateFields.status);
+    }
+
+    console.log("Final update fields:", updateFields);
+
+    // Perform the bulk update
+    const updatedEmployees = await db
+      .update(employees)
+      .set(updateFields)
+      .where(inArray(employees.id, employeeIds))
+      .returning({ id: employees.id, employeeId: employees.employeeId });
+
+    console.log("Successfully updated employees:", updatedEmployees);
+
+    res.json({ 
+      message: `Successfully updated ${updatedEmployees.length} employees`,
+      updatedCount: updatedEmployees.length,
+      updatedEmployees: updatedEmployees
+    });
+  } catch (error) {
+    console.error("Error bulk updating employees:", error);
+    res.status(500).json({ message: "Internal server error", error: error.message });
+  }
+});
+
 router.put("/api/employees/:id", upload.single("photo"), async (req, res) => {
   try {
     const id = req.params.id; // Already a string
@@ -348,59 +403,6 @@ router.delete("/api/employees/:id", async (req, res) => {
     res.json({ message: "Employee deleted successfully" });
   } catch (error) {
     console.error("Error deleting employee:", error);
-    res.status(500).json({ message: "Internal server error" });
-  }
-});
-
-router.put("/api/employees/bulk", async (req, res) => {
-  try {
-    const { employeeIds, updates } = req.body;
-    
-    if (!Array.isArray(employeeIds) || employeeIds.length === 0) {
-      return res.status(400).json({ message: "Employee IDs are required" });
-    }
-
-    if (!updates || Object.keys(updates).length === 0) {
-      return res.status(400).json({ message: "Updates are required" });
-    }
-
-    // Parse numeric fields properly
-    const parsedUpdates = {
-      ...updates,
-      departmentId: updates.departmentId ? parseInt(updates.departmentId, 10) : updates.departmentId,
-    };
-
-    // Validate the updates object
-    const validatedUpdates = insertEmployeeSchema.partial().safeParse(parsedUpdates);
-    if (!validatedUpdates.success) {
-      console.error("Bulk update validation errors:", validatedUpdates.error.errors);
-      return res.status(400).json({ errors: validatedUpdates.error.errors });
-    }
-
-    const updateData = {
-      ...validatedUpdates.data,
-      updatedAt: new Date(),
-    };
-
-    // Remove undefined values
-    Object.keys(updateData).forEach(key => {
-      if (updateData[key as keyof typeof updateData] === undefined) {
-        delete updateData[key as keyof typeof updateData];
-      }
-    });
-
-    const updatedEmployees = await db
-      .update(employees)
-      .set(updateData)
-      .where(inArray(employees.id, employeeIds))
-      .returning();
-
-    res.json({ 
-      message: `Successfully updated ${updatedEmployees.length} employees`,
-      updatedCount: updatedEmployees.length 
-    });
-  } catch (error) {
-    console.error("Error bulk updating employees:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 });
