@@ -183,7 +183,6 @@ export default function HolidayManagement() {
         </TabsList>
         
         <TabsContent value="holidays" className="space-y-6">
-          <div>
           {/* Holiday Management Header */}
           <div className="flex items-center justify-between">
             <div>
@@ -426,7 +425,7 @@ export default function HolidayManagement() {
         </Card>
       </div>
 
-
+      </div>
 
       {/* Holiday List with Dates */}
       <Card className="border border-gray-200">
@@ -518,7 +517,6 @@ export default function HolidayManagement() {
           </div>
         </CardContent>
       </Card>
-          </div>
         </TabsContent>
         
         <TabsContent value="leave-types" className="space-y-6">
