@@ -97,3 +97,14 @@ Preferred communication style: Simple, everyday language.
 
 Changelog:
 - July 04, 2025. Initial setup
+- July 07, 2025. Migration from Replit Agent to Replit environment completed
+  - Database setup with PostgreSQL
+  - All dependencies installed and configured
+  - Monthly attendance report enhancements:
+    - Added total hours calculation column
+    - Added overtime total column (without 'h' suffix)
+    - Added present days count in status totals
+    - Changed background from yellow to light blue for better readability
+    - Added month/year header display
+    - Removed duplicate export options
+    - Show "-" instead of "0" for empty overtime values

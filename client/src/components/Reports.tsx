@@ -1065,7 +1065,7 @@ export default function Reports() {
                         <td className="border p-1 text-center bg-blue-100 font-semibold">
                           {field === 'Worked Hours' ? `${totalHours.toFixed(2)}h` : 
                            field === 'Status' ? `${totalPresentDays} days` :
-                           field === 'Overtime' ? `${totalOvertime.toFixed(2)}h` : '-'}
+                           field === 'Overtime' ? (totalOvertime > 0 ? totalOvertime.toFixed(2) : '-') : '-'}
                         </td>
                       </tr>
                     ))}
