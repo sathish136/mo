@@ -1463,26 +1463,46 @@ export default function Settings() {
                 </div>
               </div>
               
-              {/* License Details (Compact) */}
+              {/* License Details (Detailed) */}
               {license.isValid && (
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 p-3 bg-green-50 rounded-lg border border-green-200">
-                  <div className="text-center">
-                    <div className="text-xs font-medium text-green-800">Tier</div>
-                    <div className="text-xs text-green-600">{license.tier}</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-xs font-medium text-green-800">Logins</div>
-                    <div className="text-xs text-green-600">
-                      {license.currentLogins}/{license.maxWebLogins === 999 ? '∞' : license.maxWebLogins}
+                <div className="space-y-3">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 p-4 bg-green-50 rounded-lg border border-green-200">
+                    <div>
+                      <div className="text-sm font-medium text-green-800">License Tier</div>
+                      <div className="text-sm text-green-600">{license.tier}</div>
+                      <div className="text-xs text-green-500">Enterprise Edition</div>
+                    </div>
+                    <div>
+                      <div className="text-sm font-medium text-green-800">Web Logins</div>
+                      <div className="text-sm text-green-600">
+                        {license.currentLogins}/{license.maxWebLogins === 999 ? '∞' : license.maxWebLogins} active sessions
+                      </div>
+                      <div className="text-xs text-green-500">Concurrent users allowed</div>
+                    </div>
+                    <div>
+                      <div className="text-sm font-medium text-green-800">License Status</div>
+                      <div className="text-sm text-green-600">Active & Valid</div>
+                      <div className="text-xs text-green-500">Valid until unlimited</div>
+                    </div>
+                    <div>
+                      <div className="text-sm font-medium text-green-800">Licensed Organization</div>
+                      <div className="text-sm text-green-600">Ministry of Finance</div>
+                      <div className="text-xs text-green-500">Sri Lanka Government</div>
                     </div>
                   </div>
-                  <div className="text-center">
-                    <div className="text-xs font-medium text-green-800">Features</div>
-                    <div className="text-xs text-green-600">{license.features.length}</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-xs font-medium text-green-800">Licensed To</div>
-                    <div className="text-xs text-green-600">MOF</div>
+                  
+                  <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+                    <div className="text-sm font-medium text-blue-800 mb-2">Available Features & Modules:</div>
+                    <div className="flex flex-wrap gap-2">
+                      {license.features.map((feature, index) => (
+                        <span key={index} className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded border border-blue-300">
+                          {feature}
+                        </span>
+                      ))}
+                    </div>
+                    <div className="text-xs text-blue-600 mt-2">
+                      Total: {license.features.length} modules enabled in your license
+                    </div>
                   </div>
                 </div>
               )}
