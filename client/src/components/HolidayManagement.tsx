@@ -19,6 +19,8 @@ import { apiRequest } from "@/lib/queryClient";
 
 export default function HolidayManagement() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editingHoliday, setEditingHoliday] = useState<Holiday | null>(null);
   const [filterType, setFilterType] = useState("all");
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [quickAddDate, setQuickAddDate] = useState("");
@@ -87,8 +89,43 @@ export default function HolidayManagement() {
   });
 
   const onSubmit = (data: InsertHoliday) => {
-    createHolidayMutation.mutate(data);
+    if (editingHoliday) {
+      updateHolidayMutation.mutate({ id: editingHoliday.id, data });
+    } else {
+      createHolidayMutation.mutate(data);
+    }
   };
+
+  const updateHolidayMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: number; data: InsertHoliday }) => {
+      const response = await apiRequest("PUT", `/api/holidays/${id}`, data);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/holidays"] });
+      toast({
+        title: "Success",
+        description: "Holiday updated successfully",
+      });
+      setIsEditDialogOpen(false);
+      setEditingHoliday(null);
+      form.reset({
+        name: "",
+        date: new Date(),
+        type: "annual",
+        description: "",
+        isRecurring: false,
+        applicableGroups: ["group_a", "group_b"],
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update holiday",
+        variant: "destructive",
+      });
+    },
+  });
 
   const handleQuickAdd = () => {
     if (!quickAddDate || !quickAddName) {
@@ -115,6 +152,46 @@ export default function HolidayManagement() {
     setQuickAddDate("");
     setQuickAddName("");
     setQuickAddType("annual");
+  };
+
+  const deleteHolidayMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const response = await apiRequest("DELETE", `/api/holidays/${id}`);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/holidays"] });
+      toast({
+        title: "Success",
+        description: "Holiday deleted successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete holiday",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleEdit = (holiday: Holiday) => {
+    setEditingHoliday(holiday);
+    form.reset({
+      name: holiday.name,
+      date: new Date(holiday.date),
+      type: holiday.type,
+      description: holiday.description || holiday.name,
+      isRecurring: holiday.isRecurring || false,
+      applicableGroups: holiday.applicableGroups || ["group_a", "group_b"],
+    });
+    setIsEditDialogOpen(true);
+  };
+
+  const handleDelete = (id: number, name: string) => {
+    if (confirm(`Are you sure you want to delete "${name}"? This action cannot be undone.`)) {
+      deleteHolidayMutation.mutate(id);
+    }
   };
 
 
@@ -348,6 +425,105 @@ export default function HolidayManagement() {
               </Form>
             </DialogContent>
           </Dialog>
+
+          {/* Edit Holiday Dialog */}
+          <Dialog open={isEditDialogOpen} onOpenChange={(open) => {
+            setIsEditDialogOpen(open);
+            if (!open) {
+              setEditingHoliday(null);
+              form.reset({
+                name: "",
+                date: new Date(),
+                type: "annual",
+                description: "",
+                isRecurring: false,
+                applicableGroups: ["group_a", "group_b"],
+              });
+            }
+          }}>
+            <DialogContent className="max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>Edit Holiday</DialogTitle>
+              </DialogHeader>
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <FormField
+                      control={form.control}
+                      name="name"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Holiday Name</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Enter holiday name" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="date"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Date</FormLabel>
+                          <FormControl>
+                            <Input 
+                              type="date" 
+                              value={field.value ? new Date(field.value).toISOString().split('T')[0] : ''}
+                              onChange={(e) => field.onChange(new Date(e.target.value))}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <FormField
+                      control={form.control}
+                      name="type"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Holiday Type</FormLabel>
+                          <FormControl>
+                            <Select value={field.value} onValueChange={field.onChange}>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select holiday type" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="annual">Annual Holiday</SelectItem>
+                                <SelectItem value="special">Special Holiday</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  <div className="flex justify-end space-x-4">
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      onClick={() => setIsEditDialogOpen(false)}
+                    >
+                      Cancel
+                    </Button>
+                    <Button 
+                      type="submit" 
+                      className="bg-[hsl(var(--gov-navy))] hover:bg-[hsl(var(--gov-navy-light))]"
+                      disabled={updateHolidayMutation.isPending}
+                    >
+                      {updateHolidayMutation.isPending ? "Updating..." : "Update Holiday"}
+                    </Button>
+                  </div>
+                </form>
+              </Form>
+            </DialogContent>
+          </Dialog>
           </div>
 
           {/* Holiday Statistics Cards */}
@@ -527,13 +703,24 @@ export default function HolidayManagement() {
                     </div>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <Button variant="ghost" size="sm" className="h-8 px-3 text-blue-600 hover:bg-blue-50">
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="h-8 px-3 text-blue-600 hover:bg-blue-50"
+                      onClick={() => handleEdit(holiday)}
+                    >
                       <FileText className="w-4 h-4 mr-1" />
                       Edit
                     </Button>
-                    <Button variant="ghost" size="sm" className="h-8 px-3 text-red-600 hover:bg-red-50">
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="h-8 px-3 text-red-600 hover:bg-red-50"
+                      onClick={() => handleDelete(holiday.id, holiday.name)}
+                      disabled={deleteHolidayMutation.isPending}
+                    >
                       <Users2 className="w-4 h-4 mr-1" />
-                      Delete
+                      {deleteHolidayMutation.isPending ? "Deleting..." : "Delete"}
                     </Button>
                   </div>
                 </div>
