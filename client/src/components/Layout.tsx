@@ -43,7 +43,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           description: "Logged out successfully",
         });
 
-        // Redirect to login or home
+        // Redirect to login page
         setLocation("/login");
       } else {
         throw new Error("Logout failed");
