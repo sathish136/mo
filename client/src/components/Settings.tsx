@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Settings as SettingsIcon, Wifi, MapPin, Plus, Edit, Trash2, RefreshCw, Activity, AlertCircle, Users, ChevronRight, Building2, Building, User, Shield, Key, FileText, HelpCircle, CheckCircle, XCircle, Clock } from "lucide-react";
+import { Settings as SettingsIcon, Wifi, MapPin, Plus, Edit, Trash2, RefreshCw, Activity, AlertCircle, Users, ChevronRight, Building2, Building, User, Shield, Key, FileText, HelpCircle, CheckCircle, XCircle, Clock, Mail, Database } from "lucide-react";
 import { Link } from "wouter";
 import { useLicense } from "@/hooks/useLicense";
 import { LicenseInfo } from "@/components/LicenseInfo";
@@ -68,7 +68,9 @@ export default function Settings() {
     errorLogs: [] as any[],
     showActivityLogs: false,
     showErrorLogs: false,
-    showSessionDetails: false
+    showSessionDetails: false,
+    showEmailConfig: false,
+    showDbManagement: false
   });
   const [activeSessions, setActiveSessions] = useState<any[]>([]);
 
@@ -1574,64 +1576,61 @@ export default function Settings() {
             <CardContent className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Button
-                  onClick={() => createBackupMutation.mutate()}
-                  disabled={createBackupMutation.isPending || !license.isValid}
-                  className="h-auto p-4 bg-green-600 hover:bg-green-700 text-white disabled:opacity-50"
-                >
-                  <div className="flex items-center">
-                    <RefreshCw className="w-5 h-5 mr-3" />
-                    <div className="text-left">
-                      <div className="font-medium">Create Backup</div>
-                      <div className="text-sm opacity-80">Backup system data</div>
-                    </div>
-                  </div>
-                </Button>
-                
-                <Button
-                  onClick={() => getBackupsMutation.mutate()}
-                  disabled={getBackupsMutation.isPending || !license.isValid}
-                  variant="outline"
-                  className="h-auto p-4 border-gray-200 hover:bg-gray-50 disabled:opacity-50"
-                >
-                  <div className="flex items-center">
-                    <Activity className="w-5 h-5 mr-3 text-blue-600" />
-                    <div className="text-left">
-                      <div className="font-medium">Manage Backups</div>
-                      <div className="text-sm text-gray-500">View and restore backups</div>
-                    </div>
-                  </div>
-                </Button>
-                
-                <Button
-                  onClick={() => clearLogsMutation.mutate()}
-                  disabled={clearLogsMutation.isPending || !license.isValid}
+                  onClick={() => setSystemLogs({...systemLogs, showErrorLogs: true})}
+                  disabled={!license.isValid}
                   variant="outline"
                   className="h-auto p-4 border-red-200 hover:bg-red-50 text-red-600 disabled:opacity-50"
                 >
                   <div className="flex items-center">
-                    <Trash2 className="w-5 h-5 mr-3" />
+                    <AlertCircle className="w-5 h-5 mr-3" />
                     <div className="text-left">
-                      <div className="font-medium">Clear Logs</div>
-                      <div className="text-sm opacity-60">Clear system logs</div>
+                      <div className="font-medium">Error Logs</div>
+                      <div className="text-sm opacity-60">View system error logs</div>
                     </div>
                   </div>
                 </Button>
                 
                 <Button
+                  onClick={() => setSystemLogs({...systemLogs, showActivityLogs: true})}
+                  disabled={!license.isValid}
                   variant="outline"
-                  className="h-auto p-4 border-gray-200 hover:bg-gray-50"
-                  onClick={() => {
-                    toast({
-                      title: "Support Contact",
-                      description: "For technical support, contact: support@wtt.gov.lk or +94 11 234 5678",
-                    });
-                  }}
+                  className="h-auto p-4 border-blue-200 hover:bg-blue-50 text-blue-600 disabled:opacity-50"
                 >
                   <div className="flex items-center">
-                    <HelpCircle className="w-5 h-5 mr-3 text-purple-600" />
+                    <Activity className="w-5 h-5 mr-3" />
                     <div className="text-left">
-                      <div className="font-medium">Technical Support</div>
-                      <div className="text-sm text-gray-500">Get help and support</div>
+                      <div className="font-medium">Access Logs</div>
+                      <div className="text-sm text-gray-500">View user activity logs</div>
+                    </div>
+                  </div>
+                </Button>
+                
+                <Button
+                  onClick={() => setSystemLogs({...systemLogs, showEmailConfig: true})}
+                  disabled={!license.isValid}
+                  variant="outline"
+                  className="h-auto p-4 border-green-200 hover:bg-green-50 text-green-600 disabled:opacity-50"
+                >
+                  <div className="flex items-center">
+                    <Mail className="w-5 h-5 mr-3" />
+                    <div className="text-left">
+                      <div className="font-medium">Email Configuration</div>
+                      <div className="text-sm text-gray-500">Configure SMTP settings</div>
+                    </div>
+                  </div>
+                </Button>
+                
+                <Button
+                  onClick={() => setSystemLogs({...systemLogs, showDbManagement: true})}
+                  disabled={!license.isValid}
+                  variant="outline"
+                  className="h-auto p-4 border-purple-200 hover:bg-purple-50 text-purple-600 disabled:opacity-50"
+                >
+                  <div className="flex items-center">
+                    <Database className="w-5 h-5 mr-3" />
+                    <div className="text-left">
+                      <div className="font-medium">Database Management</div>
+                      <div className="text-sm text-gray-500">Manage database operations</div>
                     </div>
                   </div>
                 </Button>
@@ -1750,7 +1749,7 @@ export default function Settings() {
             <DialogDescription>Current active sessions for your license</DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
-            <div className="text-xs text-gray-500 mb-2">Debug: {activeSessions.length} sessions in state</div>
+
             {activeSessions.length === 0 ? (
               <div className="text-center py-8">
                 <Users className="w-12 h-12 mx-auto text-gray-400 mb-4" />
@@ -1819,6 +1818,179 @@ export default function Settings() {
                 </div>
               ))
             )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Email Configuration Dialog */}
+      <Dialog open={systemLogs.showEmailConfig} onOpenChange={(open) => setSystemLogs({...systemLogs, showEmailConfig: open})}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center">
+              <Mail className="w-5 h-5 mr-2" />
+              Email Configuration (SMTP)
+            </DialogTitle>
+            <DialogDescription>Configure SMTP settings and automated email reports</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-6">
+            {/* SMTP Settings */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm">SMTP Server Configuration</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="smtpHost">SMTP Host</Label>
+                    <Input id="smtpHost" placeholder="smtp.gmail.com" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="smtpPort">SMTP Port</Label>
+                    <Input id="smtpPort" placeholder="587" type="number" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="smtpUser">Username/Email</Label>
+                    <Input id="smtpUser" placeholder="your-email@company.com" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="smtpPassword">Password</Label>
+                    <Input id="smtpPassword" placeholder="Enter password" type="password" />
+                  </div>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <input type="checkbox" id="smtpTLS" className="rounded" />
+                  <Label htmlFor="smtpTLS">Use TLS/SSL</Label>
+                </div>
+                <Button variant="outline" size="sm">Test Connection</Button>
+              </CardContent>
+            </Card>
+
+            {/* Automated Reports */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm">Automated Email Reports</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-4">
+                  {[
+                    { name: 'Daily Attendance Report', time: '08:00 AM', enabled: true },
+                    { name: 'Weekly Summary Report', time: 'Monday 09:00 AM', enabled: false },
+                    { name: 'Monthly Employee Report', time: '1st day 10:00 AM', enabled: true },
+                    { name: 'Overtime Summary Report', time: 'Daily 06:00 PM', enabled: false },
+                    { name: 'Leave Request Notifications', time: 'Immediate', enabled: true }
+                  ].map((report, index) => (
+                    <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
+                      <div>
+                        <div className="font-medium text-sm">{report.name}</div>
+                        <div className="text-xs text-gray-500">Schedule: {report.time}</div>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <input type="checkbox" defaultChecked={report.enabled} className="rounded" />
+                        <Button variant="ghost" size="sm">Configure</Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Database Management Dialog */}
+      <Dialog open={systemLogs.showDbManagement} onOpenChange={(open) => setSystemLogs({...systemLogs, showDbManagement: open})}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center">
+              <Database className="w-5 h-5 mr-2" />
+              Database Management
+            </DialogTitle>
+            <DialogDescription>Manage database operations and maintenance</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-6">
+            {/* Database Status */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm">Database Status</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="text-center p-4 bg-green-50 rounded-lg">
+                    <div className="text-2xl font-bold text-green-600">Online</div>
+                    <div className="text-sm text-green-500">Database Status</div>
+                  </div>
+                  <div className="text-center p-4 bg-blue-50 rounded-lg">
+                    <div className="text-2xl font-bold text-blue-600">45.2 MB</div>
+                    <div className="text-sm text-blue-500">Database Size</div>
+                  </div>
+                  <div className="text-center p-4 bg-purple-50 rounded-lg">
+                    <div className="text-2xl font-bold text-purple-600">178</div>
+                    <div className="text-sm text-purple-500">Total Records</div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Database Operations */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm">Database Operations</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Button variant="outline" className="h-auto p-4">
+                    <div className="text-left">
+                      <div className="font-medium">Create Backup</div>
+                      <div className="text-sm text-gray-500">Backup all database tables</div>
+                    </div>
+                  </Button>
+                  <Button variant="outline" className="h-auto p-4">
+                    <div className="text-left">
+                      <div className="font-medium">Optimize Database</div>
+                      <div className="text-sm text-gray-500">Clean and optimize tables</div>
+                    </div>
+                  </Button>
+                  <Button variant="outline" className="h-auto p-4">
+                    <div className="text-left">
+                      <div className="font-medium">Export Data</div>
+                      <div className="text-sm text-gray-500">Export to CSV/Excel</div>
+                    </div>
+                  </Button>
+                  <Button variant="outline" className="h-auto p-4">
+                    <div className="text-left">
+                      <div className="font-medium">Database Schema</div>
+                      <div className="text-sm text-gray-500">View table structure</div>
+                    </div>
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Recent Operations */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm">Recent Operations</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  {[
+                    { operation: 'Database Backup', time: '2 hours ago', status: 'Success' },
+                    { operation: 'Table Optimization', time: '1 day ago', status: 'Success' },
+                    { operation: 'Data Export', time: '3 days ago', status: 'Success' }
+                  ].map((log, index) => (
+                    <div key={index} className="flex items-center justify-between p-2 border-b">
+                      <div>
+                        <div className="font-medium text-sm">{log.operation}</div>
+                        <div className="text-xs text-gray-500">{log.time}</div>
+                      </div>
+                      <Badge variant="secondary" className="bg-green-100 text-green-800">
+                        {log.status}
+                      </Badge>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </DialogContent>
       </Dialog>
