@@ -119,8 +119,8 @@ export default function HolidayManagement() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Leave And Holiday Management</h1>
-          <p className="text-gray-600 mt-1">Manage holidays and generate reports for both employee groups</p>
+          <h1 className="text-3xl font-bold text-gray-900">Leave & Holiday</h1>
+          <p className="text-gray-600 mt-1">Holiday management and administration</p>
         </div>
         <div className="flex items-center space-x-4">
           <Select value={selectedYear.toString()} onValueChange={(value) => setSelectedYear(parseInt(value))}>
@@ -359,33 +359,7 @@ export default function HolidayManagement() {
         </Card>
       </div>
 
-      {/* Holiday Description Report */}
-      <Card className="border border-gray-200">
-        <CardHeader>
-          <CardTitle className="text-lg font-semibold text-gray-900 flex items-center">
-            <BarChart3 className="w-5 h-5 mr-2" />
-            Holiday Summary Report
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
-              <span className="font-medium text-blue-900">Annual Holidays</span>
-              <span className="text-xl font-bold text-blue-700">21 days</span>
-            </div>
-            <div className="flex justify-between items-center p-3 bg-purple-50 rounded-lg">
-              <span className="font-medium text-purple-900">Special Holidays</span>
-              <span className="text-xl font-bold text-purple-700">24 days</span>
-            </div>
-            <div className="border-t pt-3">
-              <div className="flex justify-between items-center p-3 bg-orange-50 rounded-lg">
-                <span className="font-medium text-orange-900">Total</span>
-                <span className="text-xl font-bold text-orange-700">45 days</span>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+
 
       {/* Holiday List with Dates */}
       <Card className="border border-gray-200">
@@ -478,79 +452,7 @@ export default function HolidayManagement() {
         </CardContent>
       </Card>
 
-      {/* Separate Leave Reports */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="border border-gray-200">
-          <CardHeader>
-            <CardTitle className="text-lg font-semibold text-gray-900 flex items-center">
-              <FileText className="w-5 h-5 mr-2" />
-              Leave Description Report
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                <h4 className="font-semibold text-blue-800 mb-2">Annual Leave</h4>
-                <p className="text-sm text-blue-700">Regular annual leave entitlement for all government employees as per service regulations.</p>
-                <div className="mt-2 text-xs text-blue-600">
-                  <div>• Entitled days: 21 per year</div>
-                  <div>• Applicable to: Group A & Group B employees</div>
-                  <div>• Can be carried forward with approval</div>
-                </div>
-              </div>
-              <div className="p-4 bg-purple-50 border border-purple-200 rounded-lg">
-                <h4 className="font-semibold text-purple-800 mb-2">Special Leave</h4>
-                <p className="text-sm text-purple-700">Special circumstances leave including sick leave, maternity/paternity leave, and emergency leave.</p>
-                <div className="mt-2 text-xs text-purple-600">
-                  <div>• Sick leave: Up to 15 days per year</div>
-                  <div>• Maternity leave: 84 days</div>
-                  <div>• Emergency leave: As approved</div>
-                </div>
-              </div>
-              <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-                <h4 className="font-semibold text-green-800 mb-2">Casual Leave</h4>
-                <p className="text-sm text-green-700">Short-term leave for personal matters and urgent family requirements.</p>
-                <div className="mt-2 text-xs text-green-600">
-                  <div>• Entitled days: 7 per year</div>
-                  <div>• Maximum consecutive: 3 days</div>
-                  <div>• Advance notice required</div>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
 
-        <Card className="border border-gray-200">
-          <CardHeader>
-            <CardTitle className="text-lg font-semibold text-gray-900 flex items-center">
-              <Users2 className="w-5 h-5 mr-2" />
-              Group Application Report
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="p-4 bg-gradient-to-r from-blue-100 to-indigo-100 rounded-lg">
-                <h4 className="font-semibold text-indigo-900 mb-2">Group A Holidays</h4>
-                <p className="text-sm text-indigo-700">
-                  Working Hours: 08:30 - 16:15 (7.75 hours)
-                </p>
-                <p className="text-lg font-bold text-indigo-800 mt-2">
-                  {holidays?.filter((h: Holiday) => h.applicableGroups?.includes("group_a")).length || 0} applicable holidays
-                </p>
-              </div>
-              <div className="p-4 bg-gradient-to-r from-green-100 to-emerald-100 rounded-lg">
-                <h4 className="font-semibold text-emerald-900 mb-2">Group B Holidays</h4>
-                <p className="text-sm text-emerald-700">
-                  Working Hours: 08:00 - 16:45 (8.75 hours)
-                </p>
-                <p className="text-lg font-bold text-emerald-800 mt-2">
-                  {holidays?.filter((h: Holiday) => h.applicableGroups?.includes("group_b")).length || 0} applicable holidays
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
 
       {/* Holiday List */}
       <Card className="border border-gray-200">

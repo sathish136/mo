@@ -1414,69 +1414,84 @@ export default function Settings() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
-              {/* Database Status */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="flex items-center space-x-3">
-                  <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                  <div>
-                    <div className="text-sm font-medium">Connection Status</div>
-                    <div className="text-xs text-gray-500">Connected</div>
-                  </div>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <Database className="w-4 h-4 text-blue-600" />
-                  <div>
-                    <div className="text-sm font-medium">Database Size</div>
-                    <div className="text-xs text-gray-500">45.8 MB</div>
-                  </div>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <Users className="w-4 h-4 text-purple-600" />
-                  <div>
-                    <div className="text-sm font-medium">Active Connections</div>
-                    <div className="text-xs text-gray-500">3 / 20</div>
-                  </div>
-                </div>
+              {/* Database Status Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <Card className="border border-green-200 bg-green-50">
+                  <CardContent className="p-4">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+                      <div>
+                        <div className="text-sm font-semibold text-green-800">Connection Status</div>
+                        <div className="text-xs text-green-600">✓ Connected & Active</div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card className="border border-blue-200 bg-blue-50">
+                  <CardContent className="p-4">
+                    <div className="flex items-center space-x-3">
+                      <Database className="w-4 h-4 text-blue-600" />
+                      <div>
+                        <div className="text-sm font-semibold text-blue-800">Database Size</div>
+                        <div className="text-xs text-blue-600">45.8 MB (178 employees)</div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card className="border border-purple-200 bg-purple-50">
+                  <CardContent className="p-4">
+                    <div className="flex items-center space-x-3">
+                      <Users className="w-4 h-4 text-purple-600" />
+                      <div>
+                        <div className="text-sm font-semibold text-purple-800">Active Connections</div>
+                        <div className="text-xs text-purple-600">3 of 20 available</div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
               </div>
 
               {/* Database Operations */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Button variant="outline" className="h-auto p-4">
-                  <div className="flex items-center">
-                    <RefreshCw className="w-5 h-5 mr-3 text-blue-600" />
-                    <div className="text-left">
-                      <div className="font-medium">Optimize Database</div>
-                      <div className="text-sm text-gray-500">Rebuild indexes and optimize tables</div>
+              <div className="space-y-3">
+                <h4 className="font-semibold text-gray-800 mb-3">Database Operations</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <Button variant="outline" className="h-auto p-4 border-blue-200 hover:bg-blue-50">
+                    <div className="flex items-center w-full">
+                      <RefreshCw className="w-5 h-5 mr-3 text-blue-600" />
+                      <div className="text-left flex-1">
+                        <div className="font-medium text-blue-800">Optimize Database</div>
+                        <div className="text-sm text-blue-600">Rebuild indexes & optimize tables</div>
+                      </div>
                     </div>
-                  </div>
-                </Button>
-                <Button variant="outline" className="h-auto p-4">
-                  <div className="flex items-center">
-                    <Activity className="w-5 h-5 mr-3 text-green-600" />
-                    <div className="text-left">
-                      <div className="font-medium">Analyze Performance</div>
-                      <div className="text-sm text-gray-500">Run performance analysis</div>
+                  </Button>
+                  <Button variant="outline" className="h-auto p-4 border-green-200 hover:bg-green-50">
+                    <div className="flex items-center w-full">
+                      <Activity className="w-5 h-5 mr-3 text-green-600" />
+                      <div className="text-left flex-1">
+                        <div className="font-medium text-green-800">Performance Analysis</div>
+                        <div className="text-sm text-green-600">Analyze query performance</div>
+                      </div>
                     </div>
-                  </div>
-                </Button>
-                <Button variant="outline" className="h-auto p-4">
-                  <div className="flex items-center">
-                    <Shield className="w-5 h-5 mr-3 text-purple-600" />
-                    <div className="text-left">
-                      <div className="font-medium">Create Backup</div>
-                      <div className="text-sm text-gray-500">Manual database backup</div>
+                  </Button>
+                  <Button variant="outline" className="h-auto p-4 border-purple-200 hover:bg-purple-50">
+                    <div className="flex items-center w-full">
+                      <Shield className="w-5 h-5 mr-3 text-purple-600" />
+                      <div className="text-left flex-1">
+                        <div className="font-medium text-purple-800">Create Backup</div>
+                        <div className="text-sm text-purple-600">Manual database backup</div>
+                      </div>
                     </div>
-                  </div>
-                </Button>
-                <Button variant="outline" className="h-auto p-4">
-                  <div className="flex items-center">
-                    <AlertCircle className="w-5 h-5 mr-3 text-orange-600" />
-                    <div className="text-left">
-                      <div className="font-medium">Check Integrity</div>
-                      <div className="text-sm text-gray-500">Verify data integrity</div>
+                  </Button>
+                  <Button variant="outline" className="h-auto p-4 border-orange-200 hover:bg-orange-50">
+                    <div className="flex items-center w-full">
+                      <AlertCircle className="w-5 h-5 mr-3 text-orange-600" />
+                      <div className="text-left flex-1">
+                        <div className="font-medium text-orange-800">Check Integrity</div>
+                        <div className="text-sm text-orange-600">Verify data integrity</div>
+                      </div>
                     </div>
-                  </div>
-                </Button>
+                  </Button>
+                </div>
               </div>
 
               {/* Recent Operations */}
@@ -1566,11 +1581,11 @@ export default function Settings() {
                 </CardHeader>
                 <CardContent className="space-y-3">
                   {[
-                    { name: 'Daily Attendance Report', time: '18:00', enabled: true, desc: 'Send daily attendance summary' },
-                    { name: 'Monthly Summary Report', time: '09:00', enabled: false, desc: 'Monthly employee attendance report' },
-                    { name: 'Overtime Approval Notifications', time: 'Real-time', enabled: true, desc: 'Instant overtime request alerts' },
-                    { name: 'Leave Request Notifications', time: 'Real-time', enabled: true, desc: 'Leave approval notifications' },
-                    { name: 'System Error Alerts', time: 'Real-time', enabled: false, desc: 'Critical system error notifications' }
+                    { name: 'Daily Attendance Report', time: '6:00 PM', enabled: true, desc: 'Send daily attendance summary', type: 'scheduled' },
+                    { name: 'Monthly Summary Report', time: '9:00 AM', enabled: false, desc: 'Monthly employee attendance report', type: 'scheduled' },
+                    { name: 'Overtime Approval Notifications', time: 'Instant', enabled: true, desc: 'Instant overtime request alerts', type: 'realtime' },
+                    { name: 'Leave Request Notifications', time: 'Instant', enabled: true, desc: 'Leave approval notifications', type: 'realtime' },
+                    { name: 'System Error Alerts', time: 'Instant', enabled: false, desc: 'Critical system error notifications', type: 'realtime' }
                   ].map((notification, index) => (
                     <div key={index} className="flex items-center justify-between p-3 bg-white border border-blue-200 rounded-lg">
                       <div className="flex-1">
@@ -1578,7 +1593,15 @@ export default function Settings() {
                         <div className="text-xs text-blue-600">{notification.desc}</div>
                       </div>
                       <div className="flex items-center space-x-3">
-                        <div className="text-xs text-blue-700 font-mono">{notification.time}</div>
+                        {notification.type === 'scheduled' ? (
+                          <Input 
+                            type="time" 
+                            defaultValue={notification.time === '6:00 PM' ? '18:00' : '09:00'}
+                            className="w-20 h-7 text-xs"
+                          />
+                        ) : (
+                          <span className="text-xs text-blue-700 font-mono w-20 text-center">{notification.time}</span>
+                        )}
                         <Switch defaultChecked={notification.enabled} />
                       </div>
                     </div>
@@ -1722,73 +1745,7 @@ export default function Settings() {
             </CardContent>
           </Card>
 
-          {/* Email Notifications */}
-          <Card className="border border-gray-200">
-            <CardHeader>
-              <CardTitle className="text-lg font-semibold text-gray-900 flex items-center">
-                <Mail className="w-5 h-5 mr-2" />
-                Email Notifications
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {/* SMTP Configuration */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="smtpHost">SMTP Host</Label>
-                  <Input id="smtpHost" placeholder="smtp.gmail.com" defaultValue="smtp.gmail.com" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="smtpPort">SMTP Port</Label>
-                  <Input id="smtpPort" type="number" placeholder="587" defaultValue="587" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="smtpUser">Username</Label>
-                  <Input id="smtpUser" placeholder="your-email@gmail.com" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="smtpPassword">Password</Label>
-                  <Input id="smtpPassword" type="password" placeholder="App Password" />
-                </div>
-              </div>
-              
-              <div className="flex items-center space-x-2">
-                <Switch id="enableSsl" defaultChecked />
-                <Label htmlFor="enableSsl">Enable SSL/TLS</Label>
-              </div>
 
-              {/* Email Notification Settings */}
-              <Card className="border border-blue-200 bg-blue-50">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base text-blue-800">Automated Email Reports</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  {[
-                    { name: 'Daily Attendance Report', time: '18:00', enabled: true, desc: 'Send daily attendance summary' },
-                    { name: 'Monthly Summary Report', time: '09:00', enabled: false, desc: 'Monthly employee attendance report' },
-                    { name: 'Overtime Approval Notifications', time: 'Real-time', enabled: true, desc: 'Instant overtime request alerts' },
-                    { name: 'Leave Request Notifications', time: 'Real-time', enabled: true, desc: 'Leave approval notifications' },
-                    { name: 'System Error Alerts', time: 'Real-time', enabled: false, desc: 'Critical system error notifications' }
-                  ].map((notification, index) => (
-                    <div key={index} className="flex items-center justify-between p-3 bg-white border border-blue-200 rounded-lg">
-                      <div className="flex-1">
-                        <div className="font-medium text-sm text-blue-900">{notification.name}</div>
-                        <div className="text-xs text-blue-600">{notification.desc}</div>
-                      </div>
-                      <div className="flex items-center space-x-3">
-                        <div className="text-xs text-blue-700 font-mono">{notification.time}</div>
-                        <Switch defaultChecked={notification.enabled} />
-                      </div>
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
-
-              <div className="flex space-x-2">
-                <Button variant="outline" size="sm">Test Email</Button>
-                <Button className="bg-green-600 hover:bg-green-700">Save Configuration</Button>
-              </div>
-            </CardContent>
-          </Card>
 
           {/* System Logs */}
           <Card className="border border-gray-200">

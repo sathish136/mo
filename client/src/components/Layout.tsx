@@ -9,7 +9,7 @@ const navigation = [
   { name: "Employee Master", href: "/employees", icon: Users },
   { name: "Attendance", href: "/attendance", icon: Clock },
   { name: "Leave Management", href: "/leave", icon: Calendar },
-  { name: "Leave And Holiday Management", href: "/holidays", icon: Calendar },
+  { name: "Leave & Holiday", href: "/holidays", icon: Calendar },
   { name: "Overtime", href: "/overtime", icon: Watch },
   { name: "Reports", href: "/reports", icon: ChartBar },
   { name: "Settings", href: "/settings", icon: Settings },
