@@ -21,6 +21,9 @@ export default function HolidayManagement() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [filterType, setFilterType] = useState("all");
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [quickAddDate, setQuickAddDate] = useState("");
+  const [quickAddName, setQuickAddName] = useState("");
+  const [quickAddType, setQuickAddType] = useState("annual");
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -85,6 +88,33 @@ export default function HolidayManagement() {
 
   const onSubmit = (data: InsertHoliday) => {
     createHolidayMutation.mutate(data);
+  };
+
+  const handleQuickAdd = () => {
+    if (!quickAddDate || !quickAddName) {
+      toast({
+        title: "Error",
+        description: "Please fill in both date and name",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const holidayData: InsertHoliday = {
+      name: quickAddName,
+      date: new Date(quickAddDate),
+      type: quickAddType as "annual" | "special" | "weekend",
+      description: quickAddName,
+      isRecurring: false,
+      applicableGroups: ["group_a", "group_b"],
+    };
+
+    createHolidayMutation.mutate(holidayData);
+    
+    // Reset form
+    setQuickAddDate("");
+    setQuickAddName("");
+    setQuickAddType("annual");
   };
 
 
@@ -399,11 +429,20 @@ export default function HolidayManagement() {
         <CardContent>
           <div className="space-y-2">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Input placeholder="Add new holiday date" type="date" />
-              <Input placeholder="Add holiday name" />
+              <Input 
+                placeholder="Add new holiday date" 
+                type="date" 
+                value={quickAddDate}
+                onChange={(e) => setQuickAddDate(e.target.value)}
+              />
+              <Input 
+                placeholder="Add holiday name" 
+                value={quickAddName}
+                onChange={(e) => setQuickAddName(e.target.value)}
+              />
             </div>
             <div className="flex items-center space-x-2">
-              <Select defaultValue="annual">
+              <Select value={quickAddType} onValueChange={setQuickAddType}>
                 <SelectTrigger className="w-40">
                   <SelectValue />
                 </SelectTrigger>
@@ -412,8 +451,13 @@ export default function HolidayManagement() {
                   <SelectItem value="special">Special Holiday</SelectItem>
                 </SelectContent>
               </Select>
-              <Button size="sm" className="bg-blue-600 hover:bg-blue-700">
-                Add Row
+              <Button 
+                size="sm" 
+                className="bg-blue-600 hover:bg-blue-700"
+                onClick={handleQuickAdd}
+                disabled={createHolidayMutation.isPending}
+              >
+                {createHolidayMutation.isPending ? "Adding..." : "Add Row"}
               </Button>
               <Button variant="outline" size="sm">
                 Upload
