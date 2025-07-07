@@ -240,3 +240,10 @@ Changelog:
     - Created Database Management interface with status monitoring and operations
     - Enhanced sidebar company information to update dynamically from saved settings
     - Fixed real-time company name and tagline updates when settings are changed
+  - Enhanced System Management with table format logging for Activity and Error logs with precise timestamps
+  - Added comprehensive Email Configuration (SMTP) dialog with automated report scheduling
+  - Added Database Management dialog with status monitoring, operations, and recent operations table
+  - Improved Activity Logs with tabular format showing User, Action, Type, IP Address, and precise timing
+  - Enhanced Error Logs with Level, Message, Details, Source columns and professional table layout
+  - Added email configuration for automated reports: Daily Attendance, Monthly Summary, Overtime notifications
+  - Database management includes status monitoring, optimization tools, backup creation, and integrity checks

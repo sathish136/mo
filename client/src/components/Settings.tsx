@@ -1653,7 +1653,7 @@ export default function Settings() {
 
       {/* Activity Logs Dialog */}
       <Dialog open={systemLogs.showActivityLogs} onOpenChange={(open) => setSystemLogs({...systemLogs, showActivityLogs: open})}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-w-6xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center">
               <Activity className="w-5 h-5 mr-2" />
@@ -1661,34 +1661,59 @@ export default function Settings() {
             </DialogTitle>
             <DialogDescription>Recent system activities and user actions</DialogDescription>
           </DialogHeader>
-          <div className="space-y-2">
-            {[
-              { time: new Date(), user: 'admin', action: 'License key validated successfully', type: 'success' },
-              { time: new Date(Date.now() - 300000), user: 'system', action: 'Auto-sync completed for device OFFICE', type: 'info' },
-              { time: new Date(Date.now() - 600000), user: 'admin', action: 'Company settings updated', type: 'info' },
-              { time: new Date(Date.now() - 900000), user: 'admin', action: 'Biometric device OFFICE connected', type: 'success' },
-              { time: new Date(Date.now() - 1200000), user: 'system', action: 'Attendance data synchronized (496 records)', type: 'info' }
-            ].map((log, index) => (
-              <div key={index} className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
-                <div className="flex items-center">
-                  <Clock className="w-4 h-4 mr-2 text-gray-400" />
-                  <div>
-                    <div className="text-sm font-medium">{log.action}</div>
-                    <div className="text-xs text-gray-500">by {log.user}</div>
-                  </div>
-                </div>
-                <div className="text-xs text-gray-500">
-                  {log.time.toLocaleTimeString()}
-                </div>
-              </div>
-            ))}
+          <div className="border rounded-lg overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-gray-50">
+                  <TableHead className="w-[180px]">Timestamp</TableHead>
+                  <TableHead className="w-[100px]">User</TableHead>
+                  <TableHead>Action</TableHead>
+                  <TableHead className="w-[100px]">Type</TableHead>
+                  <TableHead className="w-[120px]">IP Address</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {[
+                  { time: new Date(), user: 'admin', action: 'License key validated successfully', type: 'success', ip: '192.168.1.100' },
+                  { time: new Date(Date.now() - 300000), user: 'system', action: 'Auto-sync completed for device OFFICE', type: 'info', ip: 'localhost' },
+                  { time: new Date(Date.now() - 600000), user: 'admin', action: 'Company settings updated', type: 'info', ip: '192.168.1.100' },
+                  { time: new Date(Date.now() - 900000), user: 'admin', action: 'Biometric device OFFICE connected', type: 'success', ip: '192.168.1.100' },
+                  { time: new Date(Date.now() - 1200000), user: 'system', action: 'Attendance data synchronized (496 records)', type: 'info', ip: 'localhost' },
+                  { time: new Date(Date.now() - 1800000), user: 'admin', action: 'Employee data exported to Excel', type: 'info', ip: '192.168.1.100' },
+                  { time: new Date(Date.now() - 2400000), user: 'system', action: 'Backup created successfully', type: 'success', ip: 'localhost' },
+                  { time: new Date(Date.now() - 3000000), user: 'admin', action: 'Holiday settings updated', type: 'info', ip: '192.168.1.100' }
+                ].map((log, index) => (
+                  <TableRow key={index} className="hover:bg-gray-50">
+                    <TableCell className="font-mono text-sm">
+                      {log.time.toLocaleString()}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={log.user === 'admin' ? 'default' : 'secondary'} className="text-xs">
+                        {log.user}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-sm">{log.action}</TableCell>
+                    <TableCell>
+                      <Badge variant={
+                        log.type === 'success' ? 'default' : 
+                        log.type === 'warning' ? 'destructive' : 
+                        'secondary'
+                      } className="text-xs">
+                        {log.type}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="font-mono text-sm">{log.ip}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           </div>
         </DialogContent>
       </Dialog>
 
       {/* Error Logs Dialog */}
       <Dialog open={systemLogs.showErrorLogs} onOpenChange={(open) => setSystemLogs({...systemLogs, showErrorLogs: open})}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-w-6xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center">
               <AlertCircle className="w-5 h-5 mr-2 text-red-600" />
@@ -1696,31 +1721,46 @@ export default function Settings() {
             </DialogTitle>
             <DialogDescription>System errors and warnings</DialogDescription>
           </DialogHeader>
-          <div className="space-y-2">
-            {[
-              { time: new Date(Date.now() - 1800000), level: 'WARNING', message: 'License will expire in 30 days', details: 'Renew license before expiry' },
-              { time: new Date(Date.now() - 3600000), level: 'ERROR', message: 'Failed to connect to backup server', details: 'Network timeout after 30 seconds' },
-              { time: new Date(Date.now() - 7200000), level: 'INFO', message: 'System maintenance completed', details: 'All services restored' }
-            ].map((log, index) => (
-              <div key={index} className="p-3 border border-gray-200 rounded-lg">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center">
-                    <div className={`px-2 py-1 rounded text-xs font-medium ${
-                      log.level === 'ERROR' ? 'bg-red-100 text-red-800' :
-                      log.level === 'WARNING' ? 'bg-yellow-100 text-yellow-800' :
-                      'bg-blue-100 text-blue-800'
-                    }`}>
-                      {log.level}
-                    </div>
-                    <span className="ml-2 text-sm font-medium">{log.message}</span>
-                  </div>
-                  <div className="text-xs text-gray-500">
-                    {log.time.toLocaleString()}
-                  </div>
-                </div>
-                <div className="text-xs text-gray-600">{log.details}</div>
-              </div>
-            ))}
+          <div className="border rounded-lg overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-gray-50">
+                  <TableHead className="w-[180px]">Timestamp</TableHead>
+                  <TableHead className="w-[100px]">Level</TableHead>
+                  <TableHead>Message</TableHead>
+                  <TableHead>Details</TableHead>
+                  <TableHead className="w-[120px]">Source</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {[
+                  { time: new Date(Date.now() - 1800000), level: 'WARNING', message: 'License will expire in 30 days', details: 'Renew license before expiry', source: 'License Manager' },
+                  { time: new Date(Date.now() - 3600000), level: 'ERROR', message: 'Failed to connect to backup server', details: 'Network timeout after 30 seconds', source: 'Backup Service' },
+                  { time: new Date(Date.now() - 7200000), level: 'INFO', message: 'System maintenance completed', details: 'All services restored', source: 'System' },
+                  { time: new Date(Date.now() - 10800000), level: 'ERROR', message: 'Database connection failed', details: 'Connection pool exhausted', source: 'Database' },
+                  { time: new Date(Date.now() - 14400000), level: 'WARNING', message: 'High memory usage detected', details: 'Memory usage at 85%', source: 'System Monitor' },
+                  { time: new Date(Date.now() - 18000000), level: 'INFO', message: 'User session expired', details: 'Session timeout after 24 hours', source: 'Auth Service' }
+                ].map((log, index) => (
+                  <TableRow key={index} className="hover:bg-gray-50">
+                    <TableCell className="font-mono text-sm">
+                      {log.time.toLocaleString()}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={
+                        log.level === 'ERROR' ? 'destructive' :
+                        log.level === 'WARNING' ? 'default' :
+                        'secondary'
+                      } className="text-xs">
+                        {log.level}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-sm font-medium">{log.message}</TableCell>
+                    <TableCell className="text-sm text-gray-600">{log.details}</TableCell>
+                    <TableCell className="text-sm">{log.source}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           </div>
         </DialogContent>
       </Dialog>
@@ -1778,6 +1818,225 @@ export default function Settings() {
               ))
             )}
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Email Configuration Dialog */}
+      <Dialog open={systemLogs.showEmailConfig} onOpenChange={(open) => setSystemLogs({...systemLogs, showEmailConfig: open})}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center">
+              <Mail className="w-5 h-5 mr-2" />
+              Email Configuration (SMTP)
+            </DialogTitle>
+            <DialogDescription>Configure SMTP settings for automated email reports</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="smtpHost">SMTP Host</Label>
+                <Input id="smtpHost" placeholder="smtp.gmail.com" defaultValue="smtp.gmail.com" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="smtpPort">SMTP Port</Label>
+                <Input id="smtpPort" type="number" placeholder="587" defaultValue="587" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="smtpUser">Username</Label>
+                <Input id="smtpUser" placeholder="your-email@gmail.com" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="smtpPassword">Password</Label>
+                <Input id="smtpPassword" type="password" placeholder="App Password" />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="fromEmail">From Email</Label>
+              <Input id="fromEmail" placeholder="hr@company.com" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="fromName">From Name</Label>
+              <Input id="fromName" placeholder="HR Department" defaultValue="Ministry of Finance HR" />
+            </div>
+            <div className="flex items-center space-x-2">
+              <Switch id="enableSsl" defaultChecked />
+              <Label htmlFor="enableSsl">Enable SSL/TLS</Label>
+            </div>
+            <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <div className="text-sm font-medium text-blue-800 mb-2">Automated Email Reports Schedule:</div>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-blue-700">Daily Attendance Report</span>
+                  <div className="flex items-center space-x-2">
+                    <Input type="time" defaultValue="18:00" className="w-24 h-8 text-xs" />
+                    <Switch defaultChecked />
+                  </div>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-blue-700">Monthly Summary Report</span>
+                  <div className="flex items-center space-x-2">
+                    <Input type="time" defaultValue="09:00" className="w-24 h-8 text-xs" />
+                    <Switch defaultChecked />
+                  </div>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-blue-700">Overtime Approval Notifications</span>
+                  <div className="flex items-center space-x-2">
+                    <span className="text-xs text-blue-600">Real-time</span>
+                    <Switch defaultChecked />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSystemLogs({...systemLogs, showEmailConfig: false})}>
+              Cancel
+            </Button>
+            <Button className="bg-green-600 hover:bg-green-700">
+              Save Email Configuration
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Database Management Dialog */}
+      <Dialog open={systemLogs.showDbManagement} onOpenChange={(open) => setSystemLogs({...systemLogs, showDbManagement: open})}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center">
+              <Database className="w-5 h-5 mr-2" />
+              Database Management
+            </DialogTitle>
+            <DialogDescription>Monitor and manage database operations</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-6">
+            {/* Database Status */}
+            <Card className="border border-gray-200">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">Database Status</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                    <div>
+                      <div className="text-sm font-medium">Connection Status</div>
+                      <div className="text-xs text-gray-500">Connected</div>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <Database className="w-4 h-4 text-blue-600" />
+                    <div>
+                      <div className="text-sm font-medium">Database Size</div>
+                      <div className="text-xs text-gray-500">45.8 MB</div>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <Users className="w-4 h-4 text-purple-600" />
+                    <div>
+                      <div className="text-sm font-medium">Active Connections</div>
+                      <div className="text-xs text-gray-500">3 / 20</div>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Database Operations */}
+            <Card className="border border-gray-200">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">Database Operations</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Button variant="outline" className="h-auto p-4">
+                    <div className="flex items-center">
+                      <RefreshCw className="w-5 h-5 mr-3 text-blue-600" />
+                      <div className="text-left">
+                        <div className="font-medium">Optimize Database</div>
+                        <div className="text-sm text-gray-500">Rebuild indexes and optimize tables</div>
+                      </div>
+                    </div>
+                  </Button>
+                  <Button variant="outline" className="h-auto p-4">
+                    <div className="flex items-center">
+                      <Activity className="w-5 h-5 mr-3 text-green-600" />
+                      <div className="text-left">
+                        <div className="font-medium">Analyze Performance</div>
+                        <div className="text-sm text-gray-500">Run performance analysis</div>
+                      </div>
+                    </div>
+                  </Button>
+                  <Button variant="outline" className="h-auto p-4">
+                    <div className="flex items-center">
+                      <Shield className="w-5 h-5 mr-3 text-purple-600" />
+                      <div className="text-left">
+                        <div className="font-medium">Create Backup</div>
+                        <div className="text-sm text-gray-500">Manual database backup</div>
+                      </div>
+                    </div>
+                  </Button>
+                  <Button variant="outline" className="h-auto p-4">
+                    <div className="flex items-center">
+                      <AlertCircle className="w-5 h-5 mr-3 text-orange-600" />
+                      <div className="text-left">
+                        <div className="font-medium">Check Integrity</div>
+                        <div className="text-sm text-gray-500">Verify data integrity</div>
+                      </div>
+                    </div>
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Recent Operations */}
+            <Card className="border border-gray-200">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">Recent Operations</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="border rounded-lg overflow-hidden">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-gray-50">
+                        <TableHead className="w-[180px]">Timestamp</TableHead>
+                        <TableHead>Operation</TableHead>
+                        <TableHead className="w-[100px]">Status</TableHead>
+                        <TableHead>Duration</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {[
+                        { time: new Date(Date.now() - 300000), operation: 'Automatic backup completed', status: 'success', duration: '2.3s' },
+                        { time: new Date(Date.now() - 1800000), operation: 'Database optimization', status: 'success', duration: '45.7s' },
+                        { time: new Date(Date.now() - 3600000), operation: 'Index rebuild', status: 'success', duration: '12.1s' },
+                        { time: new Date(Date.now() - 7200000), operation: 'Performance analysis', status: 'success', duration: '8.9s' }
+                      ].map((op, index) => (
+                        <TableRow key={index} className="hover:bg-gray-50">
+                          <TableCell className="font-mono text-sm">
+                            {op.time.toLocaleString()}
+                          </TableCell>
+                          <TableCell className="text-sm">{op.operation}</TableCell>
+                          <TableCell>
+                            <Badge variant="default" className="text-xs bg-green-100 text-green-800">
+                              {op.status}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="font-mono text-sm">{op.duration}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSystemLogs({...systemLogs, showDbManagement: false})}>
+              Close
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
