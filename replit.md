@@ -138,6 +138,11 @@ Changelog:
     - Added subtle professional color coding for better visual hierarchy
     - Fixed approval workflow error by correcting employeeId field validation
     - Implemented proper datetime formatting for overtime request creation
+    - Added employee search filter and group filtering functionality
+    - Implemented reject reason dialog with mandatory reason input
+    - Added Daily OT Report link integration from overtime page
+    - Enhanced filtering displays for better user experience
+    - Fixed workflow button sizing for compact professional design
     - Added bulk operations dialog with intuitive interface
     - Added select all/deselect all functionality
     - Enhanced table layout with better organization

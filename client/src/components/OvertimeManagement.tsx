@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Calendar, Clock, CheckCircle, XCircle, AlertCircle, Users, Filter, Check, TrendingUp, Award, Activity, RefreshCw, FileText, Download } from "lucide-react";
+import { Calendar, Clock, CheckCircle, XCircle, AlertCircle, Users, Filter, Check, TrendingUp, Award, Activity, RefreshCw, FileText, Download, Search, MessageSquare } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 
@@ -16,6 +19,11 @@ export default function OvertimeManagement() {
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [selectedEmployees, setSelectedEmployees] = useState<Set<string>>(new Set());
   const [activeTab, setActiveTab] = useState("pending");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedGroup, setSelectedGroup] = useState("all");
+  const [rejectReason, setRejectReason] = useState("");
+  const [showRejectDialog, setShowRejectDialog] = useState(false);
+  const [employeeToReject, setEmployeeToReject] = useState(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -136,14 +144,14 @@ export default function OvertimeManagement() {
   });
 
   const singleRejectMutation = useMutation({
-    mutationFn: async (employee: any) => {
+    mutationFn: async ({ employee, reason }: { employee: any; reason: string }) => {
       const overtimeRequest = {
         employeeId: employee.employeeId, // Use employeeId string instead of numeric id
         date: employee.date, // Send as string, schema will coerce to date
         startTime: `${employee.date}T08:00:00`, // Send as string
         endTime: `${employee.date}T17:00:00`, // Send as string
         hours: employee.otHours.toString(), // Convert to string as expected by schema
-        reason: "Rejected - overtime not authorized",
+        reason: reason || "Rejected - overtime not authorized",
         status: "rejected",
       };
       const response = await apiRequest("POST", "/api/overtime-requests", overtimeRequest);
@@ -167,7 +175,7 @@ export default function OvertimeManagement() {
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      setSelectedEmployees(new Set(eligibleEmployees.map((emp: any) => emp.id)));
+      setSelectedEmployees(new Set(filteredEmployees.map((emp: any) => emp.id)));
     } else {
       setSelectedEmployees(new Set());
     }
@@ -186,12 +194,12 @@ export default function OvertimeManagement() {
   };
 
   const handleBulkApprove = () => {
-    const selectedEmpData = eligibleEmployees.filter((emp: any) => selectedEmployees.has(emp.id));
+    const selectedEmpData = filteredEmployees.filter((emp: any) => selectedEmployees.has(emp.id));
     bulkApproveMutation.mutate(selectedEmpData);
   };
 
   const handleBulkReject = () => {
-    const selectedEmpData = eligibleEmployees.filter((emp: any) => selectedEmployees.has(emp.id));
+    const selectedEmpData = filteredEmployees.filter((emp: any) => selectedEmployees.has(emp.id));
     bulkRejectMutation.mutate(selectedEmpData);
   };
 
@@ -207,6 +215,35 @@ export default function OvertimeManagement() {
   const totalRequests = overtimeRequests.length;
 
   const approvalRate = totalRequests > 0 ? (approvedRequests / totalRequests) * 100 : 0;
+
+  // Filter employees based on search term and group
+  const filteredEmployees = eligibleEmployees.filter((employee: any) => {
+    const matchesSearch = searchTerm === "" || 
+      employee.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      employee.employeeId.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesGroup = selectedGroup === "all" || 
+      employee.employeeGroup === selectedGroup;
+    
+    return matchesSearch && matchesGroup;
+  });
+
+  const handleRejectWithReason = (employee: any) => {
+    setEmployeeToReject(employee);
+    setShowRejectDialog(true);
+  };
+
+  const confirmReject = () => {
+    if (employeeToReject && rejectReason.trim()) {
+      singleRejectMutation.mutate({ 
+        employee: employeeToReject, 
+        reason: rejectReason.trim() 
+      });
+      setShowRejectDialog(false);
+      setRejectReason("");
+      setEmployeeToReject(null);
+    }
+  };
 
   return (
     <div className="space-y-6 p-6 bg-gray-50 min-h-screen">
@@ -300,15 +337,43 @@ export default function OvertimeManagement() {
         <CardHeader className="pb-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-6">
-              <div className="flex items-center gap-3 bg-gray-50 px-4 py-2 rounded-lg border border-gray-200">
-                <Calendar className="w-5 h-5 text-gray-600" />
-                <label className="text-sm font-medium text-gray-700">Date Filter:</label>
-                <Input
-                  type="date"
-                  value={selectedDate}
-                  onChange={(e) => setSelectedDate(e.target.value)}
-                  className="w-44 border-gray-300"
-                />
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-3 bg-gray-50 px-4 py-2 rounded-lg border border-gray-200">
+                  <Calendar className="w-5 h-5 text-gray-600" />
+                  <label className="text-sm font-medium text-gray-700">Date:</label>
+                  <Input
+                    type="date"
+                    value={selectedDate}
+                    onChange={(e) => setSelectedDate(e.target.value)}
+                    className="w-44 border-gray-300"
+                  />
+                </div>
+                
+                <div className="flex items-center gap-3 bg-gray-50 px-4 py-2 rounded-lg border border-gray-200">
+                  <Search className="w-5 h-5 text-gray-600" />
+                  <Input
+                    type="text"
+                    placeholder="Search employees..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-48 border-gray-300"
+                  />
+                </div>
+
+                <div className="flex items-center gap-3 bg-gray-50 px-4 py-2 rounded-lg border border-gray-200">
+                  <Filter className="w-5 h-5 text-gray-600" />
+                  <label className="text-sm font-medium text-gray-700">Group:</label>
+                  <Select value={selectedGroup} onValueChange={setSelectedGroup}>
+                    <SelectTrigger className="w-32 border-gray-300">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Groups</SelectItem>
+                      <SelectItem value="group_a">Group A</SelectItem>
+                      <SelectItem value="group_b">Group B</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
               
               {selectedEmployees.size > 0 && (
@@ -375,9 +440,20 @@ export default function OvertimeManagement() {
                     Overtime Approvals Required - {new Date(selectedDate).toLocaleDateString()}
                   </h3>
                 </div>
-                <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200">
-                  {eligibleEmployees.length} Pending
-                </Badge>
+                <div className="flex items-center gap-3">
+                  <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200">
+                    {filteredEmployees.length} of {eligibleEmployees.length} Pending
+                  </Badge>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="border-blue-300 text-blue-700 hover:bg-blue-50"
+                    onClick={() => window.open('/reports', '_blank')}
+                  >
+                    <FileText className="w-4 h-4 mr-1" />
+                    Daily OT Report
+                  </Button>
+                </div>
               </div>
               
               {isEligibleLoading ? (
@@ -385,12 +461,24 @@ export default function OvertimeManagement() {
                   <RefreshCw className="w-8 h-8 text-gray-400 mx-auto mb-4 animate-spin" />
                   <p className="text-gray-600 font-medium">Loading eligible employees...</p>
                 </div>
-              ) : eligibleEmployees.length === 0 ? (
+              ) : filteredEmployees.length === 0 ? (
                 <div className="text-center py-12 bg-gray-50 rounded-lg">
                   <Activity className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                  <h4 className="text-lg font-medium text-gray-800 mb-2">All caught up!</h4>
-                  <p className="text-gray-600">No overtime approvals needed for {new Date(selectedDate).toLocaleDateString()}</p>
-                  <p className="text-sm text-gray-500 mt-1">Try selecting a different date or check attendance records.</p>
+                  <h4 className="text-lg font-medium text-gray-800 mb-2">
+                    {eligibleEmployees.length === 0 ? "All caught up!" : "No matches found"}
+                  </h4>
+                  <p className="text-gray-600">
+                    {eligibleEmployees.length === 0 
+                      ? `No overtime approvals needed for ${new Date(selectedDate).toLocaleDateString()}`
+                      : "Try adjusting your search filters"
+                    }
+                  </p>
+                  <p className="text-sm text-gray-500 mt-1">
+                    {eligibleEmployees.length === 0 
+                      ? "Try selecting a different date or check attendance records."
+                      : `${eligibleEmployees.length} total employees available`
+                    }
+                  </p>
                 </div>
               ) : (
                 <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
@@ -399,7 +487,7 @@ export default function OvertimeManagement() {
                       <TableRow>
                         <TableHead className="w-12">
                           <Checkbox
-                            checked={selectedEmployees.size === eligibleEmployees.length && eligibleEmployees.length > 0}
+                            checked={selectedEmployees.size === filteredEmployees.length && filteredEmployees.length > 0}
                             onCheckedChange={handleSelectAll}
                           />
                         </TableHead>
@@ -414,7 +502,7 @@ export default function OvertimeManagement() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {eligibleEmployees.map((employee: any, index: number) => (
+                      {filteredEmployees.map((employee: any, index: number) => (
                         <TableRow key={`${employee.employeeId}-${employee.date}`} className="hover:bg-gray-50 border-gray-200">
                           <TableCell>
                             <Checkbox
@@ -454,7 +542,7 @@ export default function OvertimeManagement() {
                               <Button
                                 size="sm"
                                 className="bg-red-600 hover:bg-red-700 text-white px-2 py-1 h-7 text-xs"
-                                onClick={() => singleRejectMutation.mutate(employee)}
+                                onClick={() => handleRejectWithReason(employee)}
                                 disabled={singleApproveMutation.isPending || singleRejectMutation.isPending}
                               >
                                 <XCircle className="w-3 h-3 mr-1" />
@@ -496,6 +584,51 @@ export default function OvertimeManagement() {
           </TabsContent>
         </Tabs>
       </Card>
+
+      {/* Reject Reason Dialog */}
+      <Dialog open={showRejectDialog} onOpenChange={setShowRejectDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <MessageSquare className="w-5 h-5 text-red-600" />
+              Reject Overtime Request
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <p className="text-sm text-gray-600 mb-2">
+                Please provide a reason for rejecting this overtime request:
+              </p>
+              <Textarea
+                placeholder="Enter rejection reason..."
+                value={rejectReason}
+                onChange={(e) => setRejectReason(e.target.value)}
+                className="min-h-20 border-gray-300"
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowRejectDialog(false);
+                  setRejectReason("");
+                  setEmployeeToReject(null);
+                }}
+                className="border-gray-300"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={confirmReject}
+                disabled={!rejectReason.trim() || singleRejectMutation.isPending}
+                className="bg-red-600 hover:bg-red-700 text-white"
+              >
+                {singleRejectMutation.isPending ? "Rejecting..." : "Reject Request"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
