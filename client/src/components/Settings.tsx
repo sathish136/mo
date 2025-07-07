@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Settings as SettingsIcon, Wifi, MapPin, Plus, Edit, Trash2, RefreshCw, Activity, AlertCircle, Users } from "lucide-react";
+import { Settings as SettingsIcon, Wifi, MapPin, Plus, Edit, Trash2, RefreshCw, Activity, AlertCircle, Users, ChevronRight, Building2 } from "lucide-react";
+import { Link } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -470,6 +471,39 @@ export default function Settings() {
           <p className="text-sm text-gray-600">Configure system settings and preferences</p>
         </div>
       </div>
+
+      {/* Quick Navigation */}
+      <Card className="border border-gray-200">
+        <CardHeader>
+          <CardTitle className="text-lg font-semibold text-gray-900 flex items-center">
+            <SettingsIcon className="w-5 h-5 mr-2" />
+            System Configuration
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Link href="/hr-settings">
+              <Button variant="outline" className="w-full justify-between h-auto p-4 border-gray-200 hover:bg-gray-50">
+                <div className="flex items-center">
+                  <Building2 className="w-5 h-5 mr-3 text-blue-600" />
+                  <div className="text-left">
+                    <div className="font-medium">HR Settings</div>
+                    <div className="text-sm text-gray-500">Configure attendance policies and working hours</div>
+                  </div>
+                </div>
+                <ChevronRight className="w-4 h-4 text-gray-400" />
+              </Button>
+            </Link>
+            <div className="flex items-center p-4 border border-gray-200 rounded-lg bg-gray-50">
+              <Users className="w-5 h-5 mr-3 text-gray-400" />
+              <div className="text-left">
+                <div className="font-medium text-gray-600">User Management</div>
+                <div className="text-sm text-gray-500">Coming soon</div>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Biometric Devices */}
       <Card className="border border-gray-200">
