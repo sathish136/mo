@@ -972,67 +972,88 @@ export default function Reports() {
           <CardTitle className="text-lg font-semibold text-gray-900">Monthly Attendance Sheet</CardTitle>
         </CardHeader>
         <CardContent className="overflow-x-auto">
-          {monthlyAttendanceData.map((employee: any) => (
-            <div key={employee.id} className="mb-8">
-              <h3 className="text-md font-semibold mb-2 p-2 bg-gray-100 rounded-t-lg border-l border-t border-r">
-                Name: {employee.fullName} EMP ID: {employee.employeeId} Department: {employee.department || 'Unassigned'} Group: {employee.employeeGroup}
-              </h3>
-              <table className="w-full border-collapse text-xs">
-                <thead>
-                  <tr className="bg-gray-50">
-                    <th className="border p-1 font-semibold text-left align-top w-28"></th>
-                    {days.map(day => (
-                      <th key={day.toISOString()} className="border p-1 text-center align-top">
-                        <div>{day.toLocaleDateString('en-US', { weekday: 'short' })}</div>
-                        <div>{day.getDate()}</div>
+          {monthlyAttendanceData.map((employee: any) => {
+            // Calculate total hours for the employee
+            const totalHours = Object.values(employee.dailyData || {}).reduce((sum: number, dayData: any) => {
+              if (dayData?.workedHours) {
+                const hours = parseFloat(dayData.workedHours);
+                return sum + (isNaN(hours) ? 0 : hours);
+              }
+              return sum;
+            }, 0);
+
+            return (
+              <div key={employee.id} className="mb-8">
+                <div className="p-3 bg-yellow-200 border border-gray-300">
+                  <div className="grid grid-cols-4 gap-4 text-sm">
+                    <div><strong>Name:</strong> {employee.fullName}</div>
+                    <div><strong>EMP ID:</strong> {employee.employeeId}</div>
+                    <div><strong>Department:</strong> {employee.department || 'Unassigned'}</div>
+                    <div><strong>Group:</strong> {employee.employeeGroup}</div>
+                  </div>
+                </div>
+                <table className="w-full border-collapse text-xs">
+                  <thead>
+                    <tr className="bg-gray-50">
+                      <th className="border p-1 font-semibold text-left align-top w-28"></th>
+                      {days.map(day => (
+                        <th key={day.toISOString()} className="border p-1 text-center align-top">
+                          <div>{day.toLocaleDateString('en-US', { weekday: 'short' })}</div>
+                          <div>{day.getDate()}</div>
+                        </th>
+                      ))}
+                      <th className="border p-1 text-center align-top bg-blue-100">
+                        <div><strong>Total</strong></div>
                       </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {['In Time', 'Out Time', 'Worked Hours', 'Status', 'Overtime'].map(field => (
-                    <tr key={`${employee.id}-${field}`}>
-                      <td className="border p-1 font-semibold">{field}</td>
-                      {days.map(day => {
-                        const dayData = employee.dailyData[day.getDate()];
-                        let value = '';
-                        if (dayData) {
-                          switch (field) {
-                            case 'In Time': value = dayData.inTime || ''; break;
-                            case 'Out Time': value = dayData.outTime || ''; break;
-                            case 'Worked Hours': value = dayData.workedHours || ''; break;
-                            case 'Status': value = dayData.status || ''; break;
-                            case 'Overtime': 
-                              if (dayData.overtime && dayData.overtime !== '0' && dayData.overtime !== '0.00') {
-                                // Remove 'h' suffix from overtime values
-                                value = dayData.overtime.toString().replace('h', '');
-                              } else {
-                                value = '-';
-                              }
-                              break;
-                          }
-                        } else if (field === 'Overtime') {
-                          value = '-';
-                        }
-                        return (
-                          <td key={`${employee.id}-${day.getDate()}-${field}`} className={`border p-1 text-center h-8 ${
-                            field === 'Status' && value ? 
-                              value === 'P' ? 'text-green-600 font-semibold' :
-                              value === 'A' ? 'text-red-600 font-semibold' :
-                              value === 'HL' ? 'text-blue-600 font-semibold' :
-                              'text-gray-600'
-                            : ''
-                          }`}>
-                            {value}
-                          </td>
-                        );
-                      })}
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ))}
+                  </thead>
+                  <tbody>
+                    {['In Time', 'Out Time', 'Worked Hours', 'Status', 'Overtime'].map(field => (
+                      <tr key={`${employee.id}-${field}`}>
+                        <td className="border p-1 font-semibold">{field}</td>
+                        {days.map(day => {
+                          const dayData = employee.dailyData[day.getDate()];
+                          let value = '';
+                          if (dayData) {
+                            switch (field) {
+                              case 'In Time': value = dayData.inTime || ''; break;
+                              case 'Out Time': value = dayData.outTime || ''; break;
+                              case 'Worked Hours': value = dayData.workedHours || ''; break;
+                              case 'Status': value = dayData.status || ''; break;
+                              case 'Overtime': 
+                                if (dayData.overtime && dayData.overtime !== '0' && dayData.overtime !== '0.00') {
+                                  value = dayData.overtime.toString().replace('h', '');
+                                } else {
+                                  value = '-';
+                                }
+                                break;
+                            }
+                          } else if (field === 'Overtime') {
+                            value = '-';
+                          }
+                          return (
+                            <td key={`${employee.id}-${day.getDate()}-${field}`} className={`border p-1 text-center h-8 ${
+                              field === 'Status' && value ? 
+                                value === 'P' ? 'text-green-600 font-semibold' :
+                                value === 'A' ? 'text-red-600 font-semibold' :
+                                value === 'HL' ? 'text-blue-600 font-semibold' :
+                                'text-gray-600'
+                              : ''
+                            }`}>
+                              {value}
+                            </td>
+                          );
+                        })}
+                        <td className="border p-1 text-center bg-blue-100 font-semibold">
+                          {field === 'Worked Hours' ? `${totalHours.toFixed(2)}h` : '-'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            );
+          })}
         </CardContent>
       </Card>
     );
@@ -1557,28 +1578,6 @@ export default function Reports() {
               </Select>
             </div>
           )}
-          
-          {/* Export Options */}
-          <div className="col-span-full flex gap-2 pt-2">
-            <Button
-              onClick={() => handleExportReport('pdf')}
-              variant="outline"
-              size="sm"
-              className="flex items-center gap-2"
-            >
-              <Download className="h-4 w-4" />
-              Export PDF
-            </Button>
-            <Button
-              onClick={() => handleExportReport('excel')}
-              variant="outline"
-              size="sm"
-              className="flex items-center gap-2"
-            >
-              <Download className="h-4 w-4" />
-              Export Excel
-            </Button>
-          </div>
         </CardContent>
       </Card>
 
