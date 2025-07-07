@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, Calendar, FileText, BarChart3, Users2, Clock, Download } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import LeaveTypeManagement from "./LeaveTypeManagement";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -12,14 +14,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { insertHolidaySchema, type Holiday, type InsertHoliday } from "@shared/schema";
+import { insertHolidaySchema, insertLeaveTypeSchema, type Holiday, type InsertHoliday, type LeaveType, type InsertLeaveType } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 
 export default function HolidayManagement() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isLeaveTypeDialogOpen, setIsLeaveTypeDialogOpen] = useState(false);
   const [filterType, setFilterType] = useState("all");
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [activeTab, setActiveTab] = useState("holidays");
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -31,6 +35,17 @@ export default function HolidayManagement() {
         // Return empty array if holidays endpoint doesn't exist yet
         if (response.status === 404) return [];
         throw new Error("Failed to fetch holidays");
+      }
+      return response.json();
+    },
+  });
+
+  const { data: leaveTypes, isLoading: isLoadingLeaveTypes } = useQuery({
+    queryKey: ["/api/leave-types"],
+    queryFn: async () => {
+      const response = await fetch("/api/leave-types");
+      if (!response.ok) {
+        throw new Error("Failed to fetch leave types");
       }
       return response.json();
     },
@@ -66,6 +81,28 @@ export default function HolidayManagement() {
     },
   });
 
+  const createLeaveTypeMutation = useMutation({
+    mutationFn: async (leaveType: InsertLeaveType) => {
+      const response = await apiRequest("POST", "/api/leave-types", leaveType);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/leave-types"] });
+      toast({
+        title: "Success",
+        description: "Leave type created successfully",
+      });
+      setIsLeaveTypeDialogOpen(false);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create leave type",
+        variant: "destructive",
+      });
+    },
+  });
+
   const form = useForm<InsertHoliday>({
     resolver: zodResolver(insertHolidaySchema),
     defaultValues: {
@@ -80,6 +117,20 @@ export default function HolidayManagement() {
 
   const onSubmit = (data: InsertHoliday) => {
     createHolidayMutation.mutate(data);
+  };
+
+  const leaveTypeForm = useForm<InsertLeaveType>({
+    resolver: zodResolver(insertLeaveTypeSchema),
+    defaultValues: {
+      name: "",
+      description: "",
+      maxDaysPerYear: undefined,
+      isActive: true,
+    },
+  });
+
+  const onSubmitLeaveType = (data: InsertLeaveType) => {
+    createLeaveTypeMutation.mutate(data);
   };
 
   // Calculate holiday statistics
@@ -120,39 +171,56 @@ export default function HolidayManagement() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Leave & Holiday</h1>
-          <p className="text-gray-600 mt-1">Holiday management and administration</p>
+          <p className="text-gray-600 mt-1">Leave types and holiday management</p>
         </div>
-        <div className="flex items-center space-x-4">
-          <Select value={selectedYear.toString()} onValueChange={(value) => setSelectedYear(parseInt(value))}>
-            <SelectTrigger className="w-32">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {Array.from({ length: 5 }, (_, i) => {
-                const year = new Date().getFullYear() + i - 2;
-                return (
-                  <SelectItem key={year} value={year.toString()}>
-                    {year}
-                  </SelectItem>
-                );
-              })}
-            </SelectContent>
-          </Select>
-          <Button variant="outline" onClick={exportReport}>
-            <Download className="w-4 h-4 mr-2" />
-            Export Report
-          </Button>
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button className="bg-[hsl(var(--gov-navy))] hover:bg-[hsl(var(--gov-navy-light))]">
-                <Plus className="w-4 h-4 mr-2" />
-                Add Holiday
+      </div>
+
+      {/* Tabs for Holiday and Leave Type Management */}
+      <Tabs defaultValue="holidays" className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="holidays">Holiday Management</TabsTrigger>
+          <TabsTrigger value="leave-types">Leave Types</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="holidays" className="space-y-6">
+          <div>
+          {/* Holiday Management Header */}
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-xl font-semibold text-gray-900">Holiday Management</h2>
+              <p className="text-sm text-gray-600">Manage government holidays and special dates</p>
+            </div>
+            <div className="flex items-center space-x-4">
+              <Select value={selectedYear.toString()} onValueChange={(value) => setSelectedYear(parseInt(value))}>
+                <SelectTrigger className="w-32">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Array.from({ length: 5 }, (_, i) => {
+                    const year = new Date().getFullYear() + i - 2;
+                    return (
+                      <SelectItem key={year} value={year.toString()}>
+                        {year}
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
+              <Button variant="outline" onClick={exportReport}>
+                <Download className="w-4 h-4 mr-2" />
+                Export Report
               </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-2xl">
-              <DialogHeader>
-                <DialogTitle>Add New Holiday</DialogTitle>
-              </DialogHeader>
+              <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button className="bg-[hsl(var(--gov-navy))] hover:bg-[hsl(var(--gov-navy-light))]">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add Holiday
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-2xl">
+                  <DialogHeader>
+                    <DialogTitle>Add Holiday</DialogTitle>
+                  </DialogHeader>
               <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -301,10 +369,9 @@ export default function HolidayManagement() {
               </Form>
             </DialogContent>
           </Dialog>
-        </div>
-      </div>
+          </div>
 
-      {/* Holiday Statistics Cards */}
+          {/* Holiday Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card className="border border-blue-200 bg-gradient-to-br from-blue-50 to-blue-100">
           <CardContent className="p-6">
@@ -451,10 +518,13 @@ export default function HolidayManagement() {
           </div>
         </CardContent>
       </Card>
-
-
-
-
+          </div>
+        </TabsContent>
+        
+        <TabsContent value="leave-types" className="space-y-6">
+          <LeaveTypeManagement />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

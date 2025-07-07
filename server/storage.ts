@@ -5,6 +5,7 @@ import {
   overtimeRequests, 
   biometricDevices,
   holidays,
+  leaveTypes,
   type Employee, 
   type InsertEmployee,
   type Attendance,
@@ -16,7 +17,9 @@ import {
   type BiometricDevice,
   type InsertBiometricDevice,
   type Holiday,
-  type InsertHoliday
+  type InsertHoliday,
+  type LeaveType,
+  type InsertLeaveType
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, gte, lte, sql, count, sum } from "drizzle-orm";
@@ -71,6 +74,13 @@ export interface IStorage {
   createHoliday(holiday: InsertHoliday): Promise<Holiday>;
   updateHoliday(id: number, holiday: Partial<InsertHoliday>): Promise<Holiday>;
   deleteHoliday(id: number): Promise<void>;
+  
+  // Leave type operations
+  getLeaveTypes(): Promise<LeaveType[]>;
+  getLeaveType(id: number): Promise<LeaveType | undefined>;
+  createLeaveType(leaveType: InsertLeaveType): Promise<LeaveType>;
+  updateLeaveType(id: number, leaveType: Partial<InsertLeaveType>): Promise<LeaveType>;
+  deleteLeaveType(id: number): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -363,6 +373,30 @@ export class DatabaseStorage implements IStorage {
 
   async deleteHoliday(id: number): Promise<void> {
     await db.delete(holidays).where(eq(holidays.id, id));
+  }
+
+  async getLeaveTypes(): Promise<LeaveType[]> {
+    const result = await db.select().from(leaveTypes).orderBy(leaveTypes.name);
+    return result;
+  }
+
+  async getLeaveType(id: number): Promise<LeaveType | undefined> {
+    const result = await db.select().from(leaveTypes).where(eq(leaveTypes.id, id)).limit(1);
+    return result[0];
+  }
+
+  async createLeaveType(leaveType: InsertLeaveType): Promise<LeaveType> {
+    const result = await db.insert(leaveTypes).values(leaveType).returning();
+    return result[0];
+  }
+
+  async updateLeaveType(id: number, leaveType: Partial<InsertLeaveType>): Promise<LeaveType> {
+    const result = await db.update(leaveTypes).set(leaveType).where(eq(leaveTypes.id, id)).returning();
+    return result[0];
+  }
+
+  async deleteLeaveType(id: number): Promise<void> {
+    await db.delete(leaveTypes).where(eq(leaveTypes.id, id));
   }
 }
 

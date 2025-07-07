@@ -56,6 +56,7 @@ export const leaveRequests = pgTable("leave_requests", {
   id: serial("id").primaryKey(),
   employeeId: varchar("employee_id", { length: 50 }).references(() => employees.id).notNull(),
   leaveType: leaveTypeEnum("leave_type").notNull(),
+  leaveTypeId: integer("leave_type_id").references(() => leaveTypes.id),
   startDate: timestamp("start_date").notNull(),
   endDate: timestamp("end_date").notNull(),
   days: integer("days").notNull(),
@@ -99,6 +100,16 @@ export const holidays = pgTable("holidays", {
   description: text("description"),
   isRecurring: boolean("is_recurring").default(false).notNull(),
   applicableGroups: varchar("applicable_groups", { length: 50 }).array().default(["group_a", "group_b"]).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const leaveTypes = pgTable("leave_types", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 100 }).notNull().unique(),
+  description: text("description"),
+  maxDaysPerYear: integer("max_days_per_year"),
+  isActive: boolean("is_active").default(true).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -177,6 +188,10 @@ export const employeesRelations = relations(employees, ({ one, many }) => ({
   }),
 }));
 
+export const leaveTypesRelations = relations(leaveTypes, ({ many }) => ({
+  leaveRequests: many(leaveRequests),
+}));
+
 export const attendanceRelations = relations(attendance, ({ one }) => ({
   employee: one(employees, {
     fields: [attendance.employeeId],
@@ -193,6 +208,10 @@ export const leaveRequestsRelations = relations(leaveRequests, ({ one }) => ({
     fields: [leaveRequests.approvedBy],
     references: [employees.id],
     relationName: "approver",
+  }),
+  leaveType: one(leaveTypes, {
+    fields: [leaveRequests.leaveTypeId],
+    references: [leaveTypes.id],
   }),
 }));
 
@@ -281,6 +300,12 @@ export const insertShortLeaveRequestSchema = createInsertSchema(shortLeaveReques
   createdAt: true,
 });
 
+export const insertLeaveTypeSchema = createInsertSchema(leaveTypes).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Types
 export type Attendance = typeof attendance.$inferSelect;
 export type InsertAttendance = z.infer<typeof insertAttendanceSchema>;
@@ -294,3 +319,5 @@ export type Holiday = typeof holidays.$inferSelect;
 export type InsertHoliday = z.infer<typeof insertHolidaySchema>;
 export type ShortLeaveRequest = typeof shortLeaveRequests.$inferSelect;
 export type InsertShortLeaveRequest = z.infer<typeof insertShortLeaveRequestSchema>;
+export type LeaveType = typeof leaveTypes.$inferSelect;
+export type InsertLeaveType = z.infer<typeof insertLeaveTypeSchema>;

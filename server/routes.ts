@@ -29,6 +29,8 @@ import {
   insertBiometricDeviceSchema,
   holidays,
   insertHolidaySchema,
+  leaveTypes,
+  insertLeaveTypeSchema,
 } from "../shared/schema";
 
 import { getGroupWorkingHours, updateGroupWorkingHours } from './hrSettings';
@@ -2562,6 +2564,73 @@ export function registerRoutes(app: any) {
     } catch (error) {
       console.error("Error deleting holiday:", error);
       res.status(500).json({ message: "Failed to delete holiday" });
+    }
+  });
+
+  // Leave Types API routes
+  app.get("/api/leave-types", async (req, res) => {
+    try {
+      const leaveTypes = await storage.getLeaveTypes();
+      res.json(leaveTypes);
+    } catch (error) {
+      console.error("Error fetching leave types:", error);
+      res.status(500).json({ error: "Failed to fetch leave types" });
+    }
+  });
+
+  app.post("/api/leave-types", async (req, res) => {
+    try {
+      const validatedData = insertLeaveTypeSchema.parse(req.body);
+      const leaveType = await storage.createLeaveType(validatedData);
+      res.status(201).json(leaveType);
+    } catch (error) {
+      console.error("Error creating leave type:", error);
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ error: error.errors });
+      } else {
+        res.status(500).json({ error: "Failed to create leave type" });
+      }
+    }
+  });
+
+  app.get("/api/leave-types/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const leaveType = await storage.getLeaveType(id);
+      if (!leaveType) {
+        return res.status(404).json({ error: "Leave type not found" });
+      }
+      res.json(leaveType);
+    } catch (error) {
+      console.error("Error fetching leave type:", error);
+      res.status(500).json({ error: "Failed to fetch leave type" });
+    }
+  });
+
+  app.put("/api/leave-types/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const validatedData = insertLeaveTypeSchema.partial().parse(req.body);
+      const leaveType = await storage.updateLeaveType(id, validatedData);
+      res.json(leaveType);
+    } catch (error) {
+      console.error("Error updating leave type:", error);
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ error: error.errors });
+      } else {
+        res.status(500).json({ error: "Failed to update leave type" });
+      }
+    }
+  });
+
+  app.delete("/api/leave-types/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      await storage.deleteLeaveType(id);
+      res.json({ message: "Leave type deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting leave type:", error);
+      res.status(500).json({ error: "Failed to delete leave type" });
     }
   });
 
