@@ -622,64 +622,70 @@ export default function Reports() {
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
-            <table className="min-w-full border-collapse border border-gray-300">
+            <table className="min-w-full border-collapse border border-gray-300 text-sm">
               <thead>
                 <tr className="bg-blue-50">
-                  <th className="border border-gray-300 px-3 py-2 text-left font-semibold">S.No</th>
-                  <th className="border border-gray-300 px-3 py-2 text-left font-semibold">Employee ID</th>
-                  <th className="border border-gray-300 px-3 py-2 text-left font-semibold">Name</th>
-                  <th className="border border-gray-300 px-3 py-2 text-left font-semibold">Group</th>
-                  <th className="border border-gray-300 px-3 py-2 text-left font-semibold">In Time</th>
-                  <th className="border border-gray-300 px-3 py-2 text-left font-semibold">Out Time</th>
-                  <th className="border border-gray-300 px-3 py-2 text-left font-semibold">Total Hours</th>
-                  <th className="border border-gray-300 px-3 py-2 text-left font-semibold">Late</th>
-                  <th className="border border-gray-300 px-3 py-2 text-left font-semibold">Half Day</th>
-                  <th className="border border-gray-300 px-3 py-2 text-left font-semibold">Short Leave</th>
-                  <th className="border border-gray-300 px-3 py-2 text-left font-semibold">Status</th>
+                  <th className="border border-gray-300 px-2 py-1.5 text-left font-semibold text-xs">S.No</th>
+                  <th className="border border-gray-300 px-2 py-1.5 text-left font-semibold text-xs">Employee ID</th>
+                  <th className="border border-gray-300 px-2 py-1.5 text-left font-semibold text-xs">Name</th>
+                  <th className="border border-gray-300 px-2 py-1.5 text-left font-semibold text-xs">Group</th>
+                  <th className="border border-gray-300 px-2 py-1.5 text-left font-semibold text-xs">In Time</th>
+                  <th className="border border-gray-300 px-2 py-1.5 text-left font-semibold text-xs">Out Time</th>
+                  <th className="border border-gray-300 px-2 py-1.5 text-left font-semibold text-xs">Total Hours</th>
+                  <th className="border border-gray-300 px-2 py-1.5 text-left font-semibold text-xs">Late</th>
+                  <th className="border border-gray-300 px-2 py-1.5 text-left font-semibold text-xs">Half Day</th>
+                  <th className="border border-gray-300 px-2 py-1.5 text-left font-semibold text-xs">Short Leave</th>
+                  <th className="border border-gray-300 px-2 py-1.5 text-left font-semibold text-xs">Status</th>
                 </tr>
               </thead>
               <tbody>
                 {dailyAttendanceData.map((record: any, index: number) => (
                   <tr key={`${record.employeeId}-${record.date}`} className="hover:bg-gray-50">
-                    <td className="border border-gray-300 px-3 py-2">{index + 1}</td>
-                    <td className="border border-gray-300 px-3 py-2 font-medium">{record.employeeId}</td>
-                    <td className="border border-gray-300 px-3 py-2">{record.fullName}</td>
-                    <td className="border border-gray-300 px-3 py-2">
-                      <Badge variant={record.employeeGroup === 'group_a' ? 'default' : 'secondary'}>
+                    <td className="border border-gray-300 px-2 py-1.5 text-xs">{index + 1}</td>
+                    <td className="border border-gray-300 px-2 py-1.5 font-medium text-xs">{record.employeeId}</td>
+                    <td className="border border-gray-300 px-2 py-1.5 text-xs">{record.fullName}</td>
+                    <td className="border border-gray-300 px-2 py-1.5 text-xs">
+                      <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${
+                        record.employeeGroup === 'group_a' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'
+                      }`}>
                         {record.employeeGroup === 'group_a' ? 'Group A' : record.employeeGroup === 'group_b' ? 'Group B' : record.employeeGroup || 'N/A'}
-                      </Badge>
+                      </span>
                     </td>
-                    <td className="border border-gray-300 px-3 py-2">{record.inTime || '-'}</td>
-                    <td className="border border-gray-300 px-3 py-2">{record.outTime || '-'}</td>
-                    <td className="border border-gray-300 px-3 py-2 font-medium">{record.totalHours || '0.00'}</td>
-                    <td className="border border-gray-300 px-3 py-2">
-                      <Badge variant={record.isLate ? 'destructive' : 'outline'}>
+                    <td className="border border-gray-300 px-2 py-1.5 text-xs">{record.inTime || '-'}</td>
+                    <td className="border border-gray-300 px-2 py-1.5 text-xs">{record.outTime || '-'}</td>
+                    <td className="border border-gray-300 px-2 py-1.5 font-medium text-xs">{record.totalHours || '0.00'}</td>
+                    <td className="border border-gray-300 px-2 py-1.5 text-xs">
+                      <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${
+                        record.isLate ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
+                      }`}>
                         {record.isLate ? 'Yes' : 'No'}
-                      </Badge>
+                      </span>
                     </td>
-                    <td className="border border-gray-300 px-3 py-2">
-                      <Badge variant={record.isHalfDay ? 'secondary' : 'outline'}>
+                    <td className="border border-gray-300 px-2 py-1.5 text-xs">
+                      <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${
+                        record.isHalfDay ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-800'
+                      }`}>
                         {record.isHalfDay ? 'Yes' : 'No'}
-                      </Badge>
+                      </span>
                     </td>
-                    <td className="border border-gray-300 px-3 py-2">
-                      <Badge variant={record.onShortLeave ? 'secondary' : 'outline'}>
+                    <td className="border border-gray-300 px-2 py-1.5 text-xs">
+                      <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${
+                        record.onShortLeave ? 'bg-orange-100 text-orange-800' : 'bg-gray-100 text-gray-800'
+                      }`}>
                         {record.onShortLeave ? 'Yes' : 'No'}
-                      </Badge>
+                      </span>
                     </td>
-                    <td className="border border-gray-300 px-3 py-2">
-                      <Badge 
-                        variant={
-                          record.status === 'Absent' ? 'destructive' :
-                          record.status === 'Present' ? 'default' :
-                          record.status === 'On Leave' ? 'secondary' :
-                          record.status === 'Half Day' ? 'secondary' :
-                          record.status === 'Late' ? 'destructive' :
-                          'outline'
-                        }
-                      >
+                    <td className="border border-gray-300 px-2 py-1.5 text-xs">
+                      <span className={`px-1.5 py-0.5 rounded text-xs font-bold ${
+                        record.status === 'Absent' ? 'bg-red-100 text-red-800' :
+                        record.status === 'Present' ? 'bg-green-100 text-green-800' :
+                        record.status === 'On Leave' ? 'bg-blue-100 text-blue-800' :
+                        record.status === 'Half Day' ? 'bg-yellow-100 text-yellow-800' :
+                        record.status === 'Late' ? 'bg-red-100 text-red-800' :
+                        'bg-gray-100 text-gray-800'
+                      }`}>
                         {record.status}
-                      </Badge>
+                      </span>
                     </td>
                   </tr>
                 ))}
@@ -745,46 +751,46 @@ export default function Reports() {
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
-            <table className="min-w-full border-collapse border border-gray-300">
+            <table className="min-w-full border-collapse border border-gray-300 text-sm">
               <thead>
                 <tr className="bg-orange-50">
-                  <th className="border border-gray-300 px-3 py-2 text-left font-semibold">S.No</th>
-                  <th className="border border-gray-300 px-3 py-2 text-left font-semibold">Employee ID</th>
-                  <th className="border border-gray-300 px-3 py-2 text-left font-semibold">Name</th>
-                  <th className="border border-gray-300 px-3 py-2 text-left font-semibold">Group</th>
-                  <th className="border border-gray-300 px-3 py-2 text-left font-semibold">Actual Hours</th>
-                  <th className="border border-gray-300 px-3 py-2 text-left font-semibold">Required Hours</th>
-                  <th className="border border-gray-300 px-3 py-2 text-left font-semibold">OT Hours</th>
-                  <th className="border border-gray-300 px-3 py-2 text-left font-semibold">OT Approval Status</th>
+                  <th className="border border-gray-300 px-2 py-1.5 text-left font-semibold text-xs">S.No</th>
+                  <th className="border border-gray-300 px-2 py-1.5 text-left font-semibold text-xs">Employee ID</th>
+                  <th className="border border-gray-300 px-2 py-1.5 text-left font-semibold text-xs">Name</th>
+                  <th className="border border-gray-300 px-2 py-1.5 text-left font-semibold text-xs">Group</th>
+                  <th className="border border-gray-300 px-2 py-1.5 text-left font-semibold text-xs">Actual Hours</th>
+                  <th className="border border-gray-300 px-2 py-1.5 text-left font-semibold text-xs">Required Hours</th>
+                  <th className="border border-gray-300 px-2 py-1.5 text-left font-semibold text-xs">OT Hours</th>
+                  <th className="border border-gray-300 px-2 py-1.5 text-left font-semibold text-xs">OT Approval Status</th>
                 </tr>
               </thead>
               <tbody>
                 {dailyOtData.map((record: any, index: number) => (
                   <tr key={`${record.employeeId}-${record.date}`} className="hover:bg-gray-50">
-                    <td className="border border-gray-300 px-3 py-2">{index + 1}</td>
-                    <td className="border border-gray-300 px-3 py-2 font-medium">{record.employeeId}</td>
-                    <td className="border border-gray-300 px-3 py-2">{record.fullName}</td>
-                    <td className="border border-gray-300 px-3 py-2">
-                      <Badge variant={record.employeeGroup === 'group_a' ? 'default' : 'secondary'}>
+                    <td className="border border-gray-300 px-2 py-1.5 text-xs">{index + 1}</td>
+                    <td className="border border-gray-300 px-2 py-1.5 font-medium text-xs">{record.employeeId}</td>
+                    <td className="border border-gray-300 px-2 py-1.5 text-xs">{record.fullName}</td>
+                    <td className="border border-gray-300 px-2 py-1.5 text-xs">
+                      <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${
+                        record.employeeGroup === 'group_a' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'
+                      }`}>
                         {record.employeeGroup === 'group_a' ? 'Group A' : record.employeeGroup === 'group_b' ? 'Group B' : record.employeeGroup || 'N/A'}
-                      </Badge>
+                      </span>
                     </td>
-                    <td className="border border-gray-300 px-3 py-2 font-medium">{record.actualHours || '0.00'}</td>
-                    <td className="border border-gray-300 px-3 py-2">{record.requiredHours || '0.00'}</td>
-                    <td className="border border-gray-300 px-3 py-2 font-bold text-orange-600">
+                    <td className="border border-gray-300 px-2 py-1.5 font-medium text-xs">{record.actualHours || '0.00'}</td>
+                    <td className="border border-gray-300 px-2 py-1.5 text-xs">{record.requiredHours || '0.00'}</td>
+                    <td className="border border-gray-300 px-2 py-1.5 font-bold text-orange-600 text-xs">
                       {record.otHours > 0 ? record.otHours : '-'}
                     </td>
-                    <td className="border border-gray-300 px-3 py-2">
-                      <Badge 
-                        variant={
-                          record.otApprovalStatus === 'Approved' ? 'default' :
-                          record.otApprovalStatus === 'Pending' ? 'secondary' :
-                          record.otApprovalStatus === 'Rejected' ? 'destructive' :
-                          'outline'
-                        }
-                      >
+                    <td className="border border-gray-300 px-2 py-1.5 text-xs">
+                      <span className={`px-1.5 py-0.5 rounded text-xs font-bold ${
+                        record.otApprovalStatus === 'Approved' ? 'bg-green-100 text-green-800' :
+                        record.otApprovalStatus === 'Pending' ? 'bg-yellow-100 text-yellow-800' :
+                        record.otApprovalStatus === 'Rejected' ? 'bg-red-100 text-red-800' :
+                        'bg-gray-100 text-gray-800'
+                      }`}>
                         {record.otApprovalStatus}
-                      </Badge>
+                      </span>
                     </td>
                   </tr>
                 ))}
