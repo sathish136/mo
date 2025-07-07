@@ -10,12 +10,13 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Calendar, Clock, User, CheckCircle, XCircle, AlertCircle, FileText, Users, Plus } from "lucide-react";
+import { Calendar, Clock, User, CheckCircle, XCircle, AlertCircle, FileText, Users, Plus, MessageSquare } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { format } from "date-fns";
 import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 import type { LeaveRequest, Employee, LeaveType } from "@shared/schema";
 
 const leaveRequestSchema = z.object({
@@ -35,7 +36,11 @@ export default function LeaveManagement() {
   const [useAbsentData, setUseAbsentData] = useState(true);
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [showRejectDialog, setShowRejectDialog] = useState(false);
+  const [rejectReason, setRejectReason] = useState("");
+  const [requestToReject, setRequestToReject] = useState<LeaveRequest | null>(null);
   const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   const form = useForm<LeaveRequestFormData>({
     resolver: zodResolver(leaveRequestSchema),
@@ -143,6 +148,11 @@ export default function LeaveManagement() {
       queryClient.invalidateQueries({ queryKey: ["/api/leave-requests"] });
       setIsDialogOpen(false);
       form.reset();
+      toast({
+        title: "Success",
+        description: "Leave request created successfully",
+        variant: "default",
+      });
       console.log("Leave request created successfully");
     },
     onError: (error) => {
@@ -173,8 +183,13 @@ export default function LeaveManagement() {
       }
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (updatedRequest, variables) => {
       queryClient.invalidateQueries({ queryKey: ["/api/leave-requests"] });
+      toast({
+        title: "Success",
+        description: `Leave request ${variables.status === 'approved' ? 'approved' : 'rejected'} successfully`,
+        variant: "default",
+      });
       console.log("Leave request updated successfully");
     },
     onError: (error) => {
@@ -186,9 +201,34 @@ export default function LeaveManagement() {
     console.log("Form submission data:", data);
     console.log("Available employees:", employees);
     
-    // Calculate days between start and end date
+    // Check for duplicate leave requests on the same date
     const startDate = new Date(data.startDate);
     const endDate = new Date(data.endDate);
+    
+    const duplicateRequest = leaveRequests.find(req => {
+      if (req.employeeId !== parseInt(data.employeeId)) return false;
+      
+      const reqStartDate = new Date(req.startDate);
+      const reqEndDate = new Date(req.endDate);
+      
+      // Check for any overlap between date ranges
+      return (
+        (startDate >= reqStartDate && startDate <= reqEndDate) ||
+        (endDate >= reqStartDate && endDate <= reqEndDate) ||
+        (startDate <= reqStartDate && endDate >= reqEndDate)
+      );
+    });
+    
+    if (duplicateRequest) {
+      toast({
+        title: "Duplicate Leave Request",
+        description: `Employee already has a leave request for overlapping dates (${format(new Date(duplicateRequest.startDate), 'dd/MM/yyyy')} - ${format(new Date(duplicateRequest.endDate), 'dd/MM/yyyy')})`,
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Calculate days between start and end date
     const daysDiff = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
     
     // Subtract holidays from total days
@@ -217,6 +257,24 @@ export default function LeaveManagement() {
     form.setValue("reason", `Absent on ${selectedDate} - ${leaveType} leave encashment request`);
     setSelectedEmployee(employee);
     setUseAbsentData(false); // Switch to manual mode to show the form
+  };
+
+  const handleRejectWithReason = (request: LeaveRequest) => {
+    setRequestToReject(request);
+    setShowRejectDialog(true);
+  };
+
+  const confirmReject = () => {
+    if (requestToReject && rejectReason.trim()) {
+      updateLeaveStatusMutation.mutate({
+        id: requestToReject.id,
+        status: "rejected",
+        reason: rejectReason
+      });
+      setShowRejectDialog(false);
+      setRejectReason("");
+      setRequestToReject(null);
+    }
   };
 
   const getStatusColor = (status: string) => {
@@ -557,53 +615,64 @@ export default function LeaveManagement() {
                   {pendingRequests.map((request) => {
                     const employee = employees.find(e => e.id.toString() === request.employeeId);
                     return (
-                      <div key={request.id} className="border rounded-lg p-4">
+                      <div key={request.id} className="border rounded-lg p-6 bg-gradient-to-r from-yellow-50 to-orange-50 shadow-sm hover:shadow-md transition-shadow">
                         <div className="flex items-center justify-between">
-                          <div className="space-y-1">
-                            <div className="flex items-center space-x-2">
-                              <User className="h-4 w-4" />
-                              <span className="font-medium">
-                                {employee?.fullName} ({employee?.employeeId})
-                              </span>
-                              <Badge variant="secondary">{request.leaveType}</Badge>
+                          <div className="space-y-3 flex-1">
+                            <div className="flex items-center space-x-3">
+                              <div className="bg-blue-100 p-2 rounded-full">
+                                <User className="h-4 w-4 text-blue-600" />
+                              </div>
+                              <div>
+                                <span className="font-semibold text-lg text-gray-800">
+                                  {employee?.fullName}
+                                </span>
+                                <span className="text-gray-500 ml-2">({employee?.employeeId})</span>
+                                <Badge 
+                                  variant="secondary" 
+                                  className="ml-3 bg-blue-100 text-blue-800 font-medium"
+                                >
+                                  {request.leaveType.charAt(0).toUpperCase() + request.leaveType.slice(1)} Holiday
+                                </Badge>
+                              </div>
                             </div>
-                            <div className="flex items-center space-x-4 text-sm text-muted-foreground">
-                              <div className="flex items-center space-x-1">
-                                <Calendar className="h-3 w-3" />
-                                <span>
-                                  {format(new Date(request.startDate), "MMM dd")} - {format(new Date(request.endDate), "MMM dd, yyyy")}
+                            <div className="flex items-center space-x-6 text-sm text-gray-600">
+                              <div className="flex items-center space-x-2">
+                                <Calendar className="h-4 w-4 text-green-600" />
+                                <span className="font-medium">
+                                  {format(new Date(request.startDate), "dd MMM")} - {format(new Date(request.endDate), "dd MMM, yyyy")}
                                 </span>
                               </div>
-                              <div className="flex items-center space-x-1">
-                                <Clock className="h-3 w-3" />
-                                <span>{request.days} days</span>
+                              <div className="flex items-center space-x-2">
+                                <Clock className="h-4 w-4 text-orange-600" />
+                                <span className="font-medium">{request.days} day{request.days > 1 ? 's' : ''}</span>
                               </div>
                             </div>
-                            <p className="text-sm">{request.reason}</p>
+                            <div className="bg-white p-3 rounded-lg border-l-4 border-blue-500">
+                              <p className="text-sm text-gray-700 font-medium">Reason:</p>
+                              <p className="text-sm text-gray-600 mt-1">{request.reason}</p>
+                            </div>
                           </div>
-                          <div className="flex space-x-2">
+                          <div className="flex flex-col space-y-2 ml-4">
                             <Button
                               size="sm"
-                              className="bg-green-600 hover:bg-green-700 text-white"
+                              className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 font-medium shadow-md hover:shadow-lg transition-all"
                               onClick={() => updateLeaveStatusMutation.mutate({
                                 id: request.id,
                                 status: "approved"
                               })}
                               disabled={updateLeaveStatusMutation.isPending}
                             >
-                              <CheckCircle className="mr-1 h-3 w-3" />
+                              <CheckCircle className="mr-2 h-4 w-4" />
                               Approve
                             </Button>
                             <Button
                               size="sm"
                               variant="destructive"
-                              onClick={() => updateLeaveStatusMutation.mutate({
-                                id: request.id,
-                                status: "rejected"
-                              })}
+                              className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 font-medium shadow-md hover:shadow-lg transition-all"
+                              onClick={() => handleRejectWithReason(request)}
                               disabled={updateLeaveStatusMutation.isPending}
                             >
-                              <XCircle className="mr-1 h-3 w-3" />
+                              <XCircle className="mr-2 h-4 w-4" />
                               Reject
                             </Button>
                           </div>
@@ -726,6 +795,51 @@ export default function LeaveManagement() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Reject Reason Dialog */}
+      <Dialog open={showRejectDialog} onOpenChange={setShowRejectDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <MessageSquare className="w-5 h-5 text-red-600" />
+              Reject Leave Request
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <p className="text-sm text-gray-600 mb-2">
+                Please provide a reason for rejecting this leave request:
+              </p>
+              <Textarea
+                placeholder="Enter rejection reason..."
+                value={rejectReason}
+                onChange={(e) => setRejectReason(e.target.value)}
+                className="min-h-20 border-gray-300"
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowRejectDialog(false);
+                  setRejectReason("");
+                  setRequestToReject(null);
+                }}
+                className="border-gray-300"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={confirmReject}
+                disabled={!rejectReason.trim() || updateLeaveStatusMutation.isPending}
+                className="bg-red-600 hover:bg-red-700 text-white"
+              >
+                {updateLeaveStatusMutation.isPending ? "Rejecting..." : "Reject Request"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
