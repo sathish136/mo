@@ -87,15 +87,22 @@ export default function LeaveManagement() {
 
   // Create leave request mutation
   const createLeaveRequestMutation = useMutation({
-    mutationFn: (data: LeaveRequestFormData) => 
-      apiRequest("/api/leave-requests", {
+    mutationFn: async (data: LeaveRequestFormData) => {
+      console.log("Submitting leave request:", data);
+      const response = await apiRequest("/api/leave-requests", {
         method: "POST",
         body: JSON.stringify(data),
-      }),
+      });
+      return response;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/leave-requests"] });
       setIsDialogOpen(false);
       form.reset();
+      console.log("Leave request created successfully");
+    },
+    onError: (error) => {
+      console.error("Failed to create leave request:", error);
     },
   });
 
@@ -117,6 +124,9 @@ export default function LeaveManagement() {
   });
 
   const handleSubmit = (data: LeaveRequestFormData) => {
+    console.log("Form submission data:", data);
+    console.log("Available employees:", employees);
+    
     // Calculate days between start and end date
     const startDate = new Date(data.startDate);
     const endDate = new Date(data.endDate);
@@ -130,10 +140,13 @@ export default function LeaveManagement() {
     
     const workingDays = Math.max(1, daysDiff - holidaysInRange);
     
-    createLeaveRequestMutation.mutate({
+    const submitData = {
       ...data,
       days: workingDays,
-    });
+    };
+    
+    console.log("Final submit data:", submitData);
+    createLeaveRequestMutation.mutate(submitData);
   };
 
   const handleQuickLeaveFromAbsent = (employee: Employee) => {
