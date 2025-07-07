@@ -47,38 +47,72 @@ export default function Dashboard() {
     <div className="space-y-6">
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card className="border border-gray-200">
+        <Card className="bg-white border-slate-200 shadow-lg hover:shadow-xl transition-shadow">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Total Employees</p>
-                <p className="text-2xl font-bold text-gray-900">{stats?.totalEmployees || 0}</p>
+                <p className="text-sm font-medium text-slate-600">Total Employees</p>
+                <p className="text-3xl font-bold text-slate-900 mt-1">
+                  {stats?.totalEmployees || 0}
+                </p>
               </div>
-              <Users className="w-8 h-8 text-[hsl(var(--gov-navy))]" />
+              <div className="p-3 bg-slate-100 rounded-lg">
+                <Users className="w-6 h-6 text-slate-600" />
+              </div>
+            </div>
+            <div className="mt-4">
+              <span className="text-sm text-emerald-600 flex items-center">
+                <TrendingUp className="w-4 h-4 mr-1" />
+                Active workforce
+              </span>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border border-gray-200">
+        <Card className="bg-white border-emerald-200 shadow-lg hover:shadow-xl transition-shadow">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Present Today</p>
-                <p className="text-2xl font-bold text-green-600">{stats?.presentToday || 0}</p>
+                <p className="text-sm font-medium text-slate-600">Present Today</p>
+                <p className="text-3xl font-bold text-emerald-600 mt-1">
+                  {stats?.presentToday || 0}
+                </p>
               </div>
-              <UserCheck className="w-8 h-8 text-green-600" />
+              <div className="p-3 bg-emerald-100 rounded-lg">
+                <UserCheck className="w-6 h-6 text-emerald-600" />
+              </div>
+            </div>
+            <div className="mt-4">
+              <span className="text-sm text-slate-600">
+                {stats?.totalEmployees ? 
+                  `${((stats.presentToday / stats.totalEmployees) * 100).toFixed(1)}% attendance rate` : 
+                  "No data available"
+                }
+              </span>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border border-gray-200">
+        <Card className="bg-white border-amber-200 shadow-lg hover:shadow-xl transition-shadow">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">On Leave</p>
-                <p className="text-2xl font-bold text-orange-600">{stats?.onLeave || 0}</p>
+                <p className="text-sm font-medium text-slate-600">On Leave</p>
+                <p className="text-3xl font-bold text-amber-600 mt-1">
+                  {stats?.onLeave || 0}
+                </p>
               </div>
-              <CalendarX className="w-8 h-8 text-orange-600" />
+              <div className="p-3 bg-amber-100 rounded-lg">
+                <CalendarX className="w-6 h-6 text-amber-600" />
+              </div>
+            </div>
+            <div className="mt-4">
+              <span className="text-sm text-slate-600">
+                {stats?.totalEmployees ? 
+                  `${((stats.onLeave / stats.totalEmployees) * 100).toFixed(1)}% of workforce` : 
+                  "No data available"
+                }
+              </span>
             </div>
           </CardContent>
         </Card>
@@ -88,9 +122,16 @@ export default function Dashboard() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Overtime Hours</p>
-                <p className="text-2xl font-bold text-purple-600">{stats?.overtimeHours || 0}h</p>
+                <p className="text-3xl font-bold text-purple-600">
+                  {stats?.overtimeHours || 0}
+                </p>
               </div>
-              <Clock className="w-8 h-8 text-purple-600" />
+              <div className="p-3 bg-purple-100 rounded-full">
+                <Clock className="w-6 h-6 text-purple-600" />
+              </div>
+            </div>
+            <div className="mt-4">
+              <span className="text-sm text-gray-600">This month</span>
             </div>
           </CardContent>
         </Card>
