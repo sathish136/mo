@@ -789,13 +789,196 @@ export default function Settings() {
                     <ChevronRight className="w-4 h-4 text-gray-400" />
                   </Button>
                 </Link>
-                <div className="flex items-center p-4 border border-gray-200 rounded-lg bg-gray-50">
-                  <Users className="w-5 h-5 mr-3 text-gray-400" />
-                  <div className="text-left">
-                    <div className="font-medium text-gray-600">User Management</div>
-                    <div className="text-sm text-gray-500">Coming soon</div>
-                  </div>
-                </div>
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" className="w-full justify-between h-auto p-4 border-gray-200 hover:bg-gray-50">
+                      <div className="flex items-center">
+                        <Users className="w-5 h-5 mr-3 text-blue-600" />
+                        <div className="text-left">
+                          <div className="font-medium">User Management</div>
+                          <div className="text-sm text-gray-500">Manage system users and permissions</div>
+                        </div>
+                      </div>
+                      <ChevronRight className="w-4 h-4 text-gray-400" />
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+                    <DialogHeader>
+                      <DialogTitle className="flex items-center">
+                        <Users className="w-5 h-5 mr-2 text-blue-600" />
+                        User Management
+                      </DialogTitle>
+                      <DialogDescription>
+                        Manage system users, roles, and permissions
+                      </DialogDescription>
+                    </DialogHeader>
+                    
+                    <div className="space-y-6">
+                      {/* Add New User */}
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="text-lg">Add New User</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                              <Label htmlFor="newUsername">Username</Label>
+                              <Input id="newUsername" placeholder="Enter username" />
+                            </div>
+                            <div>
+                              <Label htmlFor="newEmail">Email</Label>
+                              <Input id="newEmail" type="email" placeholder="Enter email" />
+                            </div>
+                            <div>
+                              <Label htmlFor="newFullName">Full Name</Label>
+                              <Input id="newFullName" placeholder="Enter full name" />
+                            </div>
+                            <div>
+                              <Label htmlFor="newRole">Role</Label>
+                              <Select>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select role" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="admin">Administrator</SelectItem>
+                                  <SelectItem value="hr_manager">HR Manager</SelectItem>
+                                  <SelectItem value="employee">Employee</SelectItem>
+                                  <SelectItem value="viewer">Viewer</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div>
+                              <Label htmlFor="newPassword">Password</Label>
+                              <Input id="newPassword" type="password" placeholder="Enter password" />
+                            </div>
+                            <div>
+                              <Label htmlFor="confirmPassword">Confirm Password</Label>
+                              <Input id="confirmPassword" type="password" placeholder="Confirm password" />
+                            </div>
+                          </div>
+                          <div className="flex justify-end mt-4">
+                            <Button className="bg-blue-600 hover:bg-blue-700">
+                              <User className="w-4 h-4 mr-2" />
+                              Create User
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+
+                      {/* Current Users */}
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="text-lg">Current Users</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead>Username</TableHead>
+                                <TableHead>Full Name</TableHead>
+                                <TableHead>Email</TableHead>
+                                <TableHead>Role</TableHead>
+                                <TableHead>Status</TableHead>
+                                <TableHead>Actions</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              <TableRow>
+                                <TableCell className="font-medium">admin</TableCell>
+                                <TableCell>System Administrator</TableCell>
+                                <TableCell>admin@mof.gov.lk</TableCell>
+                                <TableCell>
+                                  <Badge variant="secondary">Administrator</Badge>
+                                </TableCell>
+                                <TableCell>
+                                  <Badge variant="outline" className="text-green-600 border-green-600">Active</Badge>
+                                </TableCell>
+                                <TableCell>
+                                  <div className="flex space-x-2">
+                                    <Button variant="outline" size="sm">
+                                      <Edit className="w-4 h-4" />
+                                    </Button>
+                                    <Button variant="outline" size="sm" disabled>
+                                      <Trash2 className="w-4 h-4" />
+                                    </Button>
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                              <TableRow>
+                                <TableCell className="font-medium">hr.manager</TableCell>
+                                <TableCell>HR Manager</TableCell>
+                                <TableCell>hr@mof.gov.lk</TableCell>
+                                <TableCell>
+                                  <Badge variant="outline">HR Manager</Badge>
+                                </TableCell>
+                                <TableCell>
+                                  <Badge variant="outline" className="text-green-600 border-green-600">Active</Badge>
+                                </TableCell>
+                                <TableCell>
+                                  <div className="flex space-x-2">
+                                    <Button variant="outline" size="sm">
+                                      <Edit className="w-4 h-4" />
+                                    </Button>
+                                    <Button variant="outline" size="sm">
+                                      <Trash2 className="w-4 h-4" />
+                                    </Button>
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            </TableBody>
+                          </Table>
+                        </CardContent>
+                      </Card>
+
+                      {/* Role Permissions */}
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="text-lg">Role Permissions</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                              <h4 className="font-medium mb-3">Administrator</h4>
+                              <ul className="space-y-2 text-sm text-gray-600">
+                                <li>• Full system access</li>
+                                <li>• User management</li>
+                                <li>• System configuration</li>
+                                <li>• All reports and data</li>
+                              </ul>
+                            </div>
+                            <div>
+                              <h4 className="font-medium mb-3">HR Manager</h4>
+                              <ul className="space-y-2 text-sm text-gray-600">
+                                <li>• Employee management</li>
+                                <li>• Attendance tracking</li>
+                                <li>• Leave approvals</li>
+                                <li>• HR reports</li>
+                              </ul>
+                            </div>
+                            <div>
+                              <h4 className="font-medium mb-3">Employee</h4>
+                              <ul className="space-y-2 text-sm text-gray-600">
+                                <li>• View own attendance</li>
+                                <li>• Submit leave requests</li>
+                                <li>• Update profile</li>
+                                <li>• Basic reports</li>
+                              </ul>
+                            </div>
+                            <div>
+                              <h4 className="font-medium mb-3">Viewer</h4>
+                              <ul className="space-y-2 text-sm text-gray-600">
+                                <li>• Read-only access</li>
+                                <li>• View reports</li>
+                                <li>• No data modification</li>
+                                <li>• Limited functionality</li>
+                              </ul>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </div>
+                  </DialogContent>
+                </Dialog>
               </div>
             </CardContent>
           </Card>
