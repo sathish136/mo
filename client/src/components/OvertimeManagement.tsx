@@ -1,17 +1,21 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Calendar, Clock, CheckCircle, XCircle, AlertCircle, Users, Filter, Check } from "lucide-react";
+import { Calendar, Clock, CheckCircle, XCircle, AlertCircle, Users, Filter, Check, TrendingUp, Award, Activity, RefreshCw, FileText, Download } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Progress } from "@/components/ui/progress";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 
 export default function OvertimeManagement() {
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [selectedEmployees, setSelectedEmployees] = useState<Set<string>>(new Set());
+  const [activeTab, setActiveTab] = useState("pending");
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -20,6 +24,15 @@ export default function OvertimeManagement() {
     queryFn: async () => {
       const response = await fetch(`/api/overtime-eligible?date=${selectedDate}`);
       if (!response.ok) throw new Error("Failed to fetch eligible employees");
+      return response.json();
+    },
+  });
+
+  const { data: overtimeRequests = [], isLoading: isRequestsLoading } = useQuery({
+    queryKey: ["/api/overtime-requests"],
+    queryFn: async () => {
+      const response = await fetch("/api/overtime-requests");
+      if (!response.ok) throw new Error("Failed to fetch overtime requests");
       return response.json();
     },
   });
@@ -183,105 +196,147 @@ export default function OvertimeManagement() {
     .filter((emp: any) => selectedEmployees.has(emp.id))
     .reduce((sum: number, emp: any) => sum + parseFloat(emp.otHours), 0);
 
+  // Calculate statistics
+  const pendingRequests = overtimeRequests.filter((req: any) => req.status === 'pending').length;
+  const approvedRequests = overtimeRequests.filter((req: any) => req.status === 'approved').length;
+  const rejectedRequests = overtimeRequests.filter((req: any) => req.status === 'rejected').length;
+  const totalRequests = overtimeRequests.length;
+
+  const approvalRate = totalRequests > 0 ? (approvedRequests / totalRequests) * 100 : 0;
+
   return (
-    <div className="space-y-6">
-      {/* Header */}
+    <div className="space-y-6 p-6 bg-gradient-to-br from-slate-50 to-blue-50 min-h-screen">
+      {/* Modern Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Overtime Management</h1>
-          <p className="text-gray-600">Manage employee overtime approvals and track working hours</p>
+        <div className="space-y-2">
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            Overtime Management
+          </h1>
+          <p className="text-slate-600 font-medium">Streamline overtime approvals with intelligent workflow automation</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <Button variant="outline" size="sm" className="shadow-sm">
+            <RefreshCw className="w-4 h-4 mr-2" />
+            Refresh
+          </Button>
+          <Button variant="outline" size="sm" className="shadow-sm">
+            <Download className="w-4 h-4 mr-2" />
+            Export
+          </Button>
         </div>
       </div>
 
-      {/* Dashboard Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card className="border border-blue-200 bg-blue-50">
+      {/* Enhanced Dashboard Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white border-0 shadow-lg hover:shadow-xl transition-all">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-blue-800">Eligible Employees</p>
-                <p className="text-2xl font-bold text-blue-900">{eligibleEmployees.length}</p>
+                <p className="text-blue-100 text-sm font-medium">Pending Approvals</p>
+                <p className="text-3xl font-bold">{eligibleEmployees.length}</p>
+                <p className="text-blue-200 text-xs mt-1">Require action today</p>
               </div>
-              <Users className="w-8 h-8 text-blue-600" />
+              <div className="bg-blue-400 bg-opacity-30 p-3 rounded-full">
+                <Users className="w-8 h-8" />
+              </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border border-orange-200 bg-orange-50">
+        <Card className="bg-gradient-to-br from-amber-500 to-orange-500 text-white border-0 shadow-lg hover:shadow-xl transition-all">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-orange-800">Total OT Hours</p>
-                <p className="text-2xl font-bold text-orange-900">{totalOTHours.toFixed(1)}h</p>
+                <p className="text-amber-100 text-sm font-medium">Total OT Hours</p>
+                <p className="text-3xl font-bold">{totalOTHours.toFixed(1)}h</p>
+                <p className="text-amber-200 text-xs mt-1">This period</p>
               </div>
-              <Clock className="w-8 h-8 text-orange-600" />
+              <div className="bg-amber-400 bg-opacity-30 p-3 rounded-full">
+                <Clock className="w-8 h-8" />
+              </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border border-purple-200 bg-purple-50">
+        <Card className="bg-gradient-to-br from-green-500 to-emerald-500 text-white border-0 shadow-lg hover:shadow-xl transition-all">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-purple-800">Selected</p>
-                <p className="text-2xl font-bold text-purple-900">{selectedEmployees.size}</p>
+                <p className="text-green-100 text-sm font-medium">Approval Rate</p>
+                <p className="text-3xl font-bold">{approvalRate.toFixed(0)}%</p>
+                <div className="mt-2">
+                  <Progress value={approvalRate} className="h-2 bg-green-400" />
+                </div>
               </div>
-              <Check className="w-8 h-8 text-purple-600" />
+              <div className="bg-green-400 bg-opacity-30 p-3 rounded-full">
+                <TrendingUp className="w-8 h-8" />
+              </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border border-green-200 bg-green-50">
+        <Card className="bg-gradient-to-br from-purple-500 to-indigo-500 text-white border-0 shadow-lg hover:shadow-xl transition-all">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-green-800">Selected OT Hours</p>
-                <p className="text-2xl font-bold text-green-900">{selectedOTHours.toFixed(1)}h</p>
+                <p className="text-purple-100 text-sm font-medium">Selected</p>
+                <p className="text-3xl font-bold">{selectedEmployees.size}</p>
+                <p className="text-purple-200 text-xs mt-1">{selectedOTHours.toFixed(1)}h selected</p>
               </div>
-              <AlertCircle className="w-8 h-8 text-green-600" />
+              <div className="bg-purple-400 bg-opacity-30 p-3 rounded-full">
+                <Check className="w-8 h-8" />
+              </div>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Date Filter and Actions */}
-      <Card className="border border-gray-200">
-        <CardHeader>
+      {/* Smart Action Bar */}
+      <Card className="bg-white shadow-lg border-0">
+        <CardHeader className="pb-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
-                <Calendar className="w-5 h-5 text-gray-600" />
-                <label className="text-sm font-medium text-gray-700">Filter by Date:</label>
+            <div className="flex items-center gap-6">
+              <div className="flex items-center gap-3 bg-slate-50 px-4 py-2 rounded-lg">
+                <Calendar className="w-5 h-5 text-slate-600" />
+                <label className="text-sm font-medium text-slate-700">Date Filter:</label>
                 <Input
                   type="date"
                   value={selectedDate}
                   onChange={(e) => setSelectedDate(e.target.value)}
-                  className="w-40"
+                  className="w-44 border-slate-200"
                 />
               </div>
-              <Filter className="w-4 h-4 text-gray-500" />
+              
+              {selectedEmployees.size > 0 && (
+                <div className="flex items-center gap-3 px-4 py-2 bg-blue-50 rounded-lg">
+                  <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+                    {selectedEmployees.size} Selected
+                  </Badge>
+                  <span className="text-sm text-slate-600">•</span>
+                  <span className="text-sm font-medium text-slate-700">{selectedOTHours.toFixed(1)}h total</span>
+                </div>
+              )}
             </div>
             
             {selectedEmployees.size > 0 && (
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-600">{selectedEmployees.size} selected</span>
+              <div className="flex items-center gap-3">
                 <Button
                   size="sm"
-                  className="bg-green-600 hover:bg-green-700 text-white"
+                  className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white shadow-md"
                   onClick={handleBulkApprove}
                   disabled={bulkApproveMutation.isPending || bulkRejectMutation.isPending}
                 >
-                  <CheckCircle className="w-4 h-4 mr-1" />
-                  Approve Selected
+                  <CheckCircle className="w-4 h-4 mr-2" />
+                  Approve {selectedEmployees.size}
                 </Button>
                 <Button
                   size="sm"
-                  variant="destructive"
+                  className="bg-gradient-to-r from-red-500 to-rose-500 hover:from-red-600 hover:to-rose-600 text-white shadow-md"
                   onClick={handleBulkReject}
                   disabled={bulkApproveMutation.isPending || bulkRejectMutation.isPending}
                 >
-                  <XCircle className="w-4 h-4 mr-1" />
-                  Reject Selected
+                  <XCircle className="w-4 h-4 mr-2" />
+                  Reject {selectedEmployees.size}
                 </Button>
               </div>
             )}
@@ -289,127 +344,153 @@ export default function OvertimeManagement() {
         </CardHeader>
       </Card>
 
-      {/* Eligible Employees Table */}
-      <Card className="border border-orange-200 bg-gradient-to-r from-orange-50 to-yellow-50">
-        <CardHeader>
-          <CardTitle className="text-lg font-semibold text-orange-900 flex items-center gap-2">
-            <AlertCircle className="w-5 h-5" />
-            Employees Eligible for Overtime Approval - {new Date(selectedDate).toLocaleDateString()}
-          </CardTitle>
-          <p className="text-sm text-orange-700">
-            Employees who worked overtime but haven't applied for approval yet.
-          </p>
-        </CardHeader>
-        <CardContent>
-          {isEligibleLoading ? (
-            <div className="text-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600 mx-auto"></div>
-              <p className="text-gray-600 mt-2">Loading eligible employees...</p>
+      {/* Enhanced Workflow Tabs */}
+      <Card className="bg-white shadow-lg border-0">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-3 bg-slate-100">
+            <TabsTrigger value="pending" className="flex items-center gap-2 data-[state=active]:bg-white">
+              <AlertCircle className="w-4 h-4" />
+              Pending Approvals ({eligibleEmployees.length})
+            </TabsTrigger>
+            <TabsTrigger value="approved" className="flex items-center gap-2 data-[state=active]:bg-white">
+              <CheckCircle className="w-4 h-4" />
+              Approved ({approvedRequests})
+            </TabsTrigger>
+            <TabsTrigger value="rejected" className="flex items-center gap-2 data-[state=active]:bg-white">
+              <XCircle className="w-4 h-4" />
+              Rejected ({rejectedRequests})
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="pending" className="mt-6">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Award className="w-5 h-5 text-amber-600" />
+                  <h3 className="text-lg font-semibold text-slate-800">
+                    Overtime Approvals Required - {new Date(selectedDate).toLocaleDateString()}
+                  </h3>
+                </div>
+                <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">
+                  {eligibleEmployees.length} Pending
+                </Badge>
+              </div>
+              
+              {isEligibleLoading ? (
+                <div className="text-center py-12">
+                  <RefreshCw className="w-8 h-8 text-slate-400 mx-auto mb-4 animate-spin" />
+                  <p className="text-slate-600 font-medium">Loading eligible employees...</p>
+                </div>
+              ) : eligibleEmployees.length === 0 ? (
+                <div className="text-center py-12 bg-slate-50 rounded-lg">
+                  <Activity className="w-12 h-12 text-slate-400 mx-auto mb-4" />
+                  <h4 className="text-lg font-medium text-slate-800 mb-2">All caught up!</h4>
+                  <p className="text-slate-600">No overtime approvals needed for {new Date(selectedDate).toLocaleDateString()}</p>
+                  <p className="text-sm text-slate-500 mt-1">Try selecting a different date or check attendance records.</p>
+                </div>
+              ) : (
+                <div className="bg-gradient-to-r from-amber-50 to-orange-50 rounded-lg overflow-hidden">
+                  <Table>
+                    <TableHeader className="bg-amber-100">
+                      <TableRow>
+                        <TableHead className="w-12">
+                          <Checkbox
+                            checked={selectedEmployees.size === eligibleEmployees.length && eligibleEmployees.length > 0}
+                            onCheckedChange={handleSelectAll}
+                          />
+                        </TableHead>
+                        <TableHead className="w-16 text-amber-800 font-semibold">S.No</TableHead>
+                        <TableHead className="text-amber-800 font-semibold">Employee ID</TableHead>
+                        <TableHead className="text-amber-800 font-semibold">Name</TableHead>
+                        <TableHead className="text-amber-800 font-semibold">Group</TableHead>
+                        <TableHead className="text-amber-800 font-semibold">Actual Hours</TableHead>
+                        <TableHead className="text-amber-800 font-semibold">Required Hours</TableHead>
+                        <TableHead className="text-amber-800 font-semibold">OT Hours</TableHead>
+                        <TableHead className="text-amber-800 font-semibold">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {eligibleEmployees.map((employee: any, index: number) => (
+                        <TableRow key={`${employee.employeeId}-${employee.date}`} className="hover:bg-amber-50 border-amber-100">
+                          <TableCell>
+                            <Checkbox
+                              checked={selectedEmployees.has(employee.id)}
+                              onCheckedChange={(checked) => handleSelectEmployee(employee.id, checked as boolean)}
+                            />
+                          </TableCell>
+                          <TableCell className="font-medium text-slate-800">{index + 1}</TableCell>
+                          <TableCell className="font-mono text-slate-700">{employee.employeeId}</TableCell>
+                          <TableCell className="font-medium text-slate-800">{employee.fullName}</TableCell>
+                          <TableCell>
+                            <Badge 
+                              variant={employee.employeeGroup === 'group_a' ? 'default' : 'secondary'}
+                              className={employee.employeeGroup === 'group_a' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'}
+                            >
+                              {employee.employeeGroup === 'group_a' ? 'Group A' : 'Group B'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="font-semibold text-slate-700">{employee.actualHours}h</TableCell>
+                          <TableCell className="text-slate-600">{employee.requiredHours}h</TableCell>
+                          <TableCell>
+                            <Badge className="bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold">
+                              +{employee.otHours}h
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex gap-2">
+                              <Button
+                                size="sm"
+                                className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white shadow-sm"
+                                onClick={() => singleApproveMutation.mutate(employee)}
+                                disabled={singleApproveMutation.isPending || singleRejectMutation.isPending}
+                              >
+                                <CheckCircle className="w-4 h-4 mr-1" />
+                                Approve
+                              </Button>
+                              <Button
+                                size="sm"
+                                className="bg-gradient-to-r from-red-500 to-rose-500 hover:from-red-600 hover:to-rose-600 text-white shadow-sm"
+                                onClick={() => singleRejectMutation.mutate(employee)}
+                                disabled={singleApproveMutation.isPending || singleRejectMutation.isPending}
+                              >
+                                <XCircle className="w-4 h-4 mr-1" />
+                                Reject
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
             </div>
-          ) : eligibleEmployees.length === 0 ? (
-            <div className="text-center py-8">
-              <AlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-600">No eligible employees found for {new Date(selectedDate).toLocaleDateString()}</p>
-              <p className="text-sm text-gray-500">Try selecting a different date or check if attendance records exist.</p>
+          </TabsContent>
+
+          <TabsContent value="approved" className="mt-6">
+            <div className="text-center py-12 bg-green-50 rounded-lg">
+              <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-4" />
+              <h4 className="text-lg font-medium text-green-800 mb-2">Approved Overtime Requests</h4>
+              <p className="text-green-700">{approvedRequests} requests have been approved</p>
+              <Button variant="outline" className="mt-4 border-green-200 text-green-700 hover:bg-green-100">
+                <FileText className="w-4 h-4 mr-2" />
+                View Approved Requests
+              </Button>
             </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-orange-100">
-                  <tr>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-orange-800 uppercase tracking-wider">
-                      <Checkbox
-                        checked={selectedEmployees.size === eligibleEmployees.length && eligibleEmployees.length > 0}
-                        onCheckedChange={handleSelectAll}
-                      />
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-orange-800 uppercase tracking-wider">
-                      S.No
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-orange-800 uppercase tracking-wider">
-                      Employee ID
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-orange-800 uppercase tracking-wider">
-                      Name
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-orange-800 uppercase tracking-wider">
-                      Group
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-orange-800 uppercase tracking-wider">
-                      Actual Hours
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-orange-800 uppercase tracking-wider">
-                      Required Hours
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-orange-800 uppercase tracking-wider">
-                      OT Hours
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-orange-800 uppercase tracking-wider">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-orange-200">
-                  {eligibleEmployees.map((employee: any, index: number) => (
-                    <tr key={`${employee.employeeId}-${employee.date}`} className="hover:bg-orange-50">
-                      <td className="px-4 py-3 text-sm">
-                        <Checkbox
-                          checked={selectedEmployees.has(employee.id)}
-                          onCheckedChange={(checked) => handleSelectEmployee(employee.id, checked as boolean)}
-                        />
-                      </td>
-                      <td className="px-4 py-3 text-sm font-medium text-gray-900">
-                        {index + 1}
-                      </td>
-                      <td className="px-4 py-3 text-sm font-medium text-gray-900">
-                        {employee.employeeId}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-900">
-                        {employee.fullName}
-                      </td>
-                      <td className="px-4 py-3 text-sm">
-                        <Badge variant={employee.employeeGroup === 'group_a' ? 'default' : 'secondary'}>
-                          {employee.employeeGroup === 'group_a' ? 'Group A' : 'Group B'}
-                        </Badge>
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-900 font-medium">
-                        {employee.actualHours}h
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-900">
-                        {employee.requiredHours}h
-                      </td>
-                      <td className="px-4 py-3 text-sm font-bold text-orange-600">
-                        {employee.otHours}h
-                      </td>
-                      <td className="px-4 py-3 text-sm">
-                        <div className="flex space-x-2">
-                          <Button
-                            size="sm"
-                            className="bg-green-600 hover:bg-green-700 text-white"
-                            onClick={() => singleApproveMutation.mutate(employee)}
-                            disabled={singleApproveMutation.isPending || singleRejectMutation.isPending}
-                          >
-                            <CheckCircle className="w-4 h-4 mr-1" />
-                            Approve
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            onClick={() => singleRejectMutation.mutate(employee)}
-                            disabled={singleApproveMutation.isPending || singleRejectMutation.isPending}
-                          >
-                            <XCircle className="w-4 h-4 mr-1" />
-                            Reject
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+          </TabsContent>
+
+          <TabsContent value="rejected" className="mt-6">
+            <div className="text-center py-12 bg-red-50 rounded-lg">
+              <XCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+              <h4 className="text-lg font-medium text-red-800 mb-2">Rejected Overtime Requests</h4>
+              <p className="text-red-700">{rejectedRequests} requests have been rejected</p>
+              <Button variant="outline" className="mt-4 border-red-200 text-red-700 hover:bg-red-100">
+                <FileText className="w-4 h-4 mr-2" />
+                View Rejected Requests
+              </Button>
             </div>
-          )}
-        </CardContent>
+          </TabsContent>
+        </Tabs>
       </Card>
     </div>
   );
