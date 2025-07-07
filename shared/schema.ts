@@ -100,6 +100,8 @@ export const holidays = pgTable("holidays", {
   description: text("description"),
   isRecurring: boolean("is_recurring").default(false).notNull(),
   applicableGroups: varchar("applicable_groups", { length: 50 }).array().default(["group_a", "group_b"]).notNull(),
+  isActive: boolean("is_active").default(true).notNull(),
+  year: integer("year").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

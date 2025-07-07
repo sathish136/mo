@@ -65,6 +65,8 @@ export default function HolidayManagement() {
         description: "",
         isRecurring: false,
         applicableGroups: ["group_a", "group_b"],
+        year: new Date().getFullYear(),
+        isActive: true,
       });
     },
     onError: (error: any) => {
@@ -87,14 +89,23 @@ export default function HolidayManagement() {
       description: "",
       isRecurring: false,
       applicableGroups: ["group_a", "group_b"],
+      year: new Date().getFullYear(),
+      isActive: true,
     },
   });
 
   const onSubmit = (data: InsertHoliday) => {
+    // Ensure year is extracted from the date if not explicitly provided
+    const holidayData = {
+      ...data,
+      year: data.year || new Date(data.date).getFullYear(),
+      isActive: data.isActive !== undefined ? data.isActive : true,
+    };
+    
     if (editingHoliday) {
-      updateHolidayMutation.mutate({ id: editingHoliday.id, data });
+      updateHolidayMutation.mutate({ id: editingHoliday.id, data: holidayData });
     } else {
-      createHolidayMutation.mutate(data);
+      createHolidayMutation.mutate(holidayData);
     }
   };
 
@@ -118,6 +129,8 @@ export default function HolidayManagement() {
         description: "",
         isRecurring: false,
         applicableGroups: ["group_a", "group_b"],
+        year: new Date().getFullYear(),
+        isActive: true,
       });
     },
     onError: (error: any) => {
@@ -186,6 +199,8 @@ export default function HolidayManagement() {
       description: holiday.description || holiday.name,
       isRecurring: holiday.isRecurring || false,
       applicableGroups: holiday.applicableGroups || ["group_a", "group_b"],
+      year: holiday.year || new Date(holiday.date).getFullYear(),
+      isActive: holiday.isActive !== undefined ? holiday.isActive : true,
     });
     setIsEditDialogOpen(true);
   };
