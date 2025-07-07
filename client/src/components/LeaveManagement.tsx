@@ -42,10 +42,8 @@ export default function LeaveManagement() {
 
   const createLeaveRequestMutation = useMutation({
     mutationFn: async (leaveRequest: InsertLeaveRequest) => {
-      return await apiRequest("/api/leave-requests", {
-        method: "POST",
-        body: JSON.stringify(leaveRequest),
-      });
+      const response = await apiRequest("POST", "/api/leave-requests", leaveRequest);
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/leave-requests"] });
@@ -54,7 +52,15 @@ export default function LeaveManagement() {
         description: "Leave request created successfully",
       });
       setIsDialogOpen(false);
-      form.reset();
+      form.reset({
+        employeeId: "",
+        leaveType: "annual",
+        startDate: new Date(),
+        endDate: new Date(),
+        days: 1,
+        reason: "",
+        status: "pending",
+      });
     },
     onError: (error: any) => {
       toast({
@@ -67,10 +73,8 @@ export default function LeaveManagement() {
 
   const updateLeaveRequestMutation = useMutation({
     mutationFn: async ({ id, status }: { id: number; status: string }) => {
-      return await apiRequest(`/api/leave-requests/${id}`, {
-        method: "PUT",
-        body: JSON.stringify({ status }),
-      });
+      const response = await apiRequest("PUT", `/api/leave-requests/${id}`, { status });
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/leave-requests"] });
