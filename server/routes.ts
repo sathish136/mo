@@ -597,6 +597,60 @@ router.post("/api/leave-requests", async (req, res) => {
     };
     
     const validatedData = insertLeaveRequestSchema.parse(requestData);
+    
+    // Check for duplicate leave requests
+    const existingRequests = await db
+      .select()
+      .from(leaveRequests)
+      .where(eq(leaveRequests.employeeId, validatedData.employeeId));
+    
+    const startDate = validatedData.startDate;
+    const endDate = validatedData.endDate;
+    
+    const duplicateRequest = existingRequests.find(req => {
+      const reqStartDate = new Date(req.startDate);
+      const reqEndDate = new Date(req.endDate);
+      
+      // Check for any overlap between date ranges
+      return (
+        (startDate >= reqStartDate && startDate <= reqEndDate) ||
+        (endDate >= reqStartDate && endDate <= reqEndDate) ||
+        (startDate <= reqStartDate && endDate >= reqEndDate)
+      );
+    });
+    
+    if (duplicateRequest) {
+      return res.status(400).json({ 
+        message: `Employee already has a leave request for overlapping dates (${new Date(duplicateRequest.startDate).toLocaleDateString()} - ${new Date(duplicateRequest.endDate).toLocaleDateString()})` 
+      });
+    }
+    
+    // Check leave balance
+    const currentYear = new Date().getFullYear();
+    const approvedRequests = existingRequests.filter(req => 
+      req.status === 'approved' &&
+      new Date(req.startDate).getFullYear() === currentYear &&
+      req.leaveType === validatedData.leaveType
+    );
+    
+    const usedDays = approvedRequests.reduce((total, req) => total + (req.days || 0), 0);
+    
+    // Get holiday counts based on leave type
+    const holidayData = await db.select().from(holidays);
+    const maxDays = validatedData.leaveType === 'annual' 
+      ? holidayData.filter(h => h.type === 'annual').length 
+      : holidayData.filter(h => h.type === 'special').length;
+    
+    console.log(`Leave validation: Employee ${validatedData.employeeId}, Type: ${validatedData.leaveType}, Max Days: ${maxDays}, Used Days: ${usedDays}, Requesting: ${validatedData.days}`);
+    
+    const remainingDays = Math.max(0, maxDays - usedDays);
+    
+    if (validatedData.days > remainingDays) {
+      return res.status(400).json({ 
+        message: `Insufficient leave balance. Employee has ${remainingDays} ${validatedData.leaveType} leave days remaining. Cannot request ${validatedData.days} days.` 
+      });
+    }
+    
     const newRecord = await db.insert(leaveRequests).values(validatedData).returning();
     res.status(201).json(newRecord[0]);
   } catch (error) {

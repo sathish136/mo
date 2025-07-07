@@ -155,8 +155,14 @@ export default function LeaveManagement() {
       });
       console.log("Leave request created successfully");
     },
-    onError: (error) => {
+    onError: (error: any) => {
       console.error("Failed to create leave request:", error);
+      const errorMessage = error.message || "Failed to create leave request";
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive",
+      });
     },
   });
 
@@ -227,9 +233,26 @@ export default function LeaveManagement() {
       });
       return;
     }
-    
+
     // Calculate days between start and end date
     const daysDiff = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+    
+    // Check leave balance for the employee
+    const employee = employeesWithBalance.find(e => e.id.toString() === data.employeeId);
+    if (employee) {
+      const availableBalance = data.leaveType === 'annual' 
+        ? employee.leaveBalance.annual.remaining 
+        : employee.leaveBalance.special.remaining;
+      
+      if (daysDiff > availableBalance) {
+        toast({
+          title: "Insufficient Leave Balance",
+          description: `Employee only has ${availableBalance} ${data.leaveType} leave days remaining. Cannot request ${daysDiff} days.`,
+          variant: "destructive",
+        });
+        return;
+      }
+    }
     
     // Subtract holidays from total days
     const holidaysInRange = holidays.filter(holiday => {
@@ -358,7 +381,11 @@ export default function LeaveManagement() {
                       <div key={employee.id} className="border rounded-lg p-3 bg-gray-50">
                         <div className="flex items-center justify-between">
                           <div className="flex-1">
-                            <p className="font-medium text-sm">{employee.fullName}</p>
+                            <p className="font-medium text-sm">
+                              {employee.fullName && employee.fullName !== employee.employeeId 
+                                ? employee.fullName 
+                                : `Employee ${employee.employeeId}`}
+                            </p>
                             <p className="text-xs text-gray-500">{employee.employeeId} - {employee.position}</p>
                             <div className="flex gap-3 mt-1 text-xs">
                               <span className="text-blue-600">
@@ -624,7 +651,9 @@ export default function LeaveManagement() {
                               </div>
                               <div>
                                 <span className="font-semibold text-lg text-gray-800">
-                                  {employee?.fullName}
+                                  {employee?.fullName && employee.fullName !== employee.employeeId 
+                                    ? employee.fullName 
+                                    : `Employee ${employee?.employeeId}`}
                                 </span>
                                 <span className="text-gray-500 ml-2">({employee?.employeeId})</span>
                                 <Badge 
