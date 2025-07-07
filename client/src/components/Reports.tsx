@@ -1007,7 +1007,7 @@ export default function Reports() {
                     <div><strong>Name:</strong> {employee.fullName}</div>
                     <div><strong>EMP ID:</strong> {employee.employeeId}</div>
                     <div><strong>Department:</strong> {employee.department || 'Unassigned'}</div>
-                    <div><strong>Group:</strong> {employee.employeeGroup}</div>
+                    <div><strong>Group:</strong> {employee.employeeGroup === 'group_a' ? 'Group A' : employee.employeeGroup === 'group_b' ? 'Group B' : employee.employeeGroup}</div>
                   </div>
                 </div>
                 <table className="w-full border-collapse text-xs">
