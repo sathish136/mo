@@ -44,7 +44,7 @@ export function LicenseInfo() {
               <span className="text-sm font-medium">Valid Until</span>
             </div>
             <div className="text-sm text-green-700">
-              {license.expiryDate?.toLocaleDateString() || 'N/A'}
+              Unlimited
             </div>
           </div>
           

@@ -580,11 +580,6 @@ export default function Settings() {
 
         {/* General Settings Tab */}
         <TabsContent value="general" className="space-y-6">
-          {/* License Information Display */}
-          {license.isValid && (
-            <LicenseInfo />
-          )}
-          
           <Card className="border border-gray-200">
             <CardHeader>
               <CardTitle className="text-lg font-semibold text-gray-900 flex items-center">
@@ -1397,6 +1392,11 @@ export default function Settings() {
 
         {/* System Tab */}
         <TabsContent value="system" className="space-y-6">
+          {/* License Information Display */}
+          {license.isValid && (
+            <LicenseInfo />
+          )}
+          
           {/* License Management */}
           <Card className="border border-gray-200">
             <CardHeader>
@@ -1425,11 +1425,11 @@ export default function Settings() {
                     </div>
                   </div>
                 </div>
-                {license.isValid && license.expiryDate && (
+                {license.isValid && (
                   <div className="text-right">
-                    <div className="text-sm font-medium">Expires</div>
+                    <div className="text-sm font-medium">Valid Until</div>
                     <div className="text-xs text-gray-500">
-                      {license.expiryDate.toLocaleDateString()}
+                      Unlimited
                     </div>
                   </div>
                 )}
