@@ -259,7 +259,10 @@ export const insertAttendanceSchema = createInsertSchema(attendance).omit({
   createdAt: true,
 });
 
-export const insertLeaveRequestSchema = createInsertSchema(leaveRequests).omit({
+export const insertLeaveRequestSchema = createInsertSchema(leaveRequests, {
+  startDate: z.coerce.date(),
+  endDate: z.coerce.date(),
+}).omit({
   id: true,
   createdAt: true,
   approvedBy: true,

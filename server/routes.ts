@@ -589,7 +589,14 @@ router.get("/api/leave-requests", async (req, res) => {
 
 router.post("/api/leave-requests", async (req, res) => {
   try {
-    const validatedData = insertLeaveRequestSchema.parse(req.body);
+    // Transform date strings to Date objects
+    const requestData = {
+      ...req.body,
+      startDate: new Date(req.body.startDate),
+      endDate: new Date(req.body.endDate)
+    };
+    
+    const validatedData = insertLeaveRequestSchema.parse(requestData);
     const newRecord = await db.insert(leaveRequests).values(validatedData).returning();
     res.status(201).json(newRecord[0]);
   } catch (error) {
