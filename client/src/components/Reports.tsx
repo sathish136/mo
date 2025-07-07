@@ -349,6 +349,409 @@ export default function Reports() {
     }
   };
 
+  const handleExportReport = async (format: string) => {
+    try {
+      // Get the current report data based on the selected report type
+      let data: any;
+      let filename: string;
+      
+      switch (reportType) {
+        case "monthly-attendance":
+          data = monthlyAttendanceData;
+          filename = `monthly-attendance-${startDate}-to-${endDate}`;
+          break;
+        case "daily-attendance":
+          data = dailyAttendanceData;
+          filename = `daily-attendance-${startDate}`;
+          break;
+        case "daily-ot":
+          data = dailyOtData;
+          filename = `daily-ot-${startDate}`;
+          break;
+        case "late-arrival":
+          data = lateArrivalData;
+          filename = `late-arrival-${startDate}-to-${endDate}`;
+          break;
+        case "half-day":
+          data = halfDayData;
+          filename = `half-day-${startDate}-to-${endDate}`;
+          break;
+        case "short-leave-usage":
+          data = shortLeaveUsageData;
+          filename = `short-leave-usage-${startDate}-to-${endDate}`;
+          break;
+        case "offer-attendance":
+          data = offerAttendanceData;
+          filename = `offer-attendance-${startDate}-to-${endDate}`;
+          break;
+        default:
+          throw new Error("Unknown report type");
+      }
+
+      if (!data || data.length === 0) {
+        alert("No data available to export");
+        return;
+      }
+
+      if (format === "pdf") {
+        exportToPDF(data, filename, reportType);
+      }
+    } catch (error) {
+      console.error("Export failed:", error);
+      alert("Export failed. Please try again.");
+    }
+  };
+
+  const exportToPDF = (data: any[], filename: string, reportType: string) => {
+    // Simple HTML to PDF conversion using browser print
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) return;
+
+    // Get current date and time for report generation
+    const now = new Date();
+    const reportGeneratedTime = now.toLocaleString('en-GB', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
+    });
+
+    // Get month and year for the report period
+    const reportStartDate = new Date(startDate);
+    const reportEndDate = new Date(endDate);
+    const reportMonth = reportStartDate.toLocaleString('en-GB', { month: 'long', year: 'numeric' });
+    
+    // Determine report title based on type
+    let reportTitle = '';
+    switch (reportType) {
+      case 'daily-attendance':
+        reportTitle = 'Daily Attendance Report';
+        break;
+      case 'daily-ot':
+        reportTitle = 'Daily Overtime Report';
+        break;
+      case 'monthly-attendance':
+        reportTitle = 'Monthly Attendance Sheet';
+        break;
+      case 'offer-attendance':
+        reportTitle = '1/4 Offer-Attendance Report';
+        break;
+      case 'late-arrival':
+        reportTitle = 'Late Arrival Report';
+        break;
+      case 'half-day':
+        reportTitle = 'Half Day Report';
+        break;
+      case 'short-leave-usage':
+        reportTitle = 'Short Leave Usage Report';
+        break;
+      default:
+        reportTitle = 'Attendance Report';
+    }
+    
+    let htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>${filename}</title>
+        <style>
+          body { 
+            font-family: Arial, sans-serif; 
+            margin: 0; 
+            padding: 20px;
+            font-size: 12px;
+            line-height: 1.4;
+          }
+          .header {
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 3px solid #1e40af;
+            padding-bottom: 20px;
+          }
+          .company-name {
+            font-size: 28px;
+            font-weight: bold;
+            color: #1e40af;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+          }
+          .department {
+            font-size: 18px;
+            color: #374151;
+            margin-bottom: 8px;
+            font-weight: 600;
+          }
+          .system-title {
+            font-size: 14px;
+            color: #6b7280;
+            font-style: italic;
+          }
+          .report-details {
+            background-color: #f8fafc;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+            border: 2px solid #e2e8f0;
+          }
+          .report-title {
+            font-size: 20px;
+            font-weight: bold;
+            color: #1f2937;
+            margin-bottom: 15px;
+            text-align: center;
+            text-transform: uppercase;
+          }
+          .report-info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 13px;
+          }
+          .report-period, .generated-time {
+            font-weight: bold;
+            color: #4b5563;
+          }
+          .filters-info {
+            background-color: #eff6ff;
+            padding: 10px;
+            border-radius: 6px;
+            margin-top: 15px;
+            border: 1px solid #bfdbfe;
+          }
+          .filters-title {
+            font-weight: bold;
+            color: #1e40af;
+            margin-bottom: 8px;
+          }
+          .filter-item {
+            display: inline-block;
+            margin-right: 20px;
+            font-size: 12px;
+            color: #374151;
+          }
+          table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            font-size: 10px;
+          }
+          th, td {
+            border: 1px solid #d1d5db;
+            padding: 6px 4px;
+            text-align: left;
+          }
+          th {
+            background-color: #f3f4f6;
+            font-weight: bold;
+            color: #374151;
+            font-size: 10px;
+          }
+          tr:nth-child(even) {
+            background-color: #f9fafb;
+          }
+          .status-present { color: #059669; font-weight: bold; }
+          .status-absent { color: #dc2626; font-weight: bold; }
+          .status-late { color: #f59e0b; font-weight: bold; }
+          .status-half-day { color: #7c3aed; font-weight: bold; }
+          .group-a { background-color: #dbeafe; }
+          .group-b { background-color: #e0e7ff; }
+          .footer {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 2px solid #e5e7eb;
+            text-align: center;
+            color: #6b7280;
+            font-size: 11px;
+          }
+          @media print {
+            body { margin: 0; padding: 15px; font-size: 10px; }
+            .header { margin-bottom: 20px; padding-bottom: 15px; }
+            .report-details { padding: 15px; margin-bottom: 20px; }
+            table { font-size: 9px; margin-top: 15px; }
+            th, td { padding: 4px 3px; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div class="company-name">Ministry of Finance Sri Lanka</div>
+          <div class="department">Human Resources Department</div>
+          <div class="system-title">HR Attendance Management System</div>
+        </div>
+
+        <div class="report-details">
+          <div class="report-title">${reportTitle}</div>
+          <div class="report-info">
+            <span class="report-period">Period: ${formatDate(new Date(startDate))} to ${formatDate(new Date(endDate))}</span>
+            <span class="generated-time">Generated: ${reportGeneratedTime}</span>
+          </div>
+          <div class="report-info">
+            <span>Report Month: <strong>${reportMonth}</strong></span>
+            <span>Total Records: <strong>${data.length}</strong></span>
+          </div>
+          
+          <div class="filters-info">
+            <div class="filters-title">Applied Filters:</div>
+            <span class="filter-item">Employee: <strong>${selectedEmployee === 'all' ? 'All Employees' : selectedEmployee}</strong></span>
+            <span class="filter-item">Group: <strong>${selectedGroup === 'all' ? 'All Groups' : selectedGroup === 'group_a' ? 'Group A' : 'Group B'}</strong></span>
+          </div>
+        </div>
+
+        <table>`;
+
+    // Generate table headers based on report type
+    if (reportType === 'monthly-attendance') {
+      htmlContent += `
+          <thead>
+            <tr>
+              <th>S.No</th>
+              <th>Employee ID</th>
+              <th>Full Name</th>
+              <th>Department</th>
+              <th>Group</th>`;
+      
+      const firstEmployee = data[0];
+      if (firstEmployee?.dailyData) {
+        const dateColumns = Object.keys(firstEmployee.dailyData).sort();
+        dateColumns.forEach(date => {
+          const dayNum = new Date(date).getDate();
+          htmlContent += `<th>${dayNum}</th>`;
+        });
+      }
+      
+      htmlContent += `
+              <th>Total Hours</th>
+              <th>OT Hours</th>
+              <th>Present Days</th>
+            </tr>
+          </thead>
+          <tbody>`;
+      
+      data.forEach((emp: any, index: number) => {
+        htmlContent += `
+            <tr class="${emp.employeeGroup === 'group_a' ? 'group-a' : 'group-b'}">
+              <td>${index + 1}</td>
+              <td><strong>${emp.employeeId}</strong></td>
+              <td>${emp.fullName}</td>
+              <td>${emp.department || ''}</td>
+              <td><strong>${emp.employeeGroup === 'group_a' ? 'Group A' : 'Group B'}</strong></td>`;
+        
+        if (emp.dailyData) {
+          const dateColumns = Object.keys(emp.dailyData).sort();
+          dateColumns.forEach(date => {
+            const dayData = emp.dailyData[date];
+            const status = dayData?.status || 'A';
+            const statusClass = status === 'P' ? 'status-present' : 
+                               status === 'A' ? 'status-absent' : 
+                               status === 'L' ? 'status-late' : 
+                               status === 'HD' ? 'status-half-day' : '';
+            htmlContent += `<td class="${statusClass}">${status}</td>`;
+          });
+        }
+        
+        htmlContent += `
+              <td><strong>${emp.totalHours || '0.00'}</strong></td>
+              <td><strong>${emp.overtimeHours || '0.00'}</strong></td>
+              <td><strong>${emp.presentDays || 0}</strong></td>
+            </tr>`;
+      });
+    } else if (reportType === 'offer-attendance') {
+      htmlContent += `
+          <thead>
+            <tr>
+              <th>S.No</th>
+              <th>Employee ID</th>
+              <th>Full Name</th>
+              <th>Group</th>
+              <th>Total Offer Hours</th>
+              <th>Working Days</th>
+              <th>Avg Hours/Day</th>
+              <th>Holiday Hours</th>
+              <th>Saturday Hours</th>
+              <th>Mon</th>
+              <th>Tue</th>
+              <th>Wed</th>
+              <th>Thu</th>
+              <th>Fri</th>
+              <th>Sat</th>
+              <th>Sun</th>
+            </tr>
+          </thead>
+          <tbody>`;
+      
+      data.forEach((record: any, index: number) => {
+        htmlContent += `
+            <tr class="${record.employeeGroup === 'group_a' ? 'group-a' : 'group-b'}">
+              <td>${index + 1}</td>
+              <td><strong>${record.employeeId}</strong></td>
+              <td>${record.fullName}</td>
+              <td><strong>${record.employeeGroup === 'group_a' ? 'Group A' : 'Group B'}</strong></td>
+              <td><strong>${record.totalOfferHours}h</strong></td>
+              <td>${record.workingDays}</td>
+              <td>${record.averageOfferHoursPerDay}h</td>
+              <td class="status-present">${record.holidayHours}h</td>
+              <td class="status-late">${record.saturdayHours}h</td>
+              <td>${record.weeklyBreakdown.monday}h</td>
+              <td>${record.weeklyBreakdown.tuesday}h</td>
+              <td>${record.weeklyBreakdown.wednesday}h</td>
+              <td>${record.weeklyBreakdown.thursday}h</td>
+              <td>${record.weeklyBreakdown.friday}h</td>
+              <td class="status-late">${record.weeklyBreakdown.saturday}h</td>
+              <td class="status-half-day">${record.weeklyBreakdown.sunday}h</td>
+            </tr>`;
+      });
+    } else {
+      // Standard table for other reports
+      const headers = Object.keys(data[0]);
+      htmlContent += `
+          <thead>
+            <tr>
+              <th>S.No</th>`;
+      headers.forEach(header => {
+        htmlContent += `<th>${header.replace(/([A-Z])/g, ' $1').replace(/^./, (str: string) => str.toUpperCase())}</th>`;
+      });
+      htmlContent += `
+            </tr>
+          </thead>
+          <tbody>`;
+      
+      data.forEach((row: any, index: number) => {
+        htmlContent += `
+            <tr>
+              <td>${index + 1}</td>`;
+        headers.forEach(header => {
+          const value = row[header];
+          htmlContent += `<td>${typeof value === 'object' ? JSON.stringify(value) : value}</td>`;
+        });
+        htmlContent += `</tr>`;
+      });
+    }
+
+    htmlContent += `
+          </tbody>
+        </table>
+
+        <div class="footer">
+          <p><strong>Ministry of Finance Sri Lanka - HR Attendance Management System</strong></p>
+          <p>This report was generated on ${reportGeneratedTime} and contains ${data.length} records.</p>
+          <p>For official use only. Please handle this document according to data protection guidelines.</p>
+        </div>
+      </body>
+      </html>`;
+
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
+    printWindow.focus();
+    
+    // Auto-print after a short delay
+    setTimeout(() => {
+      printWindow.print();
+    }, 1000);
+  };
+
 
 
   const exportToPDF = (data: any[], filename: string, reportType: string) => {
@@ -1765,90 +2168,45 @@ export default function Reports() {
 
     return (
       <div className="p-6 space-y-6">
-        {/* Enhanced Header with Gradient */}
-        <Card className="shadow-lg border-2 border-indigo-200 bg-gradient-to-r from-indigo-50 to-blue-50">
-          <CardHeader className="pb-4">
-            <CardTitle className="flex items-center gap-3 text-xl text-indigo-800">
-              <div className="p-2 bg-indigo-100 rounded-lg">
-                <Clock className="h-6 w-6 text-indigo-600" />
-              </div>
+        {/* Simple Header */}
+        <Card className="shadow-md border border-gray-200 bg-white">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-lg text-gray-800">
+              <Clock className="h-5 w-5 text-gray-600" />
               1/4 Offer-Attendance Report
             </CardTitle>
-            <div className="text-sm text-indigo-600 font-medium">
-              Period: {formatDate(new Date(startDate))} - {formatDate(new Date(endDate))}
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-              <div className="bg-white/70 p-3 rounded-lg border border-indigo-200">
-                <h4 className="font-semibold text-indigo-800 mb-2">Group A Policy</h4>
-                <p className="text-xs text-indigo-600">• Overtime calculated from 4:15 PM onwards</p>
-                <p className="text-xs text-indigo-600">• Includes government holidays and Saturdays</p>
-              </div>
-              <div className="bg-white/70 p-3 rounded-lg border border-indigo-200">
-                <h4 className="font-semibold text-indigo-800 mb-2">Group B Policy</h4>
-                <p className="text-xs text-indigo-600">• Overtime calculated from 4:45 PM onwards</p>
-                <p className="text-xs text-indigo-600">• Excludes holidays and delays marked in status</p>
-              </div>
+            <div className="text-sm text-gray-600 space-y-1">
+              <p>• <strong>Group A:</strong> Overtime calculated from 4:15 PM onwards</p>
+              <p>• <strong>Group B:</strong> Overtime calculated from 4:45 PM onwards</p>
+              <p>• Includes government holidays and Saturday work hours</p>
             </div>
           </CardHeader>
         </Card>
 
-        {/* Enhanced Summary Statistics with Gradients */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card className="shadow-md border-2 border-blue-200 bg-gradient-to-br from-blue-50 to-blue-100">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="text-sm font-medium text-blue-700">Total Employees</div>
-                  <div className="text-2xl font-bold text-blue-900">{offerAttendanceData.length}</div>
-                </div>
-                <Users className="h-8 w-8 text-blue-600" />
+        {/* Simple Summary Information */}
+        <Card className="shadow-md border border-gray-200 bg-white">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between text-sm text-gray-600">
+              <div className="flex items-center gap-4">
+                <span><strong className="text-gray-900">{offerAttendanceData.length}</strong> employees found</span>
+                <span><strong className="text-gray-900">{totalOfferHours.toFixed(1)}h</strong> total offer hours</span>
+                {totalOfferHours > 0 && (
+                  <span><strong className="text-gray-900">{avgHoursPerEmployee.toFixed(1)}h</strong> average per employee</span>
+                )}
               </div>
-            </CardContent>
-          </Card>
-
-          <Card className="shadow-md border-2 border-green-200 bg-gradient-to-br from-green-50 to-green-100">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="text-sm font-medium text-green-700">Total Offer Hours</div>
-                  <div className="text-2xl font-bold text-green-900">{totalOfferHours.toFixed(1)}h</div>
-                </div>
-                <Clock className="h-8 w-8 text-green-600" />
+              <div className="text-xs text-gray-500">
+                Period: {formatDate(new Date(startDate))} to {formatDate(new Date(endDate))}
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </CardContent>
+        </Card>
 
-          <Card className="shadow-md border-2 border-purple-200 bg-gradient-to-br from-purple-50 to-purple-100">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="text-sm font-medium text-purple-700">Avg Hours/Employee</div>
-                  <div className="text-2xl font-bold text-purple-900">{avgHoursPerEmployee.toFixed(1)}h</div>
-                </div>
-                <TrendingUp className="h-8 w-8 text-purple-600" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="shadow-md border-2 border-orange-200 bg-gradient-to-br from-orange-50 to-orange-100">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="text-sm font-medium text-orange-700">Holiday/Weekend Hours</div>
-                  <div className="text-2xl font-bold text-orange-900">{totalHolidayWeekendHours.toFixed(1)}h</div>
-                </div>
-                <Calendar className="h-8 w-8 text-orange-600" />
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Enhanced Data Table */}
-        <Card className="shadow-lg border-2 border-gray-200 bg-gradient-to-br from-white to-gray-50">
-          <CardHeader>
+        {/* Data Table */}
+        <Card className="shadow-md border border-gray-200 bg-white">
+          <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-lg text-gray-800">
               <FileText className="h-5 w-5" />
-              Detailed Offer-Attendance Records ({offerAttendanceData.length} employees)
+              Offer-Attendance Records ({offerAttendanceData.length} employees)
             </CardTitle>
           </CardHeader>
           <CardContent className="p-0">
@@ -1927,14 +2285,22 @@ export default function Reports() {
     <div className="space-y-6">
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-2xl font-bold">Reports</h2>
-        <Button 
-          onClick={handlePreviewExport}
-          className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold py-2 px-4 rounded-lg shadow-lg transition duration-200 ease-in-out flex items-center gap-2"
-        >
-          <Eye className="h-4 w-4" />
-          Preview & Export
-          <FileSpreadsheet className="h-4 w-4" />
-        </Button>
+        <div className="flex gap-3">
+          <Button 
+            onClick={handlePreviewExport}
+            className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-semibold py-2 px-4 rounded-lg shadow-lg transition duration-200 ease-in-out flex items-center gap-2"
+          >
+            <FileSpreadsheet className="h-4 w-4" />
+            Excel Export
+          </Button>
+          <Button 
+            onClick={() => handleExportReport('pdf')}
+            className="bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 text-white font-semibold py-2 px-4 rounded-lg shadow-lg transition duration-200 ease-in-out flex items-center gap-2"
+          >
+            <FileText className="h-4 w-4" />
+            PDF Export
+          </Button>
+        </div>
       </div>
       <Card className="rounded-lg shadow-sm border-gray-200">
         <CardHeader>
