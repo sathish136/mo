@@ -117,7 +117,12 @@ Changelog:
     - Enhanced OT approval status display (Approved/Pending/Rejected/Not Applied/N/A)
     - Added total OT hours and approved OT hours summary in daily OT report
   - Employee Management enhancements:
-    - Added serial numbers (S.No) column to employee table
+    - Added serial numbers (S.No) column for better record tracking
+    - Implemented multiple selection with checkboxes for bulk operations
+    - Added bulk operations functionality for department, group, and status changes
+    - Created bulk update API endpoint with proper validation and error handling
+    - Enhanced UI with bulk operations dialog and controls
+    - Improved table layout with select all functionality
     - Added multiple selection with checkboxes
     - Added bulk operations for department, group, and status changes
     - Added bulk operations dialog with intuitive interface

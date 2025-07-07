@@ -364,9 +364,16 @@ router.put("/api/employees/bulk", async (req, res) => {
       return res.status(400).json({ message: "Updates are required" });
     }
 
+    // Parse numeric fields properly
+    const parsedUpdates = {
+      ...updates,
+      departmentId: updates.departmentId ? parseInt(updates.departmentId, 10) : updates.departmentId,
+    };
+
     // Validate the updates object
-    const validatedUpdates = insertEmployeeSchema.partial().safeParse(updates);
+    const validatedUpdates = insertEmployeeSchema.partial().safeParse(parsedUpdates);
     if (!validatedUpdates.success) {
+      console.error("Bulk update validation errors:", validatedUpdates.error.errors);
       return res.status(400).json({ errors: validatedUpdates.error.errors });
     }
 

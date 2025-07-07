@@ -221,7 +221,7 @@ function BulkOperations({ selectedEmployees, onBulkUpdate, onClose, departments,
     const updates: Partial<Employee> = {};
     
     if (operation === "department" && bulkDepartmentId) {
-      updates.departmentId = bulkDepartmentId;
+      updates.departmentId = Number(bulkDepartmentId);
     } else if (operation === "group" && bulkGroup) {
       updates.employeeGroup = bulkGroup as "group_a" | "group_b";
     } else if (operation === "status" && bulkStatus) {
@@ -230,6 +230,7 @@ function BulkOperations({ selectedEmployees, onBulkUpdate, onClose, departments,
 
     if (Object.keys(updates).length > 0) {
       onBulkUpdate(updates);
+      onClose();
     }
   };
 
