@@ -24,25 +24,13 @@ import Notifications from "@/components/Notifications";
 
 function App() {
   const [showSplash, setShowSplash] = useState(true);
-  const [isInitialLoad, setIsInitialLoad] = useState(true);
-
-  useEffect(() => {
-    // Check if this is the initial app load
-    const hasLoadedBefore = sessionStorage.getItem('appLoaded');
-    if (hasLoadedBefore) {
-      setShowSplash(false);
-      setIsInitialLoad(false);
-    } else {
-      sessionStorage.setItem('appLoaded', 'true');
-    }
-  }, []);
 
   const handleSplashComplete = () => {
     setShowSplash(false);
   };
 
-  if (showSplash && isInitialLoad) {
-    return <SplashScreen onComplete={handleSplashComplete} duration={3500} />;
+  if (showSplash) {
+    return <SplashScreen onComplete={handleSplashComplete} duration={2500} />;
   }
 
   return (

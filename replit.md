@@ -327,3 +327,4 @@ Changelog:
     - Modified LicenseGuard to allow login page access without license validation
     - Added "Powered by Live U Pvt Ltd" branding at bottom of login page
     - Updated license system to show "Live U Pvt Ltd" branding throughout system
+    - Fixed splash screen to show properly on every app load instead of just first time
