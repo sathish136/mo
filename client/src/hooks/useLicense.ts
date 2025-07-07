@@ -35,70 +35,109 @@ export function useLicense() {
     }
   }, []);
 
-  const validateLicense = (key: string): boolean => {
-    // Define license tiers with specific configurations
-    const licenseConfigs: Record<string, Omit<LicenseState, 'licenseKey' | 'currentLogins'>> = {
-      'J7K9-P2Q4-R6T8-U1V3': {
-        isValid: true,
-        licensedTo: 'Ministry of Finance Sri Lanka',
-        expiryDate: new Date('2025-12-31'),
-        features: ['HR Management', 'Attendance Tracking', 'Biometric Integration', 'Reports', 'Advanced Analytics'],
-        tier: 'Enterprise Pro',
-        maxWebLogins: 2
-      },
-      'M5N7-B8C2-L4X6-W9Z0': {
-        isValid: true,
-        licensedTo: 'Ministry of Finance Sri Lanka',
-        expiryDate: new Date('2025-12-31'),
-        features: ['HR Management', 'Attendance Tracking', 'Biometric Integration', 'Reports'],
-        tier: 'Enterprise Plus',
-        maxWebLogins: 3
-      },
-      'D3F5-H6J8-K1L4-P7R9': {
-        isValid: true,
-        licensedTo: 'Ministry of Finance Sri Lanka',
-        expiryDate: new Date('2025-12-31'),
-        features: ['HR Management', 'Attendance Tracking', 'Basic Reports'],
-        tier: 'Enterprise Basic',
-        maxWebLogins: 1
-      },
-      'Q2W4-E5R7-T8Y1-U3I6': {
-        isValid: true,
-        licensedTo: 'Ministry of Finance Sri Lanka',
-        expiryDate: new Date('2025-12-31'),
-        features: ['HR Management', 'Attendance Tracking', 'Biometric Integration', 'Reports', 'Multi-User Access'],
-        tier: 'Enterprise Max',
-        maxWebLogins: 5
-      },
-      'A9S2-D5F7-G3H6-J8K1': {
-        isValid: true,
-        licensedTo: 'Ministry of Finance Sri Lanka - Demo',
-        expiryDate: new Date('2025-12-31'),
-        features: ['HR Management', 'Attendance Tracking', 'Demo Features'],
-        tier: 'Enterprise Demo',
-        maxWebLogins: 999
+  const validateLicense = async (key: string): Promise<boolean> => {
+    try {
+      const response = await fetch('/api/license/validate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ licenseKey: key })
+      });
+
+      const result = await response.json();
+      
+      if (result.valid) {
+        // Define license tiers with specific configurations
+        const licenseConfigs: Record<string, Omit<LicenseState, 'licenseKey' | 'currentLogins'>> = {
+          'J7K9-P2Q4-R6T8-U1V3': {
+            isValid: true,
+            licensedTo: 'Ministry of Finance Sri Lanka',
+            expiryDate: new Date('2025-12-31'),
+            features: ['HR Management', 'Attendance Tracking', 'Biometric Integration', 'Reports', 'Advanced Analytics'],
+            tier: 'Enterprise Pro',
+            maxWebLogins: 2
+          },
+          'M5N7-B8C2-L4X6-W9Z0': {
+            isValid: true,
+            licensedTo: 'Ministry of Finance Sri Lanka',
+            expiryDate: new Date('2025-12-31'),
+            features: ['HR Management', 'Attendance Tracking', 'Biometric Integration', 'Reports'],
+            tier: 'Enterprise Plus',
+            maxWebLogins: 3
+          },
+          'D3F5-H6J8-K1L4-P7R9': {
+            isValid: true,
+            licensedTo: 'Ministry of Finance Sri Lanka',
+            expiryDate: new Date('2025-12-31'),
+            features: ['HR Management', 'Attendance Tracking', 'Basic Reports'],
+            tier: 'Enterprise Basic',
+            maxWebLogins: 1
+          },
+          'Q2W4-E5R7-T8Y1-U3I6': {
+            isValid: true,
+            licensedTo: 'Ministry of Finance Sri Lanka',
+            expiryDate: new Date('2025-12-31'),
+            features: ['HR Management', 'Attendance Tracking', 'Biometric Integration', 'Reports', 'Multi-User Access'],
+            tier: 'Enterprise Max',
+            maxWebLogins: 5
+          },
+          'A9S2-D5F7-G3H6-J8K1': {
+            isValid: true,
+            licensedTo: 'Ministry of Finance Sri Lanka - Demo',
+            expiryDate: new Date('2025-12-31'),
+            features: ['HR Management', 'Attendance Tracking', 'Demo Features'],
+            tier: 'Enterprise Demo',
+            maxWebLogins: 999
+          }
+        };
+
+        const config = licenseConfigs[key];
+        
+        const newLicense: LicenseState = {
+          licenseKey: key,
+          currentLogins: result.currentSessions || 0,
+          ...config,
+          isValid: true,
+          licensedTo: config?.licensedTo || '',
+          expiryDate: config?.expiryDate || null,
+          features: config?.features || [],
+          tier: config?.tier || '',
+          maxWebLogins: config?.maxWebLogins || 0
+        };
+
+        setLicense(newLicense);
+        localStorage.setItem('systemLicense', JSON.stringify(newLicense));
+        
+        // Start polling for session updates
+        startSessionPolling(key);
+        
+        return true;
       }
-    };
+      
+      return false;
+    } catch (error) {
+      console.error('License validation error:', error);
+      return false;
+    }
+  };
 
-    const config = licenseConfigs[key];
-    const isValid = !!config;
-    
-    const newLicense: LicenseState = {
-      licenseKey: key,
-      currentLogins: 0,
-      ...config,
-      isValid,
-      licensedTo: config?.licensedTo || '',
-      expiryDate: config?.expiryDate || null,
-      features: config?.features || [],
-      tier: config?.tier || '',
-      maxWebLogins: config?.maxWebLogins || 0
-    };
+  const startSessionPolling = (licenseKey: string) => {
+    // Poll session count every 30 seconds
+    const interval = setInterval(async () => {
+      try {
+        const response = await fetch(`/api/license/sessions?licenseKey=${licenseKey}`);
+        const result = await response.json();
+        
+        setLicense(prev => ({
+          ...prev,
+          currentLogins: result.currentSessions || 0
+        }));
+      } catch (error) {
+        console.error('Session polling error:', error);
+      }
+    }, 30000);
 
-    setLicense(newLicense);
-    localStorage.setItem('systemLicense', JSON.stringify(newLicense));
-    
-    return isValid;
+    // Clear interval when component unmounts
+    return () => clearInterval(interval);
   };
 
   const isFeatureEnabled = (feature: string): boolean => {

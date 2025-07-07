@@ -69,7 +69,7 @@ export function LicenseGuard({ children, feature }: LicenseGuardProps) {
                   onChange={(e) => setLicenseKey(e.target.value)}
                 />
                 <Button
-                  onClick={() => {
+                  onClick={async () => {
                     if (!licenseKey.trim()) {
                       toast({
                         title: "Error",
@@ -78,7 +78,7 @@ export function LicenseGuard({ children, feature }: LicenseGuardProps) {
                       });
                       return;
                     }
-                    const isValid = validateLicense(licenseKey.trim());
+                    const isValid = await validateLicense(licenseKey.trim());
                     toast({
                       title: isValid ? "License Valid" : "Invalid License",
                       description: isValid 
