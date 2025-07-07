@@ -407,43 +407,39 @@ export default function HolidayManagement() {
 
       </div>
 
-      {/* Holiday List with Dates */}
-      <Card className="border border-gray-200">
-        <CardHeader>
-          <CardTitle className="text-lg font-semibold text-gray-900 flex items-center">
-            <Calendar className="w-5 h-5 mr-2" />
-            Holiday List ({selectedYear})
+      {/* Quick Add Holiday Form */}
+      <Card className="border border-blue-200 bg-gradient-to-br from-blue-50 to-white">
+        <CardHeader className="pb-4">
+          <CardTitle className="text-lg font-semibold text-blue-900 flex items-center">
+            <Plus className="w-5 h-5 mr-2" />
+            Quick Add Holiday
           </CardTitle>
-          <div className="flex items-center space-x-2">
-            <Button variant="outline" size="sm" onClick={() => setFilterType("all")}>
-              All
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => setFilterType("annual")}>
-              Annual
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => setFilterType("special")}>
-              Special
-            </Button>
-          </div>
+          <p className="text-sm text-blue-700">Add new holidays quickly using the form below</p>
         </CardHeader>
         <CardContent>
-          <div className="space-y-2">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-700">Date</label>
               <Input 
-                placeholder="Add new holiday date" 
                 type="date" 
                 value={quickAddDate}
                 onChange={(e) => setQuickAddDate(e.target.value)}
-              />
-              <Input 
-                placeholder="Add holiday name" 
-                value={quickAddName}
-                onChange={(e) => setQuickAddName(e.target.value)}
+                className="border-blue-200 focus:border-blue-400"
               />
             </div>
-            <div className="flex items-center space-x-2">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-700">Holiday Name</label>
+              <Input 
+                placeholder="Enter holiday name" 
+                value={quickAddName}
+                onChange={(e) => setQuickAddName(e.target.value)}
+                className="border-blue-200 focus:border-blue-400"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-700">Type</label>
               <Select value={quickAddType} onValueChange={setQuickAddType}>
-                <SelectTrigger className="w-40">
+                <SelectTrigger className="border-blue-200 focus:border-blue-400">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -451,64 +447,123 @@ export default function HolidayManagement() {
                   <SelectItem value="special">Special Holiday</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-700">Action</label>
               <Button 
-                size="sm" 
-                className="bg-blue-600 hover:bg-blue-700"
+                className="w-full bg-blue-600 hover:bg-blue-700"
                 onClick={handleQuickAdd}
                 disabled={createHolidayMutation.isPending}
               >
-                {createHolidayMutation.isPending ? "Adding..." : "Add Row"}
-              </Button>
-              <Button variant="outline" size="sm">
-                Upload
-              </Button>
-              <Button variant="outline" size="sm">
-                Download
+                {createHolidayMutation.isPending ? "Adding..." : "Add Holiday"}
               </Button>
             </div>
           </div>
-          
-          <div className="mt-6 border rounded-lg overflow-hidden">
-            <table className="w-full">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="text-left p-3 font-medium text-gray-900 w-8">No.</th>
-                  <th className="text-left p-3 font-medium text-gray-900">Date</th>
-                  <th className="text-left p-3 font-medium text-gray-900">Description</th>
-                  <th className="text-left p-3 font-medium text-gray-900 w-32">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredHolidays.length > 0 ? filteredHolidays.map((holiday: Holiday, index: number) => (
-                  <tr key={holiday.id} className="border-b hover:bg-gray-50">
-                    <td className="p-3 text-sm font-mono">{index + 1}</td>
-                    <td className="p-3 text-sm font-medium">
-                      {new Date(holiday.date).toLocaleDateString('en-GB')}
-                    </td>
-                    <td className="p-3 text-sm">{holiday.name}</td>
-                    <td className="p-3">
-                      <div className="flex items-center space-x-1">
-                        <Button variant="ghost" size="sm" className="h-8 px-2">
-                          Edit
-                        </Button>
-                        <Button variant="ghost" size="sm" className="h-8 px-2 text-red-600">
-                          Delete
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                )) : (
-                  <tr>
-                    <td colSpan={4} className="p-8 text-center text-gray-500">
-                      <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-                      <p>No Data</p>
-                      <p className="text-sm text-gray-400 mt-1">Add holidays using the form above or upload a file</p>
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+        </CardContent>
+      </Card>
+
+      {/* Holiday List */}
+      <Card className="border border-gray-200">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-lg font-semibold text-gray-900 flex items-center">
+              <Calendar className="w-5 h-5 mr-2" />
+              Holiday List ({selectedYear})
+            </CardTitle>
+            <div className="flex items-center space-x-2">
+              <Button 
+                variant={filterType === "all" ? "default" : "outline"}
+                size="sm" 
+                onClick={() => setFilterType("all")}
+                className={filterType === "all" ? "bg-blue-600 hover:bg-blue-700" : ""}
+              >
+                All ({holidays?.length || 0})
+              </Button>
+              <Button 
+                variant={filterType === "annual" ? "default" : "outline"}
+                size="sm" 
+                onClick={() => setFilterType("annual")}
+                className={filterType === "annual" ? "bg-blue-600 hover:bg-blue-700" : ""}
+              >
+                Annual ({holidayStats.annual})
+              </Button>
+              <Button 
+                variant={filterType === "special" ? "default" : "outline"}
+                size="sm" 
+                onClick={() => setFilterType("special")}
+                className={filterType === "special" ? "bg-blue-600 hover:bg-blue-700" : ""}
+              >
+                Special ({holidayStats.special})
+              </Button>
+            </div>
           </div>
+        </CardHeader>
+        <CardContent>
+          {filteredHolidays.length > 0 ? (
+            <div className="space-y-3">
+              {filteredHolidays.map((holiday: Holiday, index: number) => (
+                <div key={holiday.id} className="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-lg hover:border-blue-300 hover:shadow-sm transition-all">
+                  <div className="flex items-center space-x-4">
+                    <div className="flex-shrink-0">
+                      <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                        <span className="text-sm font-semibold text-blue-600">{index + 1}</span>
+                      </div>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center space-x-3">
+                        <h3 className="text-sm font-medium text-gray-900">{holiday.name}</h3>
+                        <Badge variant={holiday.type === "annual" ? "default" : "secondary"} className="text-xs">
+                          {holiday.type === "annual" ? "Annual" : "Special"}
+                        </Badge>
+                      </div>
+                      <p className="text-sm text-gray-500 mt-1">
+                        {new Date(holiday.date).toLocaleDateString('en-GB', { 
+                          weekday: 'long', 
+                          year: 'numeric', 
+                          month: 'long', 
+                          day: 'numeric' 
+                        })}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Button variant="ghost" size="sm" className="h-8 px-3 text-blue-600 hover:bg-blue-50">
+                      <FileText className="w-4 h-4 mr-1" />
+                      Edit
+                    </Button>
+                    <Button variant="ghost" size="sm" className="h-8 px-3 text-red-600 hover:bg-red-50">
+                      <Users2 className="w-4 h-4 mr-1" />
+                      Delete
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <div className="flex flex-col items-center space-y-4">
+                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center">
+                  <Calendar className="w-8 h-8 text-gray-400" />
+                </div>
+                <div className="space-y-2">
+                  <h3 className="text-lg font-medium text-gray-900">No Holidays Added Yet</h3>
+                  <p className="text-sm text-gray-500 max-w-sm">
+                    Get started by adding your first holiday using the quick add form above.
+                  </p>
+                </div>
+                <Button 
+                  className="bg-blue-600 hover:bg-blue-700"
+                  onClick={() => {
+                    setQuickAddDate(new Date().toISOString().split('T')[0]);
+                    setQuickAddName("");
+                  }}
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Your First Holiday
+                </Button>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
         </div>
