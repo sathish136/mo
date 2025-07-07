@@ -43,7 +43,8 @@ export default function Login() {
         description: "Logged in successfully",
       });
 
-      setLocation("/");
+      // Force a page reload to ensure proper authentication state
+      window.location.href = "/";
     } catch (error: any) {
       toast({
         title: "Error",

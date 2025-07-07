@@ -30,8 +30,14 @@ export function AuthGuard({ children }: AuthGuardProps) {
       }
     };
 
+    // Check auth status periodically to catch login state changes
+    const authCheckInterval = setInterval(checkAuth, 1000);
+
     window.addEventListener("storage", handleStorageChange);
-    return () => window.removeEventListener("storage", handleStorageChange);
+    return () => {
+      window.removeEventListener("storage", handleStorageChange);
+      clearInterval(authCheckInterval);
+    };
   }, []);
 
   // Show loading while checking authentication

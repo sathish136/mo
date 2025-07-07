@@ -328,3 +328,6 @@ Changelog:
     - Added "Powered by Live U Pvt Ltd" branding at bottom of login page
     - Updated license system to show "Live U Pvt Ltd" branding throughout system
     - Fixed splash screen to show properly on every app load instead of just first time
+    - Fixed login flow issue where application required refresh after login to load properly
+    - Enhanced AuthGuard with periodic authentication checking for immediate state updates
+    - Login now properly redirects and loads application without requiring manual refresh
