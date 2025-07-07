@@ -56,7 +56,6 @@ export const leaveRequests = pgTable("leave_requests", {
   id: serial("id").primaryKey(),
   employeeId: varchar("employee_id", { length: 50 }).references(() => employees.id).notNull(),
   leaveType: leaveTypeEnum("leave_type").notNull(),
-  leaveTypeId: integer("leave_type_id").references(() => leaveTypes.id),
   startDate: timestamp("start_date").notNull(),
   endDate: timestamp("end_date").notNull(),
   days: integer("days").notNull(),
@@ -211,10 +210,7 @@ export const leaveRequestsRelations = relations(leaveRequests, ({ one }) => ({
     references: [employees.id],
     relationName: "approver",
   }),
-  leaveType: one(leaveTypes, {
-    fields: [leaveRequests.leaveTypeId],
-    references: [leaveTypes.id],
-  }),
+
 }));
 
 export const overtimeRequestsRelations = relations(overtimeRequests, ({ one }) => ({

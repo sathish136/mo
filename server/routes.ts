@@ -521,6 +521,61 @@ router.post("/api/attendance", async (req, res) => {
   }
 });
 
+// Initialize database tables if they don't exist
+async function initializeLeaveTables() {
+  try {
+    console.log('Initializing leave tables...');
+    
+    // Create leave_types table
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS leave_types (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(100) NOT NULL UNIQUE,
+        description TEXT,
+        max_days_per_year INTEGER,
+        is_active BOOLEAN DEFAULT true NOT NULL,
+        created_at TIMESTAMP DEFAULT now() NOT NULL,
+        updated_at TIMESTAMP DEFAULT now() NOT NULL
+      );
+    `);
+    
+    // Insert default leave types
+    await db.execute(sql`
+      INSERT INTO leave_types (name, description, max_days_per_year, is_active) 
+      VALUES 
+        ('annual', 'Annual vacation leave', 21, true),
+        ('sick', 'Medical leave for illness', 14, true),
+        ('casual', 'Short-term personal leave', 7, true),
+        ('maternity', 'Maternity leave for female employees', 84, true),
+        ('paternity', 'Paternity leave for male employees', 7, true)
+      ON CONFLICT (name) DO NOTHING;
+    `);
+    
+    // Check if leave_type_id column exists and add it if missing
+    const columnCheck = await db.execute(sql`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name = 'leave_requests' 
+      AND column_name = 'leave_type_id';
+    `);
+    
+    if (columnCheck.length === 0) {
+      await db.execute(sql`
+        ALTER TABLE leave_requests 
+        ADD COLUMN leave_type_id INTEGER REFERENCES leave_types(id);
+      `);
+      console.log('Added leave_type_id column');
+    }
+    
+    console.log('Leave tables initialized successfully');
+  } catch (error) {
+    console.error('Error initializing leave tables:', error);
+  }
+}
+
+// Initialize on startup
+initializeLeaveTables();
+
 // --- Leave Request Routes ---
 router.get("/api/leave-requests", async (req, res) => {
   try {
