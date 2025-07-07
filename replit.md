@@ -98,6 +98,11 @@ Preferred communication style: Simple, everyday language.
 Changelog:
 - July 04, 2025. Initial setup
 - July 07, 2025. Migration from Replit Agent to Replit environment completed
+  - Fixed database schema synchronization issues
+  - Added missing year and isActive fields to holidays table
+  - Updated frontend holiday forms to include required year field validation
+  - Fixed Quick Add Holiday functionality to include year field
+  - All holiday management functionality now working correctly
   - Successfully migrated HR Attendance Management System from Replit Agent to standard Replit environment
   - Fixed cross-env dependency issue that was preventing application startup
   - Created and migrated complete PostgreSQL database schema with all tables, constraints, and relationships

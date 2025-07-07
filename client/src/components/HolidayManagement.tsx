@@ -159,6 +159,8 @@ export default function HolidayManagement() {
       description: quickAddName,
       isRecurring: false,
       applicableGroups: ["group_a", "group_b"],
+      year: new Date(quickAddDate).getFullYear(),
+      isActive: true,
     };
 
     createHolidayMutation.mutate(holidayData);
