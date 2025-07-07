@@ -119,7 +119,7 @@ export default function HolidayManagement() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Holiday Management</h1>
+          <h1 className="text-3xl font-bold text-gray-900">Leave And Holiday Management</h1>
           <p className="text-gray-600 mt-1">Manage holidays and generate reports for both employee groups</p>
         </div>
         <div className="flex items-center space-x-4">
@@ -311,8 +311,8 @@ export default function HolidayManagement() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-blue-700">Annual Holidays</p>
-                <p className="text-3xl font-bold text-blue-900">{holidayStats.annual}</p>
-                <p className="text-xs text-blue-600 mt-1">21 days standard</p>
+                <p className="text-3xl font-bold text-blue-900">21</p>
+                <p className="text-xs text-blue-600 mt-1">days standard</p>
               </div>
               <Calendar className="w-8 h-8 text-blue-600" />
             </div>
@@ -324,8 +324,8 @@ export default function HolidayManagement() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-purple-700">Special Holidays</p>
-                <p className="text-3xl font-bold text-purple-900">{holidayStats.special}</p>
-                <p className="text-xs text-purple-600 mt-1">24 days standard</p>
+                <p className="text-3xl font-bold text-purple-900">24</p>
+                <p className="text-xs text-purple-600 mt-1">days standard</p>
               </div>
               <FileText className="w-8 h-8 text-purple-600" />
             </div>
@@ -350,8 +350,8 @@ export default function HolidayManagement() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-orange-700">Total Holidays</p>
-                <p className="text-3xl font-bold text-orange-900">{holidayStats.total}</p>
-                <p className="text-xs text-orange-600 mt-1">45 days target</p>
+                <p className="text-3xl font-bold text-orange-900">45</p>
+                <p className="text-xs text-orange-600 mt-1">days total</p>
               </div>
               <BarChart3 className="w-8 h-8 text-orange-600" />
             </div>
@@ -359,33 +359,161 @@ export default function HolidayManagement() {
         </Card>
       </div>
 
-      {/* Separate Holiday Reports */}
+      {/* Holiday Description Report */}
+      <Card className="border border-gray-200">
+        <CardHeader>
+          <CardTitle className="text-lg font-semibold text-gray-900 flex items-center">
+            <BarChart3 className="w-5 h-5 mr-2" />
+            Holiday Summary Report
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
+              <span className="font-medium text-blue-900">Annual Holidays</span>
+              <span className="text-xl font-bold text-blue-700">21 days</span>
+            </div>
+            <div className="flex justify-between items-center p-3 bg-purple-50 rounded-lg">
+              <span className="font-medium text-purple-900">Special Holidays</span>
+              <span className="text-xl font-bold text-purple-700">24 days</span>
+            </div>
+            <div className="border-t pt-3">
+              <div className="flex justify-between items-center p-3 bg-orange-50 rounded-lg">
+                <span className="font-medium text-orange-900">Total</span>
+                <span className="text-xl font-bold text-orange-700">45 days</span>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Holiday List with Dates */}
+      <Card className="border border-gray-200">
+        <CardHeader>
+          <CardTitle className="text-lg font-semibold text-gray-900 flex items-center">
+            <Calendar className="w-5 h-5 mr-2" />
+            Holiday List ({selectedYear})
+          </CardTitle>
+          <div className="flex items-center space-x-2">
+            <Button variant="outline" size="sm" onClick={() => setFilterType("all")}>
+              All
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setFilterType("annual")}>
+              Annual
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setFilterType("special")}>
+              Special
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Input placeholder="Add new holiday date" type="date" />
+              <Input placeholder="Add holiday name" />
+            </div>
+            <div className="flex items-center space-x-2">
+              <Select defaultValue="annual">
+                <SelectTrigger className="w-40">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="annual">Annual Holiday</SelectItem>
+                  <SelectItem value="special">Special Holiday</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button size="sm" className="bg-blue-600 hover:bg-blue-700">
+                Add Row
+              </Button>
+              <Button variant="outline" size="sm">
+                Upload
+              </Button>
+              <Button variant="outline" size="sm">
+                Download
+              </Button>
+            </div>
+          </div>
+          
+          <div className="mt-6 border rounded-lg overflow-hidden">
+            <table className="w-full">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="text-left p-3 font-medium text-gray-900 w-8">No.</th>
+                  <th className="text-left p-3 font-medium text-gray-900">Date</th>
+                  <th className="text-left p-3 font-medium text-gray-900">Description</th>
+                  <th className="text-left p-3 font-medium text-gray-900 w-32">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredHolidays.length > 0 ? filteredHolidays.map((holiday: Holiday, index: number) => (
+                  <tr key={holiday.id} className="border-b hover:bg-gray-50">
+                    <td className="p-3 text-sm font-mono">{index + 1}</td>
+                    <td className="p-3 text-sm font-medium">
+                      {new Date(holiday.date).toLocaleDateString('en-GB')}
+                    </td>
+                    <td className="p-3 text-sm">{holiday.name}</td>
+                    <td className="p-3">
+                      <div className="flex items-center space-x-1">
+                        <Button variant="ghost" size="sm" className="h-8 px-2">
+                          Edit
+                        </Button>
+                        <Button variant="ghost" size="sm" className="h-8 px-2 text-red-600">
+                          Delete
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                )) : (
+                  <tr>
+                    <td colSpan={4} className="p-8 text-center text-gray-500">
+                      <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                      <p>No Data</p>
+                      <p className="text-sm text-gray-400 mt-1">Add holidays using the form above or upload a file</p>
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Separate Leave Reports */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card className="border border-gray-200">
           <CardHeader>
             <CardTitle className="text-lg font-semibold text-gray-900 flex items-center">
-              <BarChart3 className="w-5 h-5 mr-2" />
-              Holiday Summary Report
+              <FileText className="w-5 h-5 mr-2" />
+              Leave Description Report
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
-                <span className="font-medium text-blue-900">Annual Holidays</span>
-                <span className="text-xl font-bold text-blue-700">{holidayStats.annual} days</span>
+              <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <h4 className="font-semibold text-blue-800 mb-2">Annual Leave</h4>
+                <p className="text-sm text-blue-700">Regular annual leave entitlement for all government employees as per service regulations.</p>
+                <div className="mt-2 text-xs text-blue-600">
+                  <div>• Entitled days: 21 per year</div>
+                  <div>• Applicable to: Group A & Group B employees</div>
+                  <div>• Can be carried forward with approval</div>
+                </div>
               </div>
-              <div className="flex justify-between items-center p-3 bg-purple-50 rounded-lg">
-                <span className="font-medium text-purple-900">Special Holidays</span>
-                <span className="text-xl font-bold text-purple-700">{holidayStats.special} days</span>
+              <div className="p-4 bg-purple-50 border border-purple-200 rounded-lg">
+                <h4 className="font-semibold text-purple-800 mb-2">Special Leave</h4>
+                <p className="text-sm text-purple-700">Special circumstances leave including sick leave, maternity/paternity leave, and emergency leave.</p>
+                <div className="mt-2 text-xs text-purple-600">
+                  <div>• Sick leave: Up to 15 days per year</div>
+                  <div>• Maternity leave: 84 days</div>
+                  <div>• Emergency leave: As approved</div>
+                </div>
               </div>
-              <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg">
-                <span className="font-medium text-green-900">Weekend Days</span>
-                <span className="text-xl font-bold text-green-700">{holidayStats.weekend} days</span>
-              </div>
-              <div className="border-t pt-3">
-                <div className="flex justify-between items-center p-3 bg-orange-50 rounded-lg">
-                  <span className="font-bold text-orange-900">Total Holidays</span>
-                  <span className="text-2xl font-bold text-orange-700">{holidayStats.total} days</span>
+              <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                <h4 className="font-semibold text-green-800 mb-2">Casual Leave</h4>
+                <p className="text-sm text-green-700">Short-term leave for personal matters and urgent family requirements.</p>
+                <div className="mt-2 text-xs text-green-600">
+                  <div>• Entitled days: 7 per year</div>
+                  <div>• Maximum consecutive: 3 days</div>
+                  <div>• Advance notice required</div>
                 </div>
               </div>
             </div>

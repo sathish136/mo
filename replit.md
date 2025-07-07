@@ -232,13 +232,16 @@ Changelog:
     - Application server running successfully on port 5000 with full functionality
     - System ready for production use with all features operational
   - System Management Updates (July 7, 2025):
-    - Removed deprecated backup and technical support options from System Management section
-    - Added Error Logs functionality to store and view system error logs
-    - Added Access Logs functionality to track user activities and data changes
-    - Implemented Email Configuration (SMTP) dialog with complete settings interface
-    - Added automated email report scheduling with configurable time settings
-    - Created Database Management interface with status monitoring and operations
-    - Enhanced sidebar company information to update dynamically from saved settings
+    - Reorganized Settings page with clear tab structure: General, Company, Devices, Database, System
+    - Created separate Database Management tab with operations, status monitoring, and recent operations table
+    - Implemented dedicated Email Notifications tab with SMTP configuration and automated report settings
+    - Enhanced System Logs with tabbed interface (Activity/Error) and proper table format with filters
+    - Added comprehensive table format for activity and error logs with timestamp, filtering, and export options
+    - Separated system management functions into logical groups for better organization
+    - Updated Holiday Management page to "Leave And Holiday Management" with manual holiday entry
+    - Added holiday list table with date and description format, upload/download functionality
+    - Created separate leave description reports with detailed policy information
+    - Enhanced holiday statistics display with fixed values (21 Annual, 24 Special, 45 Total)
     - Fixed real-time company name and tagline updates when settings are changed
   - Enhanced System Management with table format logging for Activity and Error logs with precise timestamps
   - Added comprehensive Email Configuration (SMTP) dialog with automated report scheduling
