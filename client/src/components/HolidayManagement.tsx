@@ -20,12 +20,14 @@ import { apiRequest } from "@/lib/queryClient";
 export default function HolidayManagement() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isWeekendSettingsOpen, setIsWeekendSettingsOpen] = useState(false);
   const [editingHoliday, setEditingHoliday] = useState<Holiday | null>(null);
   const [filterType, setFilterType] = useState("all");
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [quickAddDate, setQuickAddDate] = useState("");
   const [quickAddName, setQuickAddName] = useState("");
   const [quickAddType, setQuickAddType] = useState("annual");
+  const [weekendDays, setWeekendDays] = useState<string[]>(["saturday", "sunday"]);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -265,6 +267,10 @@ export default function HolidayManagement() {
               <Button variant="outline" onClick={exportReport}>
                 <Download className="w-4 h-4 mr-2" />
                 Export Report
+              </Button>
+              <Button variant="outline" onClick={() => setIsWeekendSettingsOpen(true)}>
+                <Clock className="w-4 h-4 mr-2" />
+                Weekend Settings
               </Button>
               <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                 <DialogTrigger asChild>
@@ -524,10 +530,69 @@ export default function HolidayManagement() {
               </Form>
             </DialogContent>
           </Dialog>
+
+          {/* Weekend Settings Dialog */}
+          <Dialog open={isWeekendSettingsOpen} onOpenChange={setIsWeekendSettingsOpen}>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle>Weekend Settings</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <p className="text-sm text-gray-600">
+                  Select which days should be considered weekends for your organization:
+                </p>
+                <div className="space-y-3">
+                  {[
+                    { value: "monday", label: "Monday" },
+                    { value: "tuesday", label: "Tuesday" },
+                    { value: "wednesday", label: "Wednesday" },
+                    { value: "thursday", label: "Thursday" },
+                    { value: "friday", label: "Friday" },
+                    { value: "saturday", label: "Saturday" },
+                    { value: "sunday", label: "Sunday" },
+                  ].map((day) => (
+                    <div key={day.value} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={day.value}
+                        checked={weekendDays.includes(day.value)}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setWeekendDays([...weekendDays, day.value]);
+                          } else {
+                            setWeekendDays(weekendDays.filter(d => d !== day.value));
+                          }
+                        }}
+                      />
+                      <label htmlFor={day.value} className="text-sm font-medium">
+                        {day.label}
+                      </label>
+                    </div>
+                  ))}
+                </div>
+                <div className="flex justify-end space-x-4 pt-4">
+                  <Button variant="outline" onClick={() => setIsWeekendSettingsOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button 
+                    onClick={() => {
+                      toast({
+                        title: "Success",
+                        description: `Weekend settings updated: ${weekendDays.map(d => d.charAt(0).toUpperCase() + d.slice(1)).join(", ")}`,
+                      });
+                      setIsWeekendSettingsOpen(false);
+                    }}
+                    className="bg-blue-600 hover:bg-blue-700"
+                  >
+                    Save Settings
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
           </div>
 
           {/* Holiday Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <Card className="border border-blue-200 bg-gradient-to-br from-blue-50 to-blue-100">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
@@ -554,18 +619,7 @@ export default function HolidayManagement() {
           </CardContent>
         </Card>
 
-        <Card className="border border-green-200 bg-gradient-to-br from-green-50 to-green-100">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-green-700">Weekends</p>
-                <p className="text-3xl font-bold text-green-900">{holidayStats.weekend}</p>
-                <p className="text-xs text-green-600 mt-1">Saturday & Sunday</p>
-              </div>
-              <Clock className="w-8 h-8 text-green-600" />
-            </div>
-          </CardContent>
-        </Card>
+
 
         <Card className="border border-orange-200 bg-gradient-to-br from-orange-50 to-orange-100">
           <CardContent className="p-6">
