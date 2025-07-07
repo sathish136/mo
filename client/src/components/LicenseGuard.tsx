@@ -63,8 +63,8 @@ export function LicenseGuard({ children, feature }: LicenseGuardProps) {
               <div className="flex gap-2">
                 <Input
                   id="licenseKey"
-                  type="password"
-                  placeholder="MF-HR-2025-VALID-KEY"
+                  type="text"
+                  placeholder="XXXX-XXXX-XXXX-XXXX"
                   value={licenseKey}
                   onChange={(e) => setLicenseKey(e.target.value)}
                 />

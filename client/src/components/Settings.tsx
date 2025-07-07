@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Settings as SettingsIcon, Wifi, MapPin, Plus, Edit, Trash2, RefreshCw, Activity, AlertCircle, Users, ChevronRight, Building2, Building, User, Shield, Key, FileText, HelpCircle, CheckCircle, XCircle, Clock } from "lucide-react";
 import { Link } from "wouter";
 import { useLicense } from "@/hooks/useLicense";
+import { LicenseInfo } from "@/components/LicenseInfo";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -579,6 +580,11 @@ export default function Settings() {
 
         {/* General Settings Tab */}
         <TabsContent value="general" className="space-y-6">
+          {/* License Information Display */}
+          {license.isValid && (
+            <LicenseInfo />
+          )}
+          
           <Card className="border border-gray-200">
             <CardHeader>
               <CardTitle className="text-lg font-semibold text-gray-900 flex items-center">
@@ -1435,8 +1441,8 @@ export default function Settings() {
                   <div className="flex gap-2">
                     <Input
                       id="licenseKey"
-                      type="password"
-                      placeholder="Enter your license key"
+                      type="text"
+                      placeholder="XXXX-XXXX-XXXX-XXXX"
                       value={license.licenseKey}
                       onChange={(e) => {
                         // Update only for display purposes - validation happens on button click
@@ -1459,19 +1465,31 @@ export default function Settings() {
                 </div>
                 
                 {license.isValid && (
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-green-50 rounded-lg border border-green-200">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 p-4 bg-green-50 rounded-lg border border-green-200">
                     <div>
                       <div className="text-sm font-medium text-green-800">Status</div>
                       <div className="text-xs text-green-600">Active</div>
                     </div>
                     <div>
-                      <div className="text-sm font-medium text-green-800">Type</div>
-                      <div className="text-xs text-green-600">Enterprise</div>
+                      <div className="text-sm font-medium text-green-800">Tier</div>
+                      <div className="text-xs text-green-600">{license.tier}</div>
+                    </div>
+                    <div>
+                      <div className="text-sm font-medium text-green-800">Web Logins</div>
+                      <div className="text-xs text-green-600">
+                        {license.currentLogins}/{license.maxWebLogins === 999 ? '∞' : license.maxWebLogins}
+                      </div>
                     </div>
                     <div>
                       <div className="text-sm font-medium text-green-800">Features</div>
                       <div className="text-xs text-green-600">
-                        {license.features.join(', ')}
+                        {license.features.length} enabled
+                      </div>
+                    </div>
+                    <div className="md:col-span-2 lg:col-span-4">
+                      <div className="text-sm font-medium text-green-800 mb-1">Available Features:</div>
+                      <div className="text-xs text-green-600">
+                        {license.features.join(' • ')}
                       </div>
                     </div>
                   </div>
