@@ -1443,14 +1443,19 @@ export default function Settings() {
                       id="licenseKey"
                       type="text"
                       placeholder="XXXX-XXXX-XXXX-XXXX"
-                      value={license.licenseKey}
-                      onChange={(e) => {
-                        // Update only for display purposes - validation happens on button click
-                      }}
+                      defaultValue={license.licenseKey}
                     />
                     <Button 
                       onClick={() => {
                         const key = (document.getElementById('licenseKey') as HTMLInputElement)?.value;
+                        if (!key) {
+                          toast({
+                            title: "Error",
+                            description: "Please enter a license key",
+                            variant: "destructive"
+                          });
+                          return;
+                        }
                         const isValid = validateLicense(key);
                         toast({
                           title: isValid ? "License Valid" : "Invalid License",

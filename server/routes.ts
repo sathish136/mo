@@ -8,6 +8,9 @@ import { and, eq, gte, lt, lte, desc, notInArray, isNotNull, inArray } from "dri
 import { fileURLToPath } from 'url';
 import { sql } from "drizzle-orm";
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 import { db } from "./db";
 import { zkDeviceManager } from "./zkdevice";
 import {
@@ -35,8 +38,7 @@ const router = express.Router();
 
 // --- File Upload Setup ---
 // Use import.meta.url to get the directory path in ES modules, compatible with Windows
-const __filename = fileURLToPath(import.meta.url);
-const uploadDir = path.join(path.dirname(__filename), "..", "uploads");
+const uploadDir = path.join(__dirname, "..", "uploads");
 
 // Ensure upload directory exists
 if (!fs.existsSync(uploadDir)) {

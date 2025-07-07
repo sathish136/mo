@@ -70,7 +70,15 @@ export function LicenseGuard({ children, feature }: LicenseGuardProps) {
                 />
                 <Button
                   onClick={() => {
-                    const isValid = validateLicense(licenseKey);
+                    if (!licenseKey.trim()) {
+                      toast({
+                        title: "Error",
+                        description: "Please enter a license key",
+                        variant: "destructive"
+                      });
+                      return;
+                    }
+                    const isValid = validateLicense(licenseKey.trim());
                     toast({
                       title: isValid ? "License Valid" : "Invalid License",
                       description: isValid 
@@ -79,10 +87,21 @@ export function LicenseGuard({ children, feature }: LicenseGuardProps) {
                       variant: isValid ? "default" : "destructive"
                     });
                   }}
-                  disabled={!licenseKey}
+                  disabled={!licenseKey.trim()}
                 >
                   Validate
                 </Button>
+              </div>
+            </div>
+            
+            <div className="text-xs text-gray-500 bg-blue-50 p-3 rounded border border-blue-200">
+              <div className="font-medium text-blue-800 mb-2">Available License Keys:</div>
+              <div className="space-y-1">
+                <div>• J7K9-P2Q4-R6T8-U1V3 (Enterprise Pro - 2 logins)</div>
+                <div>• M5N7-B8C2-L4X6-W9Z0 (Enterprise Plus - 3 logins)</div>
+                <div>• D3F5-H6J8-K1L4-P7R9 (Enterprise Basic - 1 login)</div>
+                <div>• Q2W4-E5R7-T8Y1-U3I6 (Enterprise Max - 5 logins)</div>
+                <div>• A9S2-D5F7-G3H6-J8K1 (Enterprise Demo - unlimited)</div>
               </div>
             </div>
             
