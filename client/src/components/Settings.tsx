@@ -72,6 +72,52 @@ export default function Settings() {
       setAutoSyncSettings(parsed);
     }
   }, []);
+
+  // Load company settings from API
+  const { data: companyData } = useQuery({
+    queryKey: ["/api/company-settings"],
+    queryFn: async () => {
+      const response = await fetch("/api/company-settings");
+      if (!response.ok) throw new Error("Failed to fetch company settings");
+      return response.json();
+    },
+  });
+
+  // Update local state when data is loaded
+  useEffect(() => {
+    if (companyData) {
+      setCompanySettings(companyData);
+    }
+  }, [companyData]);
+
+  const saveCompanySettingsMutation = useMutation({
+    mutationFn: async (settings: typeof companySettings) => {
+      const response = await fetch("/api/company-settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(settings),
+      });
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: "Failed to save company settings" }));
+        throw new Error(errorData.message || "Failed to save company settings");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/company-settings"] });
+      toast({
+        title: "Success",
+        description: "Company settings saved successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to save company settings",
+        variant: "destructive",
+      });
+    },
+  });
   const [isViewUsersDialogOpen, setIsViewUsersDialogOpen] = useState(false);
   const [viewingDevice, setViewingDevice] = useState<BiometricDevice | null>(null);
   const [deviceUsers, setDeviceUsers] = useState<DeviceUser[]>([]);
@@ -636,8 +682,12 @@ export default function Settings() {
                 />
               </div>
               <div className="flex justify-end">
-                <Button className="bg-blue-600 hover:bg-blue-700">
-                  Save Company Settings
+                <Button 
+                  onClick={() => saveCompanySettingsMutation.mutate(companySettings)}
+                  disabled={saveCompanySettingsMutation.isPending}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  {saveCompanySettingsMutation.isPending ? 'Saving...' : 'Save Company Settings'}
                 </Button>
               </div>
             </CardContent>

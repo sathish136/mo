@@ -2561,5 +2561,48 @@ export function registerRoutes(app: any) {
     }
   });
 
+  // Company settings endpoints
+  app.get('/api/company-settings', (req: any, res: any) => {
+    try {
+      const settingsPath = path.join(__dirname, 'data', 'company-settings.json');
+      if (fs.existsSync(settingsPath)) {
+        const settings = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+        res.json(settings);
+      } else {
+        // Return default settings
+        const defaultSettings = {
+          companyName: "WTT INTERNATIONAL",
+          tagline: "Water Loving Technology",
+          address: "Ministry of Finance, Colombo, Sri Lanka",
+          phone: "+94 11 234 5678",
+          email: "hr@wtt.gov.lk",
+          website: "https://wtt.gov.lk",
+          taxId: "123456789V",
+          establishedYear: "2020"
+        };
+        res.json(defaultSettings);
+      }
+    } catch (error) {
+      console.error('Error fetching company settings:', error);
+      res.status(500).json({ error: 'Failed to fetch company settings' });
+    }
+  });
+
+  app.post('/api/company-settings', (req: any, res: any) => {
+    try {
+      const dataDir = path.join(__dirname, 'data');
+      if (!fs.existsSync(dataDir)) {
+        fs.mkdirSync(dataDir, { recursive: true });
+      }
+      
+      const settingsPath = path.join(dataDir, 'company-settings.json');
+      fs.writeFileSync(settingsPath, JSON.stringify(req.body, null, 2));
+      res.json({ message: 'Company settings saved successfully' });
+    } catch (error) {
+      console.error('Error saving company settings:', error);
+      res.status(500).json({ error: 'Failed to save company settings' });
+    }
+  });
+
   return app;
 }
