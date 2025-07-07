@@ -565,7 +565,7 @@ export default function Settings() {
 
       {/* Tabs */}
       <Tabs defaultValue="general" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="general" className="flex items-center gap-2">
             <SettingsIcon className="w-4 h-4" />
             General
@@ -581,6 +581,10 @@ export default function Settings() {
           <TabsTrigger value="database" className="flex items-center gap-2">
             <Database className="w-4 h-4" />
             Database
+          </TabsTrigger>
+          <TabsTrigger value="email" className="flex items-center gap-2">
+            <Mail className="w-4 h-4" />
+            Email
           </TabsTrigger>
           <TabsTrigger value="system" className="flex items-center gap-2">
             <Shield className="w-4 h-4" />
@@ -1516,6 +1520,76 @@ export default function Settings() {
                   </div>
                 </CardContent>
               </Card>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Email Notifications Tab */}
+        <TabsContent value="email" className="space-y-6">
+          <Card className="border border-gray-200">
+            <CardHeader>
+              <CardTitle className="text-lg font-semibold text-gray-900 flex items-center">
+                <Mail className="w-5 h-5 mr-2" />
+                Email Notifications
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* SMTP Configuration */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="smtpHost">SMTP Host</Label>
+                  <Input id="smtpHost" placeholder="smtp.gmail.com" defaultValue="smtp.gmail.com" />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="smtpPort">SMTP Port</Label>
+                  <Input id="smtpPort" type="number" placeholder="587" defaultValue="587" />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="smtpUser">Username</Label>
+                  <Input id="smtpUser" placeholder="your-email@gmail.com" />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="smtpPassword">Password</Label>
+                  <Input id="smtpPassword" type="password" placeholder="App Password" />
+                </div>
+              </div>
+              
+              <div className="flex items-center space-x-2">
+                <Switch id="enableSsl" defaultChecked />
+                <Label htmlFor="enableSsl">Enable SSL/TLS</Label>
+              </div>
+
+              {/* Email Notification Settings */}
+              <Card className="border border-blue-200 bg-blue-50">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base text-blue-800">Automated Email Reports</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {[
+                    { name: 'Daily Attendance Report', time: '18:00', enabled: true, desc: 'Send daily attendance summary' },
+                    { name: 'Monthly Summary Report', time: '09:00', enabled: false, desc: 'Monthly employee attendance report' },
+                    { name: 'Overtime Approval Notifications', time: 'Real-time', enabled: true, desc: 'Instant overtime request alerts' },
+                    { name: 'Leave Request Notifications', time: 'Real-time', enabled: true, desc: 'Leave approval notifications' },
+                    { name: 'System Error Alerts', time: 'Real-time', enabled: false, desc: 'Critical system error notifications' }
+                  ].map((notification, index) => (
+                    <div key={index} className="flex items-center justify-between p-3 bg-white border border-blue-200 rounded-lg">
+                      <div className="flex-1">
+                        <div className="font-medium text-sm text-blue-900">{notification.name}</div>
+                        <div className="text-xs text-blue-600">{notification.desc}</div>
+                      </div>
+                      <div className="flex items-center space-x-3">
+                        <div className="text-xs text-blue-700 font-mono">{notification.time}</div>
+                        <Switch defaultChecked={notification.enabled} />
+                      </div>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+
+              <div className="flex space-x-2">
+                <Button variant="outline" size="sm">Test Email</Button>
+                <Button className="bg-green-600 hover:bg-green-700">Save Configuration</Button>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
