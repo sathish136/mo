@@ -58,10 +58,13 @@ export default function LeaveManagement() {
     queryKey: ["/api/employees"],
   });
 
-  // Simple 2-category leave system integrated with holiday data
+  // Calculate actual leave allowances from Holiday Management data
+  const annualHolidayCount = holidays.filter(h => h.type === 'annual').length || 0;
+  const specialHolidayCount = holidays.filter(h => h.type === 'special').length || 2;
+  
   const leaveTypes = [
-    { id: 1, name: "annual", description: "Annual Leave", maxDays: 21 },
-    { id: 2, name: "special", description: "Special Leave", maxDays: 24 },
+    { id: 1, name: "annual", description: "Annual Leave", maxDays: annualHolidayCount },
+    { id: 2, name: "special", description: "Special Leave", maxDays: specialHolidayCount },
   ];
 
   const { data: attendance = [] } = useQuery({
@@ -89,7 +92,7 @@ export default function LeaveManagement() {
     );
     return !hasAttendanceOnDate && !hasLeaveOnDate;
   }).map(emp => {
-    // Calculate used leave days for current year
+    // Calculate used leave days for current year from actual approved requests
     const currentYear = new Date().getFullYear();
     const usedAnnualDays = leaveRequests.filter(req => 
       req.employeeId === emp.id && 
@@ -105,11 +108,15 @@ export default function LeaveManagement() {
       new Date(req.startDate).getFullYear() === currentYear
     ).reduce((total, req) => total + (req.days || 0), 0);
 
+    // Get actual holiday counts from Holiday Management data
+    const annualHolidays = holidays.filter(h => h.type === 'annual').length || 0;
+    const specialHolidays = holidays.filter(h => h.type === 'special').length || 2; // Default based on current data
+
     return {
       ...emp,
       leaveBalance: {
-        annual: { used: usedAnnualDays, remaining: 21 - usedAnnualDays },
-        special: { used: usedSpecialDays, remaining: 24 - usedSpecialDays }
+        annual: { used: usedAnnualDays, remaining: Math.max(0, annualHolidays - usedAnnualDays) },
+        special: { used: usedSpecialDays, remaining: Math.max(0, specialHolidays - usedSpecialDays) }
       }
     };
   });
@@ -297,10 +304,10 @@ export default function LeaveManagement() {
                             <p className="text-xs text-gray-500">{employee.employeeId} - {employee.position}</p>
                             <div className="flex gap-3 mt-1 text-xs">
                               <span className="text-blue-600">
-                                Annual: {employee.leaveBalance.annual.remaining}/{21} days left
+                                Annual: {employee.leaveBalance.annual.remaining}/{annualHolidayCount} days left
                               </span>
                               <span className="text-green-600">
-                                Special: {employee.leaveBalance.special.remaining}/{24} days left
+                                Special: {employee.leaveBalance.special.remaining}/{specialHolidayCount} days left
                               </span>
                             </div>
                           </div>
