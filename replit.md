@@ -100,6 +100,9 @@ Changelog:
 - July 07, 2025. Migration from Replit Agent to Replit environment completed
   - Database setup with PostgreSQL
   - All dependencies installed and configured
+  - Fixed overtime management approved/rejected tabs to show actual data with real-time updates
+  - Updated Daily OT Report to show only pending/approved/rejected statuses (removed "Not Applied" and "N/A")
+  - Added real-time cache invalidation for overtime request counts in tab bar
   - Fixed overtime management approved/rejected tabs to show actual data instead of placeholders
   - Removed Daily OT Report button from overtime management page
   - Monthly attendance report enhancements:

@@ -63,6 +63,7 @@ export default function OvertimeManagement() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/overtime-eligible"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/overtime-requests"] });
       setSelectedEmployees(new Set());
       toast({
         title: "Success",
@@ -96,6 +97,7 @@ export default function OvertimeManagement() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/overtime-eligible"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/overtime-requests"] });
       setSelectedEmployees(new Set());
       toast({
         title: "Success",
@@ -129,6 +131,7 @@ export default function OvertimeManagement() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/overtime-eligible"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/overtime-requests"] });
       toast({
         title: "Success",
         description: "Overtime approved successfully",
@@ -159,6 +162,7 @@ export default function OvertimeManagement() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/overtime-eligible"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/overtime-requests"] });
       toast({
         title: "Success",
         description: "Overtime rejected successfully",

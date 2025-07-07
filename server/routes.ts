@@ -1257,14 +1257,14 @@ router.get("/api/reports/daily-ot", async (req, res) => {
 
       // Check for overtime request and its status
       const overtimeRequest = otRecords.find(ot => ot.employeeId === parseInt(emp.id));
-      let otApprovalStatus = 'N/A';
+      let otApprovalStatus = 'Pending';
       
       if (otHours > 0) {
         if (overtimeRequest) {
           otApprovalStatus = overtimeRequest.status === 'approved' ? 'Approved' : 
                            overtimeRequest.status === 'rejected' ? 'Rejected' : 'Pending';
         } else {
-          otApprovalStatus = 'Not Applied';
+          otApprovalStatus = 'Pending'; // Default to pending instead of "Not Applied"
         }
       }
 
