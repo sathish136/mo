@@ -584,113 +584,215 @@ export default function Reports() {
   };
 
   const renderDailyAttendanceReport = () => {
-    if (isDailyAttendanceLoading) return <div>Loading...</div>;
-    if (!dailyAttendanceData || dailyAttendanceData.length === 0) return <div>No data available for the selected date.</div>;
+    if (isDailyAttendanceLoading) {
+      return (
+        <Card>
+          <CardContent className="p-6">
+            <div className="text-center text-gray-500">Loading daily attendance report...</div>
+          </CardContent>
+        </Card>
+      );
+    }
+    
+    if (!dailyAttendanceData || dailyAttendanceData.length === 0) {
+      return (
+        <Card>
+          <CardContent className="p-6">
+            <div className="text-center text-gray-500">No attendance data available for {new Date(startDate).toLocaleDateString()}.</div>
+          </CardContent>
+        </Card>
+      );
+    }
 
     return (
-      <div className="overflow-x-auto">
-        <table className="min-w-full bg-white border border-gray-200 rounded-lg text-xs">
-          <thead>
-            <tr className="bg-gray-100">
-              <th className="py-1 px-2 border-b text-left font-medium">S.No</th>
-              <th className="py-1 px-2 border-b text-left font-medium">Employee ID</th>
-              <th className="py-1 px-2 border-b text-left font-medium">Name</th>
-              <th className="py-1 px-2 border-b text-left font-medium">Group</th>
-              <th className="py-1 px-2 border-b text-left font-medium">Date</th>
-              <th className="py-1 px-2 border-b text-left font-medium">In Time</th>
-              <th className="py-1 px-2 border-b text-left font-medium">Out Time</th>
-              <th className="py-1 px-2 border-b text-left font-medium">Total Hours</th>
-              <th className="py-1 px-2 border-b text-left font-medium">Late</th>
-              <th className="py-1 px-2 border-b text-left font-medium">Half Day</th>
-              <th className="py-1 px-2 border-b text-left font-medium">Short Leave</th>
-              <th className="py-1 px-2 border-b text-left font-medium">Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {dailyAttendanceData.map((record: any, index: number) => (
-              <tr key={`${record.employeeId}-${record.date}`} className="hover:bg-gray-50">
-                <td className="py-1 px-2 border-b">{index + 1}</td>
-                <td className="py-1 px-2 border-b">{record.employeeId}</td>
-                <td className="py-1 px-2 border-b">{record.fullName}</td>
-                <td className="py-1 px-2 border-b">{record.employeeGroup || 'N/A'}</td>
-                <td className="py-1 px-2 border-b">{record.date}</td>
-                <td className="py-1 px-2 border-b">{record.inTime}</td>
-                <td className="py-1 px-2 border-b">{record.outTime}</td>
-                <td className="py-1 px-2 border-b">{record.totalHours}</td>
-                <td className="py-1 px-2 border-b">{record.isLate ? 'Yes' : 'No'}</td>
-                <td className="py-1 px-2 border-b">{record.isHalfDay ? 'Yes' : 'No'}</td>
-                <td className="py-1 px-2 border-b">{record.onShortLeave ? 'Yes' : 'No'}</td>
-                <td className="py-1 px-2 border-b">
-                  <span 
-                    className={`px-1 py-0.5 rounded-full text-xs font-medium
-                      ${record.status === 'Absent' ? 'bg-red-100 text-red-800' : ''}
-                      ${record.status === 'Present' ? 'bg-green-100 text-green-800' : ''}
-                      ${record.status === 'On Leave' ? 'bg-blue-100 text-blue-800' : ''}
-                      ${record.status === 'Half Day' ? 'bg-yellow-100 text-yellow-800' : ''}
-                      ${record.status === 'Late' ? 'bg-orange-100 text-orange-800' : ''}
-                      ${record.status === 'Short Leave' ? 'bg-purple-100 text-purple-800' : ''}`}
-                  >
-                    {record.status}
-                  </span>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Calendar className="h-5 w-5" />
+            Daily Attendance Report - {new Date(startDate).toLocaleDateString('en-US', { 
+              weekday: 'long', 
+              year: 'numeric', 
+              month: 'long', 
+              day: 'numeric' 
+            })}
+          </CardTitle>
+          <div className="text-sm text-gray-600">
+            Total Records: {dailyAttendanceData.length}
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <table className="min-w-full border-collapse border border-gray-300">
+              <thead>
+                <tr className="bg-blue-50">
+                  <th className="border border-gray-300 px-3 py-2 text-left font-semibold">S.No</th>
+                  <th className="border border-gray-300 px-3 py-2 text-left font-semibold">Employee ID</th>
+                  <th className="border border-gray-300 px-3 py-2 text-left font-semibold">Name</th>
+                  <th className="border border-gray-300 px-3 py-2 text-left font-semibold">Group</th>
+                  <th className="border border-gray-300 px-3 py-2 text-left font-semibold">In Time</th>
+                  <th className="border border-gray-300 px-3 py-2 text-left font-semibold">Out Time</th>
+                  <th className="border border-gray-300 px-3 py-2 text-left font-semibold">Total Hours</th>
+                  <th className="border border-gray-300 px-3 py-2 text-left font-semibold">Late</th>
+                  <th className="border border-gray-300 px-3 py-2 text-left font-semibold">Half Day</th>
+                  <th className="border border-gray-300 px-3 py-2 text-left font-semibold">Short Leave</th>
+                  <th className="border border-gray-300 px-3 py-2 text-left font-semibold">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {dailyAttendanceData.map((record: any, index: number) => (
+                  <tr key={`${record.employeeId}-${record.date}`} className="hover:bg-gray-50">
+                    <td className="border border-gray-300 px-3 py-2">{index + 1}</td>
+                    <td className="border border-gray-300 px-3 py-2 font-medium">{record.employeeId}</td>
+                    <td className="border border-gray-300 px-3 py-2">{record.fullName}</td>
+                    <td className="border border-gray-300 px-3 py-2">
+                      <Badge variant={record.employeeGroup === 'group_a' ? 'default' : 'secondary'}>
+                        {record.employeeGroup === 'group_a' ? 'Group A' : record.employeeGroup === 'group_b' ? 'Group B' : record.employeeGroup || 'N/A'}
+                      </Badge>
+                    </td>
+                    <td className="border border-gray-300 px-3 py-2">{record.inTime || '-'}</td>
+                    <td className="border border-gray-300 px-3 py-2">{record.outTime || '-'}</td>
+                    <td className="border border-gray-300 px-3 py-2 font-medium">{record.totalHours || '0.00'}</td>
+                    <td className="border border-gray-300 px-3 py-2">
+                      <Badge variant={record.isLate ? 'destructive' : 'outline'}>
+                        {record.isLate ? 'Yes' : 'No'}
+                      </Badge>
+                    </td>
+                    <td className="border border-gray-300 px-3 py-2">
+                      <Badge variant={record.isHalfDay ? 'secondary' : 'outline'}>
+                        {record.isHalfDay ? 'Yes' : 'No'}
+                      </Badge>
+                    </td>
+                    <td className="border border-gray-300 px-3 py-2">
+                      <Badge variant={record.onShortLeave ? 'secondary' : 'outline'}>
+                        {record.onShortLeave ? 'Yes' : 'No'}
+                      </Badge>
+                    </td>
+                    <td className="border border-gray-300 px-3 py-2">
+                      <Badge 
+                        variant={
+                          record.status === 'Absent' ? 'destructive' :
+                          record.status === 'Present' ? 'default' :
+                          record.status === 'On Leave' ? 'secondary' :
+                          record.status === 'Half Day' ? 'secondary' :
+                          record.status === 'Late' ? 'destructive' :
+                          'outline'
+                        }
+                      >
+                        {record.status}
+                      </Badge>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
     );
   };
 
   const renderDailyOtReport = () => {
-    if (isDailyOtLoading) return <div>Loading...</div>;
-    if (dailyOtError) return <div>Error fetching data: {dailyOtError.message}</div>;
+    if (isDailyOtLoading) {
+      return (
+        <Card>
+          <CardContent className="p-6">
+            <div className="text-center text-gray-500">Loading daily overtime report...</div>
+          </CardContent>
+        </Card>
+      );
+    }
+    
+    if (dailyOtError) {
+      return (
+        <Card>
+          <CardContent className="p-6">
+            <div className="text-center text-red-500">Error fetching data: {dailyOtError.message}</div>
+          </CardContent>
+        </Card>
+      );
+    }
+    
     if (!dailyOtData || dailyOtData.length === 0) {
-      return <div>No data available for the selected date</div>;
+      return (
+        <Card>
+          <CardContent className="p-6">
+            <div className="text-center text-gray-500">No overtime data available for {new Date(startDate).toLocaleDateString()}.</div>
+          </CardContent>
+        </Card>
+      );
     }
 
+    const totalOtHours = dailyOtData.reduce((sum: number, record: any) => sum + parseFloat(record.otHours || 0), 0);
+    const approvedOtHours = dailyOtData.filter((r: any) => r.otApprovalStatus === 'Approved').reduce((sum: number, record: any) => sum + parseFloat(record.otHours || 0), 0);
+
     return (
-      <div className="overflow-x-auto">
-        <table className="min-w-full bg-white border border-gray-200 rounded-lg text-xs">
-          <thead>
-            <tr className="bg-gray-100">
-              <th className="py-1 px-2 border-b text-left font-medium">S.No</th>
-              <th className="py-1 px-2 border-b text-left font-medium">Employee ID</th>
-              <th className="py-1 px-2 border-b text-left font-medium">Name</th>
-              <th className="py-1 px-2 border-b text-left font-medium">Group</th>
-              <th className="py-1 px-2 border-b text-left font-medium">Date</th>
-              <th className="py-1 px-2 border-b text-left font-medium">Actual Hours</th>
-              <th className="py-1 px-2 border-b text-left font-medium">Required Hours</th>
-              <th className="py-1 px-2 border-b text-left font-medium">OT Hours</th>
-              <th className="py-1 px-2 border-b text-left font-medium">OT Approval Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {dailyOtData.map((record: any, index: number) => (
-              <tr key={`${record.employeeId}-${record.date}`} className="hover:bg-gray-50">
-                <td className="py-1 px-2 border-b">{index + 1}</td>
-                <td className="py-1 px-2 border-b">{record.employeeId}</td>
-                <td className="py-1 px-2 border-b">{record.fullName}</td>
-                <td className="py-1 px-2 border-b">{record.employeeGroup || 'N/A'}</td>
-                <td className="py-1 px-2 border-b">{record.date}</td>
-                <td className="py-1 px-2 border-b">{record.actualHours}</td>
-                <td className="py-1 px-2 border-b">{record.requiredHours}</td>
-                <td className="py-1 px-2 border-b">{record.otHours}</td>
-                <td className="py-1 px-2 border-b">
-                  <span 
-                    className={`px-1 py-0.5 rounded-full text-xs font-medium
-                      ${record.otApprovalStatus === 'Approved' ? 'bg-green-100 text-green-800' : ''}
-                      ${record.otApprovalStatus === 'Pending' ? 'bg-yellow-100 text-yellow-800' : ''}
-                      ${record.otApprovalStatus === 'Rejected' ? 'bg-red-100 text-red-800' : ''}
-                      ${record.otApprovalStatus === 'Not Applied' ? 'bg-gray-100 text-gray-800' : ''}`}
-                  >
-                    {record.otApprovalStatus}
-                  </span>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Clock className="h-5 w-5" />
+            Daily Overtime Report - {new Date(startDate).toLocaleDateString('en-US', { 
+              weekday: 'long', 
+              year: 'numeric', 
+              month: 'long', 
+              day: 'numeric' 
+            })}
+          </CardTitle>
+          <div className="flex gap-4 text-sm text-gray-600">
+            <div>Total Records: {dailyOtData.length}</div>
+            <div>Total OT Hours: {totalOtHours.toFixed(2)}</div>
+            <div>Approved OT Hours: {approvedOtHours.toFixed(2)}</div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <table className="min-w-full border-collapse border border-gray-300">
+              <thead>
+                <tr className="bg-orange-50">
+                  <th className="border border-gray-300 px-3 py-2 text-left font-semibold">S.No</th>
+                  <th className="border border-gray-300 px-3 py-2 text-left font-semibold">Employee ID</th>
+                  <th className="border border-gray-300 px-3 py-2 text-left font-semibold">Name</th>
+                  <th className="border border-gray-300 px-3 py-2 text-left font-semibold">Group</th>
+                  <th className="border border-gray-300 px-3 py-2 text-left font-semibold">Actual Hours</th>
+                  <th className="border border-gray-300 px-3 py-2 text-left font-semibold">Required Hours</th>
+                  <th className="border border-gray-300 px-3 py-2 text-left font-semibold">OT Hours</th>
+                  <th className="border border-gray-300 px-3 py-2 text-left font-semibold">OT Approval Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {dailyOtData.map((record: any, index: number) => (
+                  <tr key={`${record.employeeId}-${record.date}`} className="hover:bg-gray-50">
+                    <td className="border border-gray-300 px-3 py-2">{index + 1}</td>
+                    <td className="border border-gray-300 px-3 py-2 font-medium">{record.employeeId}</td>
+                    <td className="border border-gray-300 px-3 py-2">{record.fullName}</td>
+                    <td className="border border-gray-300 px-3 py-2">
+                      <Badge variant={record.employeeGroup === 'group_a' ? 'default' : 'secondary'}>
+                        {record.employeeGroup === 'group_a' ? 'Group A' : record.employeeGroup === 'group_b' ? 'Group B' : record.employeeGroup || 'N/A'}
+                      </Badge>
+                    </td>
+                    <td className="border border-gray-300 px-3 py-2 font-medium">{record.actualHours || '0.00'}</td>
+                    <td className="border border-gray-300 px-3 py-2">{record.requiredHours || '0.00'}</td>
+                    <td className="border border-gray-300 px-3 py-2 font-bold text-orange-600">
+                      {record.otHours > 0 ? record.otHours : '-'}
+                    </td>
+                    <td className="border border-gray-300 px-3 py-2">
+                      <Badge 
+                        variant={
+                          record.otApprovalStatus === 'Approved' ? 'default' :
+                          record.otApprovalStatus === 'Pending' ? 'secondary' :
+                          record.otApprovalStatus === 'Rejected' ? 'destructive' :
+                          'outline'
+                        }
+                      >
+                        {record.otApprovalStatus}
+                      </Badge>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
     );
   };
 
