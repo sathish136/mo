@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { useState, useEffect } from "react";
 import Layout from "@/components/Layout";
 import SplashScreen from "@/components/SplashScreen";
+import { LicenseGuard } from "@/components/LicenseGuard";
 import Dashboard from "@/components/Dashboard";
 import EmployeeManagement from "@/components/EmployeeManagement";
 import AttendanceTracker from "@/components/AttendanceTracker";
@@ -41,21 +42,23 @@ function App() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <div className="h-screen bg-gray-50">
-        <Layout>
-          {/* Header with app title removed as per user request */}
-          <Route path="/" component={Dashboard} />
-          <Route path="/employees" component={EmployeeManagement} />
-          <Route path="/attendance" component={AttendanceTracker} />
-          <Route path="/leave" component={LeaveManagement} />
-          <Route path="/holidays" component={HolidayManagement} />
-          <Route path="/overtime" component={OvertimeManagement} />
-          <Route path="/reports" component={Reports} />
-          <Route path="/settings" component={Settings} />
-          <Route path="/hr-settings" component={HRSettings} />
-        </Layout>
-        <Toaster />
-      </div>
+      <LicenseGuard>
+        <div className="h-screen bg-gray-50">
+          <Layout>
+            {/* Header with app title removed as per user request */}
+            <Route path="/" component={Dashboard} />
+            <Route path="/employees" component={EmployeeManagement} />
+            <Route path="/attendance" component={AttendanceTracker} />
+            <Route path="/leave" component={LeaveManagement} />
+            <Route path="/holidays" component={HolidayManagement} />
+            <Route path="/overtime" component={OvertimeManagement} />
+            <Route path="/reports" component={Reports} />
+            <Route path="/settings" component={Settings} />
+            <Route path="/hr-settings" component={HRSettings} />
+          </Layout>
+          <Toaster />
+        </div>
+      </LicenseGuard>
     </QueryClientProvider>
   );
 }

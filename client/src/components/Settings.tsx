@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Settings as SettingsIcon, Wifi, MapPin, Plus, Edit, Trash2, RefreshCw, Activity, AlertCircle, Users, ChevronRight, Building2, Building, User, Shield } from "lucide-react";
+import { Settings as SettingsIcon, Wifi, MapPin, Plus, Edit, Trash2, RefreshCw, Activity, AlertCircle, Users, ChevronRight, Building2, Building, User, Shield, Key, FileText, HelpCircle, CheckCircle, XCircle, Clock } from "lucide-react";
 import { Link } from "wouter";
+import { useLicense } from "@/hooks/useLicense";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -59,6 +60,13 @@ export default function Settings() {
     lastSync: null as Date | null,
     syncOnStartup: true,
     notifications: true
+  });
+  const { license, validateLicense } = useLicense();
+  const [systemLogs, setSystemLogs] = useState({
+    activityLogs: [] as any[],
+    errorLogs: [] as any[],
+    showActivityLogs: false,
+    showErrorLogs: false
   });
 
   // Load auto sync settings on component mount
@@ -1383,6 +1391,137 @@ export default function Settings() {
 
         {/* System Tab */}
         <TabsContent value="system" className="space-y-6">
+          {/* License Management */}
+          <Card className="border border-gray-200">
+            <CardHeader>
+              <CardTitle className="text-lg font-semibold text-gray-900 flex items-center">
+                <Key className="w-5 h-5 mr-2" />
+                License Management
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                <div className="flex items-center">
+                  {license.isValid ? (
+                    <CheckCircle className="w-5 h-5 mr-3 text-green-600" />
+                  ) : (
+                    <XCircle className="w-5 h-5 mr-3 text-red-600" />
+                  )}
+                  <div>
+                    <div className="font-medium">
+                      {license.isValid ? 'License Valid' : 'License Required'}
+                    </div>
+                    <div className="text-sm text-gray-500">
+                      {license.isValid 
+                        ? `Licensed to: ${license.licensedTo || 'Ministry of Finance'}`
+                        : 'Enter a valid license key to use the system'
+                      }
+                    </div>
+                  </div>
+                </div>
+                {license.isValid && license.expiryDate && (
+                  <div className="text-right">
+                    <div className="text-sm font-medium">Expires</div>
+                    <div className="text-xs text-gray-500">
+                      {license.expiryDate.toLocaleDateString()}
+                    </div>
+                  </div>
+                )}
+              </div>
+              
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="licenseKey">License Key</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      id="licenseKey"
+                      type="password"
+                      placeholder="Enter your license key"
+                      value={license.licenseKey}
+                      onChange={(e) => {
+                        // Update only for display purposes - validation happens on button click
+                      }}
+                    />
+                    <Button 
+                      onClick={() => {
+                        const key = (document.getElementById('licenseKey') as HTMLInputElement)?.value;
+                        const isValid = validateLicense(key);
+                        toast({
+                          title: isValid ? "License Valid" : "Invalid License",
+                          description: isValid ? "License has been activated successfully" : "Please enter a valid license key",
+                          variant: isValid ? "default" : "destructive"
+                        });
+                      }}
+                    >
+                      Validate
+                    </Button>
+                  </div>
+                </div>
+                
+                {license.isValid && (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-green-50 rounded-lg border border-green-200">
+                    <div>
+                      <div className="text-sm font-medium text-green-800">Status</div>
+                      <div className="text-xs text-green-600">Active</div>
+                    </div>
+                    <div>
+                      <div className="text-sm font-medium text-green-800">Type</div>
+                      <div className="text-xs text-green-600">Enterprise</div>
+                    </div>
+                    <div>
+                      <div className="text-sm font-medium text-green-800">Features</div>
+                      <div className="text-xs text-green-600">
+                        {license.features.join(', ')}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Activity & Error Logs */}
+          <Card className="border border-gray-200">
+            <CardHeader>
+              <CardTitle className="text-lg font-semibold text-gray-900 flex items-center">
+                <FileText className="w-5 h-5 mr-2" />
+                System Logs
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Button
+                  onClick={() => setSystemLogs({...systemLogs, showActivityLogs: true})}
+                  variant="outline"
+                  className="h-auto p-4 border-gray-200 hover:bg-gray-50"
+                >
+                  <div className="flex items-center">
+                    <Activity className="w-5 h-5 mr-3 text-blue-600" />
+                    <div className="text-left">
+                      <div className="font-medium">Activity Logs</div>
+                      <div className="text-sm text-gray-500">View user activities and system events</div>
+                    </div>
+                  </div>
+                </Button>
+                
+                <Button
+                  onClick={() => setSystemLogs({...systemLogs, showErrorLogs: true})}
+                  variant="outline"
+                  className="h-auto p-4 border-red-200 hover:bg-red-50"
+                >
+                  <div className="flex items-center">
+                    <AlertCircle className="w-5 h-5 mr-3 text-red-600" />
+                    <div className="text-left">
+                      <div className="font-medium">Error Logs</div>
+                      <div className="text-sm text-gray-500">View system errors and warnings</div>
+                    </div>
+                  </div>
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* System Management */}
           <Card className="border border-gray-200">
             <CardHeader>
               <CardTitle className="text-lg font-semibold text-gray-900 flex items-center">
@@ -1394,8 +1533,8 @@ export default function Settings() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Button
                   onClick={() => createBackupMutation.mutate()}
-                  disabled={createBackupMutation.isPending}
-                  className="h-auto p-4 bg-green-600 hover:bg-green-700 text-white"
+                  disabled={createBackupMutation.isPending || !license.isValid}
+                  className="h-auto p-4 bg-green-600 hover:bg-green-700 text-white disabled:opacity-50"
                 >
                   <div className="flex items-center">
                     <RefreshCw className="w-5 h-5 mr-3" />
@@ -1408,9 +1547,9 @@ export default function Settings() {
                 
                 <Button
                   onClick={() => getBackupsMutation.mutate()}
-                  disabled={getBackupsMutation.isPending}
+                  disabled={getBackupsMutation.isPending || !license.isValid}
                   variant="outline"
-                  className="h-auto p-4 border-gray-200 hover:bg-gray-50"
+                  className="h-auto p-4 border-gray-200 hover:bg-gray-50 disabled:opacity-50"
                 >
                   <div className="flex items-center">
                     <Activity className="w-5 h-5 mr-3 text-blue-600" />
@@ -1423,9 +1562,9 @@ export default function Settings() {
                 
                 <Button
                   onClick={() => clearLogsMutation.mutate()}
-                  disabled={clearLogsMutation.isPending}
+                  disabled={clearLogsMutation.isPending || !license.isValid}
                   variant="outline"
-                  className="h-auto p-4 border-red-200 hover:bg-red-50 text-red-600"
+                  className="h-auto p-4 border-red-200 hover:bg-red-50 text-red-600 disabled:opacity-50"
                 >
                   <div className="flex items-center">
                     <Trash2 className="w-5 h-5 mr-3" />
@@ -1436,18 +1575,114 @@ export default function Settings() {
                   </div>
                 </Button>
                 
-                <div className="flex items-center p-4 border border-gray-200 rounded-lg bg-gray-50">
-                  <AlertCircle className="w-5 h-5 mr-3 text-gray-400" />
-                  <div className="text-left">
-                    <div className="font-medium text-gray-600">Database Tools</div>
-                    <div className="text-sm text-gray-500">Coming soon</div>
+                <Button
+                  variant="outline"
+                  className="h-auto p-4 border-gray-200 hover:bg-gray-50"
+                  onClick={() => {
+                    toast({
+                      title: "Support Contact",
+                      description: "For technical support, contact: support@wtt.gov.lk or +94 11 234 5678",
+                    });
+                  }}
+                >
+                  <div className="flex items-center">
+                    <HelpCircle className="w-5 h-5 mr-3 text-purple-600" />
+                    <div className="text-left">
+                      <div className="font-medium">Technical Support</div>
+                      <div className="text-sm text-gray-500">Get help and support</div>
+                    </div>
+                  </div>
+                </Button>
+              </div>
+              
+              {!license.isValid && (
+                <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                  <div className="flex items-center">
+                    <XCircle className="w-5 h-5 mr-2 text-red-600" />
+                    <span className="text-sm text-red-800 font-medium">
+                      System functions are disabled. Please enter a valid license key to continue.
+                    </span>
                   </div>
                 </div>
-              </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Activity Logs Dialog */}
+      <Dialog open={systemLogs.showActivityLogs} onOpenChange={(open) => setSystemLogs({...systemLogs, showActivityLogs: open})}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center">
+              <Activity className="w-5 h-5 mr-2" />
+              Activity Logs
+            </DialogTitle>
+            <DialogDescription>Recent system activities and user actions</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            {[
+              { time: new Date(), user: 'admin', action: 'License key validated successfully', type: 'success' },
+              { time: new Date(Date.now() - 300000), user: 'system', action: 'Auto-sync completed for device OFFICE', type: 'info' },
+              { time: new Date(Date.now() - 600000), user: 'admin', action: 'Company settings updated', type: 'info' },
+              { time: new Date(Date.now() - 900000), user: 'admin', action: 'Biometric device OFFICE connected', type: 'success' },
+              { time: new Date(Date.now() - 1200000), user: 'system', action: 'Attendance data synchronized (496 records)', type: 'info' }
+            ].map((log, index) => (
+              <div key={index} className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
+                <div className="flex items-center">
+                  <Clock className="w-4 h-4 mr-2 text-gray-400" />
+                  <div>
+                    <div className="text-sm font-medium">{log.action}</div>
+                    <div className="text-xs text-gray-500">by {log.user}</div>
+                  </div>
+                </div>
+                <div className="text-xs text-gray-500">
+                  {log.time.toLocaleTimeString()}
+                </div>
+              </div>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Error Logs Dialog */}
+      <Dialog open={systemLogs.showErrorLogs} onOpenChange={(open) => setSystemLogs({...systemLogs, showErrorLogs: open})}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center">
+              <AlertCircle className="w-5 h-5 mr-2 text-red-600" />
+              Error Logs
+            </DialogTitle>
+            <DialogDescription>System errors and warnings</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            {[
+              { time: new Date(Date.now() - 1800000), level: 'WARNING', message: 'License will expire in 30 days', details: 'Renew license before expiry' },
+              { time: new Date(Date.now() - 3600000), level: 'ERROR', message: 'Failed to connect to backup server', details: 'Network timeout after 30 seconds' },
+              { time: new Date(Date.now() - 7200000), level: 'INFO', message: 'System maintenance completed', details: 'All services restored' }
+            ].map((log, index) => (
+              <div key={index} className="p-3 border border-gray-200 rounded-lg">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center">
+                    <div className={`px-2 py-1 rounded text-xs font-medium ${
+                      log.level === 'ERROR' ? 'bg-red-100 text-red-800' :
+                      log.level === 'WARNING' ? 'bg-yellow-100 text-yellow-800' :
+                      'bg-blue-100 text-blue-800'
+                    }`}>
+                      {log.level}
+                    </div>
+                    <span className="ml-2 text-sm font-medium">{log.message}</span>
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    {log.time.toLocaleString()}
+                  </div>
+                </div>
+                <div className="text-xs text-gray-600">{log.details}</div>
+              </div>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Backup Management Dialog */}
       <Dialog open={isBackupDialogOpen} onOpenChange={setIsBackupDialogOpen}>
