@@ -139,8 +139,8 @@ export default function LeaveManagement() {
         credentials: "include",
       });
       if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Failed to create leave request: ${errorText}`);
+        const errorData = await response.json().catch(() => ({ message: "Unknown error" }));
+        throw new Error(errorData.message || "Failed to create leave request");
       }
       return response.json();
     },
@@ -539,11 +539,6 @@ export default function LeaveManagement() {
                     type="submit" 
                     className="bg-blue-600 hover:bg-blue-700 text-white"
                     disabled={createLeaveRequestMutation.isPending}
-                    onClick={(e) => {
-                      console.log("Submit button clicked");
-                      console.log("Form values:", form.getValues());
-                      console.log("Form is valid:", form.formState.isValid);
-                    }}
                   >
                     {createLeaveRequestMutation.isPending ? "Creating..." : "Create Leave Request"}
                   </Button>
@@ -640,7 +635,7 @@ export default function LeaveManagement() {
               ) : (
                 <div className="space-y-4">
                   {pendingRequests.map((request) => {
-                    const employee = employees.find(e => e.id.toString() === request.employeeId);
+                    const employee = employees.find(e => e.id.toString() === request.employeeId.toString());
                     return (
                       <div key={request.id} className="border rounded-lg p-6 bg-gradient-to-r from-yellow-50 to-orange-50 shadow-sm hover:shadow-md transition-shadow">
                         <div className="flex items-center justify-between">
@@ -653,9 +648,11 @@ export default function LeaveManagement() {
                                 <span className="font-semibold text-lg text-gray-800">
                                   {employee?.fullName && employee.fullName !== employee.employeeId 
                                     ? employee.fullName 
-                                    : `Employee ${employee?.employeeId}`}
+                                    : employee?.employeeId 
+                                    ? `Employee ${employee.employeeId}`
+                                    : `Employee ${request.employeeId}`}
                                 </span>
-                                <span className="text-gray-500 ml-2">({employee?.employeeId})</span>
+                                <span className="text-gray-500 ml-2">({employee?.employeeId || request.employeeId})</span>
                                 <Badge 
                                   variant="secondary" 
                                   className="ml-3 bg-blue-100 text-blue-800 font-medium"
@@ -731,7 +728,7 @@ export default function LeaveManagement() {
               ) : (
                 <div className="space-y-4">
                   {approvedRequests.map((request) => {
-                    const employee = employees.find(e => e.id.toString() === request.employeeId);
+                    const employee = employees.find(e => e.id.toString() === request.employeeId.toString());
                     return (
                       <div key={request.id} className="border rounded-lg p-4 bg-green-50">
                         <div className="flex items-center justify-between">
@@ -739,7 +736,11 @@ export default function LeaveManagement() {
                             <div className="flex items-center space-x-2">
                               <User className="h-4 w-4" />
                               <span className="font-medium">
-                                {employee?.fullName} ({employee?.employeeId})
+                                {employee?.fullName && employee.fullName !== employee.employeeId 
+                                  ? employee.fullName 
+                                  : employee?.employeeId 
+                                  ? `Employee ${employee.employeeId}`
+                                  : `Employee ${request.employeeId}`} ({employee?.employeeId || request.employeeId})
                               </span>
                               <Badge className={getStatusColor(request.status)}>{request.status}</Badge>
                             </div>
@@ -788,7 +789,7 @@ export default function LeaveManagement() {
               ) : (
                 <div className="space-y-4">
                   {rejectedRequests.map((request) => {
-                    const employee = employees.find(e => e.id.toString() === request.employeeId);
+                    const employee = employees.find(e => e.id.toString() === request.employeeId.toString());
                     return (
                       <div key={request.id} className="border rounded-lg p-4 bg-red-50">
                         <div className="flex items-center justify-between">
@@ -796,7 +797,11 @@ export default function LeaveManagement() {
                             <div className="flex items-center space-x-2">
                               <User className="h-4 w-4" />
                               <span className="font-medium">
-                                {employee?.fullName} ({employee?.employeeId})
+                                {employee?.fullName && employee.fullName !== employee.employeeId 
+                                  ? employee.fullName 
+                                  : employee?.employeeId 
+                                  ? `Employee ${employee.employeeId}`
+                                  : `Employee ${request.employeeId}`} ({employee?.employeeId || request.employeeId})
                               </span>
                               <Badge className={getStatusColor(request.status)}>{request.status}</Badge>
                             </div>
