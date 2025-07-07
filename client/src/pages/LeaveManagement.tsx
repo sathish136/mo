@@ -89,11 +89,17 @@ export default function LeaveManagement() {
   const createLeaveRequestMutation = useMutation({
     mutationFn: async (data: LeaveRequestFormData) => {
       console.log("Submitting leave request:", data);
-      const response = await apiRequest("/api/leave-requests", {
+      const response = await fetch("/api/leave-requests", {
         method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify(data),
       });
-      return response;
+      if (!response.ok) {
+        throw new Error("Failed to create leave request");
+      }
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/leave-requests"] });
@@ -108,18 +114,31 @@ export default function LeaveManagement() {
 
   // Approve/Reject leave request mutations
   const updateLeaveStatusMutation = useMutation({
-    mutationFn: ({ id, status, reason }: { id: number; status: string; reason?: string }) =>
-      apiRequest(`/api/leave-requests/${id}`, {
+    mutationFn: async ({ id, status, reason }: { id: number; status: string; reason?: string }) => {
+      console.log("Updating leave request:", { id, status, reason });
+      const response = await fetch(`/api/leave-requests/${id}`, {
         method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({ 
           status, 
-          approvedBy: "1149", // Current user ID
+          approvedBy: "emp_001", // Current user ID
           approvedAt: new Date().toISOString(),
           rejectionReason: reason 
         }),
-      }),
+      });
+      if (!response.ok) {
+        throw new Error("Failed to update leave request");
+      }
+      return response.json();
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/leave-requests"] });
+      console.log("Leave request updated successfully");
+    },
+    onError: (error) => {
+      console.error("Failed to update leave request:", error);
     },
   });
 
@@ -259,6 +278,10 @@ export default function LeaveManagement() {
 
             <Form {...form}>
               <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+                {/* Debug info */}
+                <div className="text-xs text-gray-500">
+                  Form errors: {JSON.stringify(form.formState.errors)}
+                </div>
                 <div className="grid grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
@@ -366,6 +389,11 @@ export default function LeaveManagement() {
                     type="submit" 
                     className="bg-blue-600 hover:bg-blue-700 text-white"
                     disabled={createLeaveRequestMutation.isPending}
+                    onClick={(e) => {
+                      console.log("Submit button clicked");
+                      console.log("Form values:", form.getValues());
+                      console.log("Form is valid:", form.formState.isValid);
+                    }}
                   >
                     {createLeaveRequestMutation.isPending ? "Creating..." : "Create Leave Request"}
                   </Button>
