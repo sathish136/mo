@@ -8,7 +8,7 @@ export const employeeGroupEnum = pgEnum("employee_group", ["group_a", "group_b"]
 export const employeeStatusEnum = pgEnum("employee_status", ["active", "inactive"]);
 export const attendanceStatusEnum = pgEnum("attendance_status", ["present", "absent", "late", "early_departure"]);
 export const leaveStatusEnum = pgEnum("leave_status", ["pending", "approved", "rejected"]);
-export const leaveTypeEnum = pgEnum("leave_type", ["annual", "sick", "casual", "maternity", "paternity"]);
+export const leaveTypeEnum = pgEnum("leave_type", ["annual", "special"]);
 export const overtimeStatusEnum = pgEnum("overtime_status", ["pending", "approved", "rejected"]);
 export const holidayTypeEnum = pgEnum("holiday_type", ["annual", "special", "weekend"]);
 

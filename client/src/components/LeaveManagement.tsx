@@ -249,11 +249,8 @@ export default function LeaveManagement() {
                               <SelectValue placeholder="Select Leave Type" />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="annual">Annual Leave</SelectItem>
-                              <SelectItem value="sick">Sick Leave</SelectItem>
-                              <SelectItem value="casual">Casual Leave</SelectItem>
-                              <SelectItem value="maternity">Maternity Leave</SelectItem>
-                              <SelectItem value="paternity">Paternity Leave</SelectItem>
+                              <SelectItem value="annual">Annual Holiday</SelectItem>
+                              <SelectItem value="special">Special Holiday</SelectItem>
                             </SelectContent>
                           </Select>
                         </FormControl>

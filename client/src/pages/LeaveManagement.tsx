@@ -20,7 +20,7 @@ import type { LeaveRequest, Employee, LeaveType } from "@shared/schema";
 
 const leaveRequestSchema = z.object({
   employeeId: z.string().min(1, "Employee is required"),
-  leaveType: z.enum(["annual", "sick", "casual", "maternity", "paternity"]),
+  leaveType: z.enum(["annual", "special"]),
   startDate: z.string().min(1, "Start date is required"),
   endDate: z.string().min(1, "End date is required"),
   days: z.number().min(1, "Days must be at least 1"),
@@ -68,14 +68,11 @@ export default function LeaveManagement() {
 
   // Calculate actual leave allowances from Holiday Management data
   const annualHolidayCount = holidays.filter(h => h.type === 'annual').length || 0;
-  const sickLeaveAllowance = 14; // Standard sick leave days per year
+  const specialHolidayCount = holidays.filter(h => h.type === 'special').length || 24;
   
   const leaveTypes = [
-    { id: 1, name: "annual", description: "Annual Leave", maxDays: annualHolidayCount },
-    { id: 2, name: "sick", description: "Sick Leave", maxDays: 14 },
-    { id: 3, name: "casual", description: "Casual Leave", maxDays: 7 },
-    { id: 4, name: "maternity", description: "Maternity Leave", maxDays: 84 },
-    { id: 5, name: "paternity", description: "Paternity Leave", maxDays: 7 },
+    { id: 1, name: "annual", description: "Annual Holiday", maxDays: annualHolidayCount },
+    { id: 2, name: "special", description: "Special Holiday", maxDays: specialHolidayCount },
   ];
 
   // Define today's date
@@ -104,22 +101,22 @@ export default function LeaveManagement() {
       new Date(req.startDate).getFullYear() === currentYear
     ).reduce((total, req) => total + (req.days || 0), 0);
     
-    const usedSickDays = leaveRequests.filter(req => 
+    const usedSpecialDays = leaveRequests.filter(req => 
       req.employeeId === emp.id && 
-      req.leaveType === 'sick' && 
+      req.leaveType === 'special' && 
       req.status === 'approved' &&
       new Date(req.startDate).getFullYear() === currentYear
     ).reduce((total, req) => total + (req.days || 0), 0);
 
     // Get actual holiday counts from Holiday Management data
     const annualHolidays = holidays.filter(h => h.type === 'annual').length || 0;
-    const sickLeaveDays = 14; // Standard sick leave allowance
+    const specialHolidays = holidays.filter(h => h.type === 'special').length || 24;
 
     return {
       ...emp,
       leaveBalance: {
         annual: { used: usedAnnualDays, remaining: Math.max(0, annualHolidays - usedAnnualDays) },
-        sick: { used: usedSickDays, remaining: Math.max(0, 14 - usedSickDays) }
+        special: { used: usedSpecialDays, remaining: Math.max(0, specialHolidays - usedSpecialDays) }
       }
     };
   });
@@ -310,7 +307,7 @@ export default function LeaveManagement() {
                                 Annual: {employee.leaveBalance.annual.remaining}/{annualHolidayCount} days left
                               </span>
                               <span className="text-green-600">
-                                Sick: {employee.leaveBalance.sick.remaining}/14 days left
+                                Special: {employee.leaveBalance.special.remaining}/{specialHolidayCount} days left
                               </span>
                             </div>
                           </div>
@@ -325,11 +322,11 @@ export default function LeaveManagement() {
                             </Button>
                             <Button
                               size="sm"
-                              onClick={() => handleQuickLeaveFromAbsent(employee, 'sick')}
-                              disabled={employee.leaveBalance.sick.remaining <= 0}
+                              onClick={() => handleQuickLeaveFromAbsent(employee, 'special')}
+                              disabled={employee.leaveBalance.special.remaining <= 0}
                               className="bg-green-600 hover:bg-green-700 text-white text-xs"
                             >
-                              Sick
+                              Special
                             </Button>
                           </div>
                         </div>
