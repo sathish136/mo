@@ -1,0 +1,1599 @@
+import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { FileText, Download, Calendar, Users, Clock, TrendingUp } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+
+export default function Reports() {
+  const [reportType, setReportType] = useState("daily-attendance");
+  const [startDate, setStartDate] = useState(formatDate(new Date()));
+  const [endDate, setEndDate] = useState(formatDate(new Date()));
+  const [selectedEmployee, setSelectedEmployee] = useState("all");
+  const [selectedGroup, setSelectedGroup] = useState("all");
+
+  // Automatically update date range for Monthly Attendance Sheet
+  useEffect(() => {
+    if (reportType === "monthly-attendance") {
+      const now = new Date();
+      const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      const lastDayOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+      setStartDate(formatDate(firstDayOfMonth));
+      setEndDate(formatDate(lastDayOfMonth));
+    }
+  }, [reportType]);
+
+  // Format date to YYYY-MM-DD
+  function formatDate(date: Date): string {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+
+  const { data: employees } = useQuery({
+    queryKey: ["/api/employees"],
+    queryFn: async () => {
+      const response = await fetch("/api/employees");
+      if (!response.ok) throw new Error("Failed to fetch employees");
+      return response.json();
+    },
+  });
+
+  const { data: attendanceSummary } = useQuery({
+    queryKey: ["/api/attendance/summary", startDate, endDate],
+    queryFn: async () => {
+      const response = await fetch(`/api/attendance/summary?startDate=${startDate}&endDate=${endDate}`);
+      if (!response.ok) throw new Error("Failed to fetch attendance summary");
+      return response.json();
+    },
+    enabled: reportType === "attendance",
+  });
+
+  const { data: leaveRequests } = useQuery({
+    queryKey: ["/api/leave-requests"],
+    queryFn: async () => {
+      const response = await fetch("/api/leave-requests");
+      if (!response.ok) throw new Error("Failed to fetch leave requests");
+      return response.json();
+    },
+    enabled: reportType === "leave",
+  });
+
+  const { data: overtimeRequests } = useQuery({
+    queryKey: ["/api/overtime-requests"],
+    queryFn: async () => {
+      const response = await fetch("/api/overtime-requests");
+      if (!response.ok) throw new Error("Failed to fetch overtime requests");
+      return response.json();
+    },
+    enabled: reportType === "overtime",
+  });
+
+  const { data: employeeReportData } = useQuery({
+    queryKey: ["/api/reports/employees", selectedEmployee],
+    queryFn: async () => {
+      const response = await fetch(`/api/reports/employees?employeeId=${selectedEmployee}`);
+      if (!response.ok) throw new Error("Failed to fetch employee report");
+      return response.json();
+    },
+    enabled: reportType === "employee",
+  });
+
+  const { data: monthlyAttendanceData, isLoading: isMonthlyAttendanceLoading } = useQuery({
+    queryKey: ["/api/reports/monthly-attendance", startDate, endDate, selectedEmployee, selectedGroup],
+    queryFn: async () => {
+      const url = `/api/reports/monthly-attendance?startDate=${startDate}&endDate=${endDate}&employeeId=${selectedEmployee}&group=${selectedGroup}`;
+      const response = await fetch(url);
+      if (!response.ok) throw new Error("Failed to fetch monthly attendance sheet");
+      return response.json();
+    },
+    enabled: reportType === "monthly-attendance",
+  });
+
+  const { data: dailyAttendanceData, isLoading: isDailyAttendanceLoading } = useQuery({
+    queryKey: ["/api/reports/daily-attendance", startDate, selectedEmployee, selectedGroup],
+    queryFn: async () => {
+      const params = new URLSearchParams({
+        date: startDate,
+        employeeId: selectedEmployee,
+        group: selectedGroup,
+      });
+      const response = await fetch(`/api/reports/daily-attendance?${params.toString()}`);
+      if (!response.ok) throw new Error("Failed to fetch daily attendance sheet");
+      return response.json();
+    },
+    enabled: reportType === "daily-attendance",
+  });
+
+  const { data: dailyOtData, isLoading: isDailyOtLoading, error: dailyOtError } = useQuery({
+    queryKey: ["/api/reports/daily-ot", startDate, selectedEmployee, selectedGroup],
+    queryFn: async () => {
+      const params = new URLSearchParams({
+        date: startDate,
+        employeeId: selectedEmployee,
+        group: selectedGroup,
+      });
+      const response = await fetch(`/api/reports/daily-ot?${params.toString()}`);
+      if (!response.ok) throw new Error(`Failed to fetch daily OT report: ${response.statusText}`);
+      return response.json();
+    },
+    enabled: reportType === "daily-ot",
+  });
+
+  // New queries for additional reports
+  const { data: lateArrivalData, isLoading: isLateArrivalLoading } = useQuery({
+    queryKey: ["/api/reports/late-arrival", startDate, endDate, selectedEmployee, selectedGroup],
+    queryFn: async () => {
+      const params = new URLSearchParams({
+        startDate,
+        endDate,
+        employeeId: selectedEmployee,
+        group: selectedGroup,
+      });
+      const response = await fetch(`/api/reports/late-arrival?${params.toString()}`);
+      if (!response.ok) throw new Error("Failed to fetch late arrival report");
+      return response.json();
+    },
+    enabled: reportType === "late-arrival",
+  });
+
+  const { data: halfDayData, isLoading: isHalfDayLoading } = useQuery({
+    queryKey: ["/api/reports/half-day", startDate, endDate, selectedEmployee, selectedGroup],
+    queryFn: async () => {
+      const params = new URLSearchParams({
+        startDate,
+        endDate,
+        employeeId: selectedEmployee,
+        group: selectedGroup,
+      });
+      const response = await fetch(`/api/reports/half-day?${params.toString()}`);
+      if (!response.ok) throw new Error("Failed to fetch half day report");
+      return response.json();
+    },
+    enabled: reportType === "half-day",
+  });
+
+  const { data: shortLeaveUsageData, isLoading: isShortLeaveUsageLoading } = useQuery({
+    queryKey: ["/api/reports/short-leave-usage", startDate, endDate, selectedEmployee, selectedGroup],
+    queryFn: async () => {
+      const params = new URLSearchParams({
+        startDate,
+        endDate,
+        employeeId: selectedEmployee,
+        group: selectedGroup,
+      });
+      const response = await fetch(`/api/reports/short-leave-usage?${params.toString()}`);
+      if (!response.ok) throw new Error("Failed to fetch short leave usage report");
+      return response.json();
+    },
+    enabled: reportType === "short-leave-usage",
+  });
+
+  // Fetch HR settings for displaying policy information
+  const { data: groupSettings } = useQuery({
+    queryKey: ["/api/group-working-hours"],
+    queryFn: async () => {
+      const response = await fetch("/api/group-working-hours");
+      if (!response.ok) throw new Error("Failed to fetch group settings");
+      return response.json();
+    },
+  });
+
+  // Offer-Attendance Report query
+  const { data: offerAttendanceData, isLoading: isOfferAttendanceLoading } = useQuery({
+    queryKey: ["/api/reports/offer-attendance", startDate, endDate, selectedEmployee, selectedGroup],
+    queryFn: async () => {
+      const params = new URLSearchParams({
+        startDate,
+        endDate,
+        employeeId: selectedEmployee,
+        group: selectedGroup,
+      });
+      const response = await fetch(`/api/reports/offer-attendance?${params.toString()}`);
+      if (!response.ok) throw new Error("Failed to fetch offer-attendance report");
+      return response.json();
+    },
+    enabled: reportType === "offer-attendance",
+  });
+
+  const handleExportReport = async (format: string) => {
+    try {
+      // Get the current report data based on the selected report type
+      let data: any;
+      let filename: string;
+      
+      switch (reportType) {
+        case "monthly-attendance":
+          data = monthlyAttendanceData;
+          filename = `monthly-attendance-${startDate}-to-${endDate}`;
+          break;
+        case "daily-attendance":
+          data = dailyAttendanceData;
+          filename = `daily-attendance-${startDate}`;
+          break;
+        case "daily-ot":
+          data = dailyOtData;
+          filename = `daily-ot-${startDate}`;
+          break;
+        case "late-arrival":
+          data = lateArrivalData;
+          filename = `late-arrival-${startDate}-to-${endDate}`;
+          break;
+        case "half-day":
+          data = halfDayData;
+          filename = `half-day-${startDate}-to-${endDate}`;
+          break;
+        case "short-leave-usage":
+          data = shortLeaveUsageData;
+          filename = `short-leave-usage-${startDate}-to-${endDate}`;
+          break;
+        case "offer-attendance":
+          data = offerAttendanceData;
+          filename = `offer-attendance-${startDate}-to-${endDate}`;
+          break;
+        case "attendance":
+          data = null; // Not implemented yet
+          filename = `attendance-summary-${startDate}-to-${endDate}`;
+          break;
+        case "overtime":
+          data = null; // Not implemented yet
+          filename = `overtime-report-${startDate}-to-${endDate}`;
+          break;
+        case "leave":
+          data = null; // Not implemented yet
+          filename = `leave-report-${startDate}-to-${endDate}`;
+          break;
+        case "employee":
+          data = null; // Not implemented yet
+          filename = `employee-report`;
+          break;
+        default:
+          throw new Error("Unknown report type");
+      }
+
+      if (!data || data.length === 0) {
+        alert("No data available to export");
+        return;
+      }
+
+      if (format === "excel") {
+        exportToExcel(data, filename);
+      } else if (format === "pdf") {
+        exportToPDF(data, filename, reportType);
+      }
+    } catch (error) {
+      console.error("Export failed:", error);
+      alert("Export failed. Please try again.");
+    }
+  };
+
+  const exportToExcel = (data: any[], filename: string) => {
+    // Convert data to CSV format
+    if (data.length === 0) return;
+    
+    let csvContent = "";
+    
+    if (reportType === "monthly-attendance") {
+      // Special handling for monthly attendance sheet
+      csvContent = "Employee ID,Name,Department,Group,";
+      
+      // Add all date columns based on the data structure
+      const firstEmployee = data[0];
+      if (firstEmployee?.dailyData) {
+        const dateColumns = Object.keys(firstEmployee.dailyData).sort();
+        csvContent += dateColumns.join(",") + "\n";
+        
+        data.forEach(emp => {
+          csvContent += `${emp.employeeId},${emp.fullName},${emp.department || ""},${emp.employeeGroup || ""},`;
+          dateColumns.forEach(date => {
+            const dayData = emp.dailyData[date];
+            csvContent += `${dayData?.status || "A"},`;
+          });
+          csvContent += "\n";
+        });
+      }
+    } else {
+      // Standard table export
+      const headers = Object.keys(data[0]);
+      csvContent = headers.join(",") + "\n";
+      
+      data.forEach(row => {
+        csvContent += headers.map(header => {
+          const value = row[header];
+          return typeof value === "string" && value.includes(",") ? `"${value}"` : value;
+        }).join(",") + "\n";
+      });
+    }
+    
+    // Create and download file
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `${filename}.csv`;
+    link.click();
+  };
+
+  const exportToPDF = (data: any[], filename: string, reportType: string) => {
+    // Simple HTML to PDF conversion using browser print
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) return;
+
+    // Get current date and time for report generation
+    const now = new Date();
+    const reportGeneratedTime = now.toLocaleString('en-GB', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
+    });
+
+    // Get month and year for the report period
+    const reportStartDate = new Date(startDate);
+    const reportEndDate = new Date(endDate);
+    const reportMonth = reportStartDate.toLocaleString('en-GB', { month: 'long', year: 'numeric' });
+    
+    // Determine report title based on type
+    let reportTitle = '';
+    switch (reportType) {
+      case 'daily-attendance':
+        reportTitle = 'Daily Attendance Report';
+        break;
+      case 'daily-ot':
+        reportTitle = 'Daily Overtime Report';
+        break;
+      case 'monthly-attendance':
+        reportTitle = 'Monthly Attendance Sheet';
+        break;
+      default:
+        reportTitle = 'Attendance Report';
+    }
+    
+    let htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>${filename}</title>
+        <style>
+          body { 
+            font-family: Arial, sans-serif; 
+            margin: 0; 
+            padding: 20px;
+            font-size: 12px;
+            line-height: 1.4;
+          }
+          .header {
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 3px solid #1e40af;
+            padding-bottom: 20px;
+          }
+          .company-name {
+            font-size: 28px;
+            font-weight: bold;
+            color: #1e40af;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+          }
+          .department {
+            font-size: 18px;
+            color: #374151;
+            margin-bottom: 8px;
+            font-weight: 600;
+          }
+          .system-title {
+            font-size: 14px;
+            color: #6b7280;
+            font-style: italic;
+          }
+          .report-details {
+            background-color: #f8fafc;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+            border: 2px solid #e2e8f0;
+          }
+          .report-title {
+            font-size: 20px;
+            font-weight: bold;
+            color: #1f2937;
+            margin-bottom: 15px;
+            text-align: center;
+            text-transform: uppercase;
+          }
+          .report-info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 13px;
+          }
+          .report-period, .generated-time {
+            font-weight: bold;
+            color: #4b5563;
+          }
+          .filters-info {
+            background-color: #eff6ff;
+            padding: 10px;
+            border-radius: 5px;
+            border-left: 4px solid #3b82f6;
+            margin-top: 10px;
+          }
+          table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            margin-top: 20px;
+            font-size: 11px;
+          }
+          th, td { 
+            border: 1px solid #d1d5db; 
+            padding: 8px; 
+            text-align: left; 
+            vertical-align: top;
+          }
+          th { 
+            background-color: #f3f4f6; 
+            font-weight: bold;
+            color: #374151;
+            text-align: center;
+          }
+          .status-present, .status-p { color: #10b981; font-weight: bold; }
+          .status-absent, .status-a { color: #ef4444; font-weight: bold; }
+          .status-late { color: #f59e0b; font-weight: bold; }
+          .status-half-day, .status-hl { color: #8b5cf6; font-weight: bold; }
+          .status-short-leave { color: #06b6d4; font-weight: bold; }
+          .footer {
+            margin-top: 40px;
+            text-align: center;
+            font-size: 10px;
+            color: #6b7280;
+            border-top: 2px solid #e5e7eb;
+            padding-top: 20px;
+          }
+          .summary-stats {
+            background-color: #fefce8;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border: 1px solid #fbbf24;
+          }
+          .stats-row {
+            display: flex;
+            justify-content: space-around;
+            font-weight: bold;
+            color: #92400e;
+          }
+          @media print {
+            body { margin: 0; padding: 15px; }
+            @page { 
+              margin: 1cm; 
+              size: A4;
+            }
+            .header { page-break-inside: avoid; }
+            .report-details { page-break-inside: avoid; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div class="company-name">Ministry of Finance</div>
+          <div class="company-name">Sri Lanka</div>
+          <div class="department">Human Resources Department</div>
+          <div class="system-title">Attendance Management System</div>
+        </div>
+        
+        <div class="report-details">
+          <div class="report-title">${reportTitle}</div>
+          <div class="report-info">
+            <span>Report Period: <span class="report-period">${reportType === 'monthly-attendance' ? reportMonth : startDate === endDate ? startDate : `${startDate} to ${endDate}`}</span></span>
+            <span>Total Records: <strong>${data.length}</strong></span>
+          </div>
+          <div class="report-info">
+            <span>Generated: <span class="generated-time">${reportGeneratedTime}</span></span>
+            <span>Report Type: <strong>${reportTitle}</strong></span>
+          </div>
+          
+          <div class="filters-info">
+            <strong>Applied Filters:</strong><br>
+            • Group Filter: <strong>${selectedGroup === 'all' ? 'All Groups' : selectedGroup === 'group_a' ? 'Group A' : selectedGroup === 'group_b' ? 'Group B' : selectedGroup}</strong><br>
+            ${selectedEmployee !== 'all' ? `• Employee Filter: <strong>${selectedEmployee}</strong><br>` : ''}
+            • Date Range: <strong>${reportType === 'monthly-attendance' ? `${startDate} to ${endDate}` : startDate}</strong>
+          </div>
+        </div>
+        
+        <div class="summary-stats">
+          <div class="stats-row">
+            <span>📊 Report Generated: ${reportGeneratedTime}</span>
+            <span>📋 Total Entries: ${data.length}</span>
+            <span>🏢 Department: Human Resources</span>
+          </div>
+        </div>
+        
+        <table>
+    `;
+
+    if (reportType === "monthly-attendance") {
+      // Special handling for monthly attendance
+      htmlContent += "<thead><tr><th>Employee ID</th><th>Name</th><th>Department</th><th>Group</th>";
+      
+      const firstEmployee = data[0];
+      if (firstEmployee?.dailyData) {
+        const dateColumns = Object.keys(firstEmployee.dailyData).sort();
+        dateColumns.forEach(date => {
+          const dateObj = new Date(date);
+          htmlContent += `<th>${dateObj.getDate()}</th>`;
+        });
+        htmlContent += "</tr></thead><tbody>";
+        
+        data.forEach(emp => {
+          htmlContent += `<tr><td>${emp.employeeId}</td><td>${emp.fullName}</td><td>${emp.department || ""}</td><td>${emp.employeeGroup || ""}</td>`;
+          dateColumns.forEach(date => {
+            const dayData = emp.dailyData[date];
+            const status = dayData?.status || "A";
+            const statusClass = status === "P" ? "status-p" : status === "A" ? "status-a" : "status-hl";
+            htmlContent += `<td class="${statusClass}">${status}</td>`;
+          });
+          htmlContent += "</tr>";
+        });
+      }
+    } else {
+      // Standard table export
+      const headers = Object.keys(data[0]);
+      htmlContent += "<thead><tr>";
+      headers.forEach(header => {
+        htmlContent += `<th>${header.replace(/([A-Z])/g, " $1").replace(/^./, str => str.toUpperCase())}</th>`;
+      });
+      htmlContent += "</tr></thead><tbody>";
+      
+      data.forEach(row => {
+        htmlContent += "<tr>";
+        headers.forEach(header => {
+          htmlContent += `<td>${row[header] || ""}</td>`;
+        });
+        htmlContent += "</tr>";
+      });
+    }
+
+    htmlContent += `
+        </tbody>
+        </table>
+        
+        <div class="footer">
+          <p><strong>Ministry of Finance - Sri Lanka</strong></p>
+          <p>Human Resources Department | Attendance Management System</p>
+          <p>Generated on ${reportGeneratedTime} | Confidential Document</p>
+          <p><em>This report contains sensitive employee information and should be handled accordingly.</em></p>
+        </div>
+        
+        <script>
+          window.onload = function() {
+            window.print();
+            setTimeout(() => window.close(), 1000);
+          }
+        </script>
+      </body>
+      </html>
+    `;
+
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
+  };
+
+  const renderDailyAttendanceReport = () => {
+    if (isDailyAttendanceLoading) return <div>Loading...</div>;
+    if (!dailyAttendanceData || dailyAttendanceData.length === 0) return <div>No data available for the selected date.</div>;
+
+    return (
+      <div className="overflow-x-auto">
+        <table className="min-w-full bg-white border border-gray-200 rounded-lg text-xs">
+          <thead>
+            <tr className="bg-gray-100">
+              <th className="py-1 px-2 border-b text-left font-medium">S.No</th>
+              <th className="py-1 px-2 border-b text-left font-medium">Employee ID</th>
+              <th className="py-1 px-2 border-b text-left font-medium">Name</th>
+              <th className="py-1 px-2 border-b text-left font-medium">Group</th>
+              <th className="py-1 px-2 border-b text-left font-medium">Date</th>
+              <th className="py-1 px-2 border-b text-left font-medium">In Time</th>
+              <th className="py-1 px-2 border-b text-left font-medium">Out Time</th>
+              <th className="py-1 px-2 border-b text-left font-medium">Total Hours</th>
+              <th className="py-1 px-2 border-b text-left font-medium">Late</th>
+              <th className="py-1 px-2 border-b text-left font-medium">Half Day</th>
+              <th className="py-1 px-2 border-b text-left font-medium">Short Leave</th>
+              <th className="py-1 px-2 border-b text-left font-medium">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {dailyAttendanceData.map((record: any, index: number) => (
+              <tr key={`${record.employeeId}-${record.date}`} className="hover:bg-gray-50">
+                <td className="py-1 px-2 border-b">{index + 1}</td>
+                <td className="py-1 px-2 border-b">{record.employeeId}</td>
+                <td className="py-1 px-2 border-b">{record.fullName}</td>
+                <td className="py-1 px-2 border-b">{record.employeeGroup || 'N/A'}</td>
+                <td className="py-1 px-2 border-b">{record.date}</td>
+                <td className="py-1 px-2 border-b">{record.inTime}</td>
+                <td className="py-1 px-2 border-b">{record.outTime}</td>
+                <td className="py-1 px-2 border-b">{record.totalHours}</td>
+                <td className="py-1 px-2 border-b">{record.isLate ? 'Yes' : 'No'}</td>
+                <td className="py-1 px-2 border-b">{record.isHalfDay ? 'Yes' : 'No'}</td>
+                <td className="py-1 px-2 border-b">{record.onShortLeave ? 'Yes' : 'No'}</td>
+                <td className="py-1 px-2 border-b">
+                  <span 
+                    className={`px-1 py-0.5 rounded-full text-xs font-medium
+                      ${record.status === 'Absent' ? 'bg-red-100 text-red-800' : ''}
+                      ${record.status === 'Present' ? 'bg-green-100 text-green-800' : ''}
+                      ${record.status === 'On Leave' ? 'bg-blue-100 text-blue-800' : ''}
+                      ${record.status === 'Half Day' ? 'bg-yellow-100 text-yellow-800' : ''}
+                      ${record.status === 'Late' ? 'bg-orange-100 text-orange-800' : ''}
+                      ${record.status === 'Short Leave' ? 'bg-purple-100 text-purple-800' : ''}`}
+                  >
+                    {record.status}
+                  </span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    );
+  };
+
+  const renderDailyOtReport = () => {
+    if (isDailyOtLoading) return <div>Loading...</div>;
+    if (dailyOtError) return <div>Error fetching data: {dailyOtError.message}</div>;
+    if (!dailyOtData || dailyOtData.length === 0) {
+      return <div>No data available for the selected date</div>;
+    }
+
+    return (
+      <div className="overflow-x-auto">
+        <table className="min-w-full bg-white border border-gray-200 rounded-lg text-xs">
+          <thead>
+            <tr className="bg-gray-100">
+              <th className="py-1 px-2 border-b text-left font-medium">S.No</th>
+              <th className="py-1 px-2 border-b text-left font-medium">Employee ID</th>
+              <th className="py-1 px-2 border-b text-left font-medium">Name</th>
+              <th className="py-1 px-2 border-b text-left font-medium">Group</th>
+              <th className="py-1 px-2 border-b text-left font-medium">Date</th>
+              <th className="py-1 px-2 border-b text-left font-medium">Actual Hours</th>
+              <th className="py-1 px-2 border-b text-left font-medium">Required Hours</th>
+              <th className="py-1 px-2 border-b text-left font-medium">OT Hours</th>
+              <th className="py-1 px-2 border-b text-left font-medium">OT Approval Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {dailyOtData.map((record: any, index: number) => (
+              <tr key={`${record.employeeId}-${record.date}`} className="hover:bg-gray-50">
+                <td className="py-1 px-2 border-b">{index + 1}</td>
+                <td className="py-1 px-2 border-b">{record.employeeId}</td>
+                <td className="py-1 px-2 border-b">{record.fullName}</td>
+                <td className="py-1 px-2 border-b">{record.employeeGroup || 'N/A'}</td>
+                <td className="py-1 px-2 border-b">{record.date}</td>
+                <td className="py-1 px-2 border-b">{record.actualHours}</td>
+                <td className="py-1 px-2 border-b">{record.requiredHours}</td>
+                <td className="py-1 px-2 border-b">{record.otHours}</td>
+                <td className="py-1 px-2 border-b">
+                  <span 
+                    className={`px-1 py-0.5 rounded-full text-xs font-medium
+                      ${record.otApprovalStatus === 'Approved' ? 'bg-green-100 text-green-800' : ''}
+                      ${record.otApprovalStatus === 'Pending' ? 'bg-yellow-100 text-yellow-800' : ''}
+                      ${record.otApprovalStatus === 'Rejected' ? 'bg-red-100 text-red-800' : ''}
+                      ${record.otApprovalStatus === 'Not Applied' ? 'bg-gray-100 text-gray-800' : ''}`}
+                  >
+                    {record.otApprovalStatus}
+                  </span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    );
+  };
+
+  const renderAttendanceReport = () => (
+    <Card className="border border-gray-200">
+      <CardHeader>
+        <CardTitle className="text-lg font-semibold text-gray-900">Attendance Summary Report</CardTitle>
+      </CardHeader>
+      <CardContent>
+        {attendanceSummary && attendanceSummary.length > 0 ? (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Present</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Absent</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Late</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rate</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {attendanceSummary.map((day: any, index: number) => {
+                  const total = day.present + day.absent + day.late;
+                  const rate = total > 0 ? ((day.present / total) * 100).toFixed(1) : "0.0";
+                  
+                  return (
+                    <tr key={index} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{day.date}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{day.present}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{day.absent}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{day.late}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{rate}%</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="text-center py-8">
+            <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+            <p className="text-gray-500">No attendance data available for the selected period</p>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+
+  const renderLeaveReport = () => {
+    if (leaveRequests.isLoading) return <div>Loading...</div>;
+    if (leaveRequests.isError) return <div>Error fetching data</div>;
+    if (!leaveRequests.data || leaveRequests.data.length === 0) {
+      return <div>No leave requests found</div>;
+    }
+
+    return (
+      <Card className="border border-gray-200">
+        <CardHeader>
+          <CardTitle className="text-lg font-semibold text-gray-900">Leave Requests Report</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="text-center p-4 bg-green-50 rounded-lg">
+                <p className="text-2xl font-bold text-green-600">
+                  {leaveRequests.data.filter((r: any) => r.status === "approved").length}
+                </p>
+                <p className="text-sm text-gray-600">Approved</p>
+              </div>
+              <div className="text-center p-4 bg-yellow-50 rounded-lg">
+                <p className="text-2xl font-bold text-yellow-600">
+                  {leaveRequests.data.filter((r: any) => r.status === "pending").length}
+                </p>
+                <p className="text-sm text-gray-600">Pending</p>
+              </div>
+              <div className="text-center p-4 bg-red-50 rounded-lg">
+                <p className="text-2xl font-bold text-red-600">
+                  {leaveRequests.data.filter((r: any) => r.status === "rejected").length}
+                </p>
+                <p className="text-sm text-gray-600">Rejected</p>
+              </div>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Employee ID
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Leave Type
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Duration
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Status
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Days
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {leaveRequests.data.slice(0, 10).map((request: any) => (
+                    <tr key={request.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {request.employeeId}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <Badge variant="outline">
+                          {request.leaveType.charAt(0).toUpperCase() + request.leaveType.slice(1)}
+                        </Badge>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {new Date(request.startDate).toLocaleDateString()} - {new Date(request.endDate).toLocaleDateString()}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <Badge 
+                          className={
+                            request.status === "approved" ? "bg-green-100 text-green-800" :
+                            request.status === "rejected" ? "bg-red-100 text-red-800" :
+                            "bg-yellow-100 text-yellow-800"
+                          }
+                        >
+                          {request.status}
+                        </Badge>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {request.days}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  };
+
+  const renderOvertimeReport = () => {
+    if (overtimeRequests.isLoading) return <div>Loading...</div>;
+    if (overtimeRequests.isError) return <div>Error fetching data</div>;
+    if (!overtimeRequests.data || overtimeRequests.data.length === 0) {
+      return <div>No overtime requests found</div>;
+    }
+
+    return (
+      <Card className="border border-gray-200">
+        <CardHeader>
+          <CardTitle className="text-lg font-semibold text-gray-900">Overtime Requests Report</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="text-center p-4 bg-blue-50 rounded-lg">
+                <p className="text-2xl font-bold text-blue-600">
+                  {overtimeRequests.data.filter((r: any) => r.status === "approved").reduce((sum: number, r: any) => sum + parseFloat(r.hours), 0).toFixed(1)}
+                </p>
+                <p className="text-sm text-gray-600">Approved Hours</p>
+              </div>
+              <div className="text-center p-4 bg-yellow-50 rounded-lg">
+                <p className="text-2xl font-bold text-yellow-600">
+                  {overtimeRequests.data.filter((r: any) => r.status === "pending").length}
+                </p>
+                <p className="text-sm text-gray-600">Pending Requests</p>
+              </div>
+              <div className="text-center p-4 bg-green-50 rounded-lg">
+                <p className="text-2xl font-bold text-green-600">
+                  {overtimeRequests.data.filter((r: any) => r.status === "approved").length}
+                </p>
+                <p className="text-sm text-gray-600">Approved Requests</p>
+              </div>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Employee ID
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Date
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Hours
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Status
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {overtimeRequests.data.slice(0, 10).map((request: any) => (
+                    <tr key={request.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {request.employeeId}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {new Date(request.date).toLocaleDateString()}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {request.hours}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <Badge 
+                          className={
+                            request.status === "approved" ? "bg-green-100 text-green-800" :
+                            request.status === "rejected" ? "bg-red-100 text-red-800" :
+                            "bg-yellow-100 text-yellow-800"
+                          }
+                        >
+                          {request.status}
+                        </Badge>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  };
+
+  const renderEmployeeReport = () => {
+    if (!employeeReportData || employeeReportData.isLoading) return <div>Loading...</div>;
+    if (employeeReportData.error) return <div>Error: {employeeReportData.error.message}</div>;
+    if (!employeeReportData.data || employeeReportData.data.length === 0) {
+      return <div>No data available for the selected employee.</div>;
+    }
+
+    return (
+      <div className="overflow-x-auto">
+        <table className="min-w-full bg-white border border-gray-200 rounded-lg text-xs">
+          <thead>
+            <tr className="bg-gray-100">
+              <th className="py-1 px-2 border-b text-left font-medium">Date</th>
+              <th className="py-1 px-2 border-b text-left font-medium">In Time</th>
+              <th className="py-1 px-2 border-b text-left font-medium">Out Time</th>
+              <th className="py-1 px-2 border-b text-left font-medium">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {employeeReportData.data.map((record: any) => (
+              <tr key={record.date}>
+                <td className="py-1 px-2 border-b">{record.date}</td>
+                <td className="py-1 px-2 border-b">{record.inTime}</td>
+                <td className="py-1 px-2 border-b">{record.outTime}</td>
+                <td className="py-1 px-2 border-b">{record.status}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    );
+  };
+
+  const renderMonthlyAttendanceSheet = () => {
+    if (isMonthlyAttendanceLoading) return <div>Loading...</div>;
+    if (!monthlyAttendanceData || monthlyAttendanceData.length === 0) {
+      return <div>No data available for the selected period.</div>;
+    }
+
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const days: Date[] = [];
+    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+      days.push(new Date(d));
+    }
+
+    return (
+      <Card className="border border-gray-200">
+        <CardHeader>
+          <CardTitle className="text-lg font-semibold text-gray-900">Monthly Attendance Sheet</CardTitle>
+        </CardHeader>
+        <CardContent className="overflow-x-auto">
+          {monthlyAttendanceData.map((employee: any) => (
+            <div key={employee.id} className="mb-8">
+              <h3 className="text-md font-semibold mb-2 p-2 bg-gray-100 rounded-t-lg border-l border-t border-r">
+                Name: {employee.fullName} EMP ID: {employee.employeeId} Department: {employee.department || 'Unassigned'} Group: {employee.employeeGroup}
+              </h3>
+              <table className="w-full border-collapse text-xs">
+                <thead>
+                  <tr className="bg-gray-50">
+                    <th className="border p-1 font-semibold text-left align-top w-28"></th>
+                    {days.map(day => (
+                      <th key={day.toISOString()} className="border p-1 text-center align-top">
+                        <div>{day.toLocaleDateString('en-US', { weekday: 'short' })}</div>
+                        <div>{day.getDate()}</div>
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {['In Time', 'Out Time', 'Worked Hours', 'Status', 'Overtime'].map(field => (
+                    <tr key={`${employee.id}-${field}`}>
+                      <td className="border p-1 font-semibold">{field}</td>
+                      {days.map(day => {
+                        const dayData = employee.dailyData[day.getDate()];
+                        let value = '';
+                        if (dayData) {
+                          switch (field) {
+                            case 'In Time': value = dayData.inTime || ''; break;
+                            case 'Out Time': value = dayData.outTime || ''; break;
+                            case 'Worked Hours': value = dayData.workedHours || ''; break;
+                            case 'Status': value = dayData.status || ''; break;
+                            case 'Overtime': 
+                              if (dayData.overtime && dayData.overtime !== '0' && dayData.overtime !== '0.00') {
+                                // Remove 'h' suffix from overtime values
+                                value = dayData.overtime.toString().replace('h', '');
+                              } else {
+                                value = '-';
+                              }
+                              break;
+                          }
+                        } else if (field === 'Overtime') {
+                          value = '-';
+                        }
+                        return (
+                          <td key={`${employee.id}-${day.getDate()}-${field}`} className={`border p-1 text-center h-8 ${
+                            field === 'Status' && value ? 
+                              value === 'P' ? 'text-green-600 font-semibold' :
+                              value === 'A' ? 'text-red-600 font-semibold' :
+                              value === 'HL' ? 'text-blue-600 font-semibold' :
+                              'text-gray-600'
+                            : ''
+                          }`}>
+                            {value}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+    );
+  };
+
+  // Late Arrival Report
+  const renderLateArrivalReport = () => {
+    if (isLateArrivalLoading) {
+      return (
+        <Card>
+          <CardContent className="p-6">
+            <div className="text-center text-gray-500">Loading late arrival report...</div>
+          </CardContent>
+        </Card>
+      );
+    }
+
+    if (!lateArrivalData || lateArrivalData.length === 0) {
+      return (
+        <Card>
+          <CardContent className="p-6">
+            <div className="text-center text-gray-500">No late arrival data found for the selected period.</div>
+          </CardContent>
+        </Card>
+      );
+    }
+
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Clock className="h-5 w-5" />
+            Late Arrival Report
+          </CardTitle>
+          {groupSettings && (
+            <div className="text-sm text-gray-600 bg-blue-50 p-3 rounded-lg">
+              <h4 className="font-semibold mb-2">Current Policy Settings:</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <strong>Group A:</strong>
+                  <ul className="ml-4 list-disc">
+                    <li>Grace Period: Until {groupSettings.groupA?.lateArrivalPolicy?.gracePeriodUntil}</li>
+                    <li>Late: After {groupSettings.groupA?.lateArrivalPolicy?.gracePeriodUntil}</li>
+                    <li>Half Day: After {groupSettings.groupA?.lateArrivalPolicy?.halfDayAfter}</li>
+                  </ul>
+                </div>
+                <div>
+                  <strong>Group B:</strong>
+                  <ul className="ml-4 list-disc">
+                    <li>Grace Period: Until {groupSettings.groupB?.lateArrivalPolicy?.gracePeriodUntil}</li>
+                    <li>Late: After {groupSettings.groupB?.lateArrivalPolicy?.gracePeriodUntil}</li>
+                    <li>Half Day: After {groupSettings.groupB?.lateArrivalPolicy?.halfDayAfter}</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          )}
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <table className="min-w-full border-collapse border border-gray-300">
+              <thead>
+                <tr className="bg-gray-50">
+                  <th className="border border-gray-300 px-4 py-2 text-left">Employee ID</th>
+                  <th className="border border-gray-300 px-4 py-2 text-left">Name</th>
+                  <th className="border border-gray-300 px-4 py-2 text-left">Group</th>
+                  <th className="border border-gray-300 px-4 py-2 text-left">Date</th>
+                  <th className="border border-gray-300 px-4 py-2 text-left">Check In Time</th>
+                  <th className="border border-gray-300 px-4 py-2 text-left">Status</th>
+                  <th className="border border-gray-300 px-4 py-2 text-left">Minutes Late</th>
+                </tr>
+              </thead>
+              <tbody>
+                {lateArrivalData.map((record: any, index: number) => (
+                  <tr key={index} className="hover:bg-gray-50">
+                    <td className="border border-gray-300 px-4 py-2">{record.employeeId}</td>
+                    <td className="border border-gray-300 px-4 py-2">{record.fullName}</td>
+                    <td className="border border-gray-300 px-4 py-2">
+                      <Badge variant={record.employeeGroup === 'group_a' ? 'default' : 'secondary'}>
+                        {record.employeeGroup === 'group_a' ? 'Group A' : 'Group B'}
+                      </Badge>
+                    </td>
+                    <td className="border border-gray-300 px-4 py-2">{new Date(record.date).toLocaleDateString()}</td>
+                    <td className="border border-gray-300 px-4 py-2">{record.checkInTime || 'N/A'}</td>
+                    <td className="border border-gray-300 px-4 py-2">
+                      <Badge variant={record.status === 'late' ? 'destructive' : record.status === 'half_day' ? 'secondary' : 'default'}>
+                        {record.status}
+                      </Badge>
+                    </td>
+                    <td className="border border-gray-300 px-4 py-2">{record.minutesLate || 0}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  };
+
+  // Half Day Report
+  const renderHalfDayReport = () => {
+    if (isHalfDayLoading) {
+      return (
+        <Card>
+          <CardContent className="p-6">
+            <div className="text-center text-gray-500">Loading half day report...</div>
+          </CardContent>
+        </Card>
+      );
+    }
+
+    if (!halfDayData || halfDayData.length === 0) {
+      return (
+        <Card>
+          <CardContent className="p-6">
+            <div className="text-center text-gray-500">No half day records found for the selected period.</div>
+          </CardContent>
+        </Card>
+      );
+    }
+
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Calendar className="h-5 w-5" />
+            Half Day Report
+          </CardTitle>
+          {groupSettings && (
+            <div className="text-sm text-gray-600 bg-purple-50 p-3 rounded-lg">
+              <h4 className="font-semibold mb-2">Current Policy Settings:</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <strong>Group A:</strong>
+                  <ul className="ml-4 list-disc">
+                    <li>Half Day: Arrival after {groupSettings.groupA?.lateArrivalPolicy?.halfDayAfter} but before {groupSettings.groupA?.lateArrivalPolicy?.halfDayBefore}</li>
+                  </ul>
+                </div>
+                <div>
+                  <strong>Group B:</strong>
+                  <ul className="ml-4 list-disc">
+                    <li>Half Day: Arrival after {groupSettings.groupB?.lateArrivalPolicy?.halfDayAfter} but before {groupSettings.groupB?.lateArrivalPolicy?.halfDayBefore}</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          )}
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <table className="min-w-full border-collapse border border-gray-300">
+              <thead>
+                <tr className="bg-gray-50">
+                  <th className="border border-gray-300 px-4 py-2 text-left">Employee ID</th>
+                  <th className="border border-gray-300 px-4 py-2 text-left">Name</th>
+                  <th className="border border-gray-300 px-4 py-2 text-left">Group</th>
+                  <th className="border border-gray-300 px-4 py-2 text-left">Date</th>
+                  <th className="border border-gray-300 px-4 py-2 text-left">Check In Time</th>
+                  <th className="border border-gray-300 px-4 py-2 text-left">Check Out Time</th>
+                  <th className="border border-gray-300 px-4 py-2 text-left">Reason</th>
+                  <th className="border border-gray-300 px-4 py-2 text-left">Deduction</th>
+                </tr>
+              </thead>
+              <tbody>
+                {halfDayData.map((record: any, index: number) => (
+                  <tr key={index} className="hover:bg-gray-50">
+                    <td className="border border-gray-300 px-4 py-2">{record.employeeId}</td>
+                    <td className="border border-gray-300 px-4 py-2">{record.fullName}</td>
+                    <td className="border border-gray-300 px-4 py-2">
+                      <Badge variant={record.employeeGroup === 'group_a' ? 'default' : 'secondary'}>
+                        {record.employeeGroup === 'group_a' ? 'Group A' : 'Group B'}
+                      </Badge>
+                    </td>
+                    <td className="border border-gray-300 px-4 py-2">{new Date(record.date).toLocaleDateString()}</td>
+                    <td className="border border-gray-300 px-4 py-2">{record.checkInTime || 'N/A'}</td>
+                    <td className="border border-gray-300 px-4 py-2">{record.checkOutTime || 'N/A'}</td>
+                    <td className="border border-gray-300 px-4 py-2">{record.reason}</td>
+                    <td className="border border-gray-300 px-4 py-2">
+                      <Badge variant="secondary">Half Day</Badge>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  };
+
+  // Short Leave Usage Report
+  const renderShortLeaveUsageReport = () => {
+    if (isShortLeaveUsageLoading) {
+      return (
+        <Card>
+          <CardContent className="p-6">
+            <div className="text-center text-gray-500">Loading short leave usage report...</div>
+          </CardContent>
+        </Card>
+      );
+    }
+
+    if (!shortLeaveUsageData || shortLeaveUsageData.length === 0) {
+      return (
+        <Card>
+          <CardContent className="p-6">
+            <div className="text-center text-gray-500">No short leave usage data found for the selected period.</div>
+          </CardContent>
+        </Card>
+      );
+    }
+
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Users className="h-5 w-5" />
+            Short Leave Usage Report
+          </CardTitle>
+          {groupSettings && (
+            <div className="text-sm text-gray-600 bg-cyan-50 p-3 rounded-lg">
+              <h4 className="font-semibold mb-2">Current Policy Settings:</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <strong>Group A:</strong>
+                  <ul className="ml-4 list-disc">
+                    <li>Max per month: {groupSettings.groupA?.shortLeavePolicy?.maxPerMonth}</li>
+                    <li>Morning: {groupSettings.groupA?.shortLeavePolicy?.morningStart} - {groupSettings.groupA?.shortLeavePolicy?.morningEnd}</li>
+                    <li>Evening: {groupSettings.groupA?.shortLeavePolicy?.eveningStart} - {groupSettings.groupA?.shortLeavePolicy?.eveningEnd}</li>
+                    <li>Pre-approval: {groupSettings.groupA?.shortLeavePolicy?.preApprovalRequired ? 'Required' : 'Not Required'}</li>
+                  </ul>
+                </div>
+                <div>
+                  <strong>Group B:</strong>
+                  <ul className="ml-4 list-disc">
+                    <li>Max per month: {groupSettings.groupB?.shortLeavePolicy?.maxPerMonth}</li>
+                    <li>Morning: {groupSettings.groupB?.shortLeavePolicy?.morningStart} - {groupSettings.groupB?.shortLeavePolicy?.morningEnd}</li>
+                    <li>Evening: {groupSettings.groupB?.shortLeavePolicy?.eveningStart} - {groupSettings.groupB?.shortLeavePolicy?.eveningEnd}</li>
+                    <li>Pre-approval: {groupSettings.groupB?.shortLeavePolicy?.preApprovalRequired ? 'Required' : 'Not Required'}</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          )}
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <table className="min-w-full border-collapse border border-gray-300">
+              <thead>
+                <tr className="bg-gray-50">
+                  <th className="border border-gray-300 px-4 py-2 text-left">Employee ID</th>
+                  <th className="border border-gray-300 px-4 py-2 text-left">Name</th>
+                  <th className="border border-gray-300 px-4 py-2 text-left">Group</th>
+                  <th className="border border-gray-300 px-4 py-2 text-left">Month</th>
+                  <th className="border border-gray-300 px-4 py-2 text-left">Short Leaves Used</th>
+                  <th className="border border-gray-300 px-4 py-2 text-left">Remaining</th>
+                  <th className="border border-gray-300 px-4 py-2 text-left">Usage %</th>
+                  <th className="border border-gray-300 px-4 py-2 text-left">Last Used</th>
+                </tr>
+              </thead>
+              <tbody>
+                {shortLeaveUsageData.map((record: any, index: number) => (
+                  <tr key={index} className="hover:bg-gray-50">
+                    <td className="border border-gray-300 px-4 py-2">{record.employeeId}</td>
+                    <td className="border border-gray-300 px-4 py-2">{record.fullName}</td>
+                    <td className="border border-gray-300 px-4 py-2">
+                      <Badge variant={record.employeeGroup === 'group_a' ? 'default' : 'secondary'}>
+                        {record.employeeGroup === 'group_a' ? 'Group A' : 'Group B'}
+                      </Badge>
+                    </td>
+                    <td className="border border-gray-300 px-4 py-2">{record.month}</td>
+                    <td className="border border-gray-300 px-4 py-2">
+                      <Badge variant={record.shortLeavesUsed >= record.maxAllowed ? 'destructive' : 'default'}>
+                        {record.shortLeavesUsed} / {record.maxAllowed}
+                      </Badge>
+                    </td>
+                    <td className="border border-gray-300 px-4 py-2">{record.remaining}</td>
+                    <td className="border border-gray-300 px-4 py-2">
+                      <Badge variant={record.usagePercentage >= 100 ? 'destructive' : record.usagePercentage >= 50 ? 'secondary' : 'default'}>
+                        {record.usagePercentage}%
+                      </Badge>
+                    </td>
+                    <td className="border border-gray-300 px-4 py-2">{record.lastUsed || 'Never'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  };
+
+  // Offer-Attendance Report
+  const renderOfferAttendanceReport = () => {
+    if (isOfferAttendanceLoading) {
+      return (
+        <Card>
+          <CardContent className="p-6">
+            <div className="text-center text-gray-500">Loading offer-attendance report...</div>
+          </CardContent>
+        </Card>
+      );
+    }
+
+    if (!offerAttendanceData || offerAttendanceData.length === 0) {
+      return (
+        <Card>
+          <CardContent className="p-6">
+            <div className="text-center text-gray-500">No offer-attendance data found for the selected period.</div>
+          </CardContent>
+        </Card>
+      );
+    }
+
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Clock className="h-5 w-5" />
+            Offer-Attendance Report ({formatDate(new Date(startDate))} - {formatDate(new Date(endDate))})
+          </CardTitle>
+          <div className="text-sm text-gray-600 space-y-1">
+            <p>• Group A: Overtime calculated from 4:15 PM onwards</p>
+            <p>• Group B: Overtime calculated from 4:45 PM onwards</p>
+            <p>• Includes government holidays and Saturdays</p>
+            <p>• Excludes holidays and delays marked in status</p>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <table className="min-w-full border-collapse border border-gray-300">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="border border-gray-300 px-4 py-2 text-left font-semibold">Employee ID</th>
+                  <th className="border border-gray-300 px-4 py-2 text-left font-semibold">Full Name</th>
+                  <th className="border border-gray-300 px-4 py-2 text-left font-semibold">Group</th>
+                  <th className="border border-gray-300 px-4 py-2 text-left font-semibold">Total Offer Hours</th>
+                  <th className="border border-gray-300 px-4 py-2 text-left font-semibold">Working Days</th>
+                  <th className="border border-gray-300 px-4 py-2 text-left font-semibold">Avg Hours/Day</th>
+                  <th className="border border-gray-300 px-4 py-2 text-left font-semibold">Holiday Hours</th>
+                  <th className="border border-gray-300 px-4 py-2 text-left font-semibold">Saturday Hours</th>
+                  <th className="border border-gray-300 px-4 py-2 text-left font-semibold">Mon</th>
+                  <th className="border border-gray-300 px-4 py-2 text-left font-semibold">Tue</th>
+                  <th className="border border-gray-300 px-4 py-2 text-left font-semibold">Wed</th>
+                  <th className="border border-gray-300 px-4 py-2 text-left font-semibold">Thu</th>
+                  <th className="border border-gray-300 px-4 py-2 text-left font-semibold">Fri</th>
+                  <th className="border border-gray-300 px-4 py-2 text-left font-semibold">Sat</th>
+                  <th className="border border-gray-300 px-4 py-2 text-left font-semibold">Sun</th>
+                </tr>
+              </thead>
+              <tbody>
+                {offerAttendanceData.map((record: any, index: number) => (
+                  <tr key={index} className="hover:bg-gray-50">
+                    <td className="border border-gray-300 px-4 py-2">{record.employeeId}</td>
+                    <td className="border border-gray-300 px-4 py-2">{record.fullName}</td>
+                    <td className="border border-gray-300 px-4 py-2">
+                      <Badge variant={record.employeeGroup === 'group_a' ? 'default' : 'secondary'}>
+                        {record.employeeGroup === 'group_a' ? 'Group A' : 'Group B'}
+                      </Badge>
+                    </td>
+                    <td className="border border-gray-300 px-4 py-2 font-semibold text-blue-600">
+                      {record.totalOfferHours}h
+                    </td>
+                    <td className="border border-gray-300 px-4 py-2">{record.workingDays}</td>
+                    <td className="border border-gray-300 px-4 py-2">{record.averageOfferHoursPerDay}h</td>
+                    <td className="border border-gray-300 px-4 py-2 text-green-600">
+                      {record.holidayHours}h
+                    </td>
+                    <td className="border border-gray-300 px-4 py-2 text-purple-600">
+                      {record.saturdayHours}h
+                    </td>
+                    <td className="border border-gray-300 px-4 py-2">{record.weeklyBreakdown.monday}h</td>
+                    <td className="border border-gray-300 px-4 py-2">{record.weeklyBreakdown.tuesday}h</td>
+                    <td className="border border-gray-300 px-4 py-2">{record.weeklyBreakdown.wednesday}h</td>
+                    <td className="border border-gray-300 px-4 py-2">{record.weeklyBreakdown.thursday}h</td>
+                    <td className="border border-gray-300 px-4 py-2">{record.weeklyBreakdown.friday}h</td>
+                    <td className="border border-gray-300 px-4 py-2 text-purple-600">{record.weeklyBreakdown.saturday}h</td>
+                    <td className="border border-gray-300 px-4 py-2 text-orange-600">{record.weeklyBreakdown.sunday}h</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          
+          {/* Summary Statistics */}
+          <div className="mt-6 grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="bg-blue-50 p-4 rounded-lg">
+              <div className="text-sm font-medium text-blue-600">Total Employees</div>
+              <div className="text-2xl font-bold text-blue-900">{offerAttendanceData.length}</div>
+            </div>
+            <div className="bg-green-50 p-4 rounded-lg">
+              <div className="text-sm font-medium text-green-600">Total Offer Hours</div>
+              <div className="text-2xl font-bold text-green-900">
+                {offerAttendanceData.reduce((sum: number, record: any) => sum + record.totalOfferHours, 0).toFixed(1)}h
+              </div>
+            </div>
+            <div className="bg-purple-50 p-4 rounded-lg">
+              <div className="text-sm font-medium text-purple-600">Avg Hours/Employee</div>
+              <div className="text-2xl font-bold text-purple-900">
+                {(offerAttendanceData.reduce((sum: number, record: any) => sum + record.totalOfferHours, 0) / Math.max(offerAttendanceData.length, 1)).toFixed(1)}h
+              </div>
+            </div>
+            <div className="bg-orange-50 p-4 rounded-lg">
+              <div className="text-sm font-medium text-orange-600">Holiday/Weekend Hours</div>
+              <div className="text-2xl font-bold text-orange-900">
+                {offerAttendanceData.reduce((sum: number, record: any) => sum + record.holidayHours + record.saturdayHours, 0).toFixed(1)}h
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-2xl font-bold">Reports</h2>
+        <div className="relative group">
+          <button className="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold py-1.5 px-3 rounded-md shadow-md transition duration-200 ease-in-out flex items-center">
+            Export
+            <svg className="ml-1.5 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7"></path></svg>
+          </button>
+          <div className="absolute right-0 mt-1 w-36 bg-white rounded-lg shadow-md z-20 opacity-0 group-hover:opacity-100 transition duration-200 ease-in-out">
+            <button onClick={() => handleExportReport('pdf')} className="block w-full text-left px-3 py-1.5 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 transition duration-200 ease-in-out">PDF</button>
+            <button onClick={() => handleExportReport('excel')} className="block w-full text-left px-3 py-1.5 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 transition duration-200 ease-in-out">Excel</button>
+          </div>
+        </div>
+      </div>
+      <Card className="rounded-lg shadow-sm border-gray-200">
+        <CardHeader>
+          <CardTitle className="text-xl font-bold text-gray-900">Reports</CardTitle>
+        </CardHeader>
+        <CardContent className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4 items-end">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Report Type</label>
+            <Select value={reportType} onValueChange={setReportType}>
+              <SelectTrigger className="w-full rounded-md border-gray-300">
+                <SelectValue placeholder="Select report type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="daily-attendance">Daily Attendance Report</SelectItem>
+                <SelectItem value="daily-ot">Daily OT Report</SelectItem>
+                <SelectItem value="monthly-attendance">Monthly Attendance Sheet</SelectItem>
+                <SelectItem value="late-arrival">Late Arrival Report</SelectItem>
+                <SelectItem value="half-day">Half Day Report</SelectItem>
+                <SelectItem value="short-leave-usage">Short Leave Usage Report</SelectItem>
+                <SelectItem value="offer-attendance">Offer-Attendance Report</SelectItem>
+                <SelectItem value="attendance">Attendance Summary</SelectItem>
+                <SelectItem value="overtime">Overtime Report</SelectItem>
+                <SelectItem value="leave">Leave Report</SelectItem>
+                <SelectItem value="employee">Employee Report</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          {reportType !== "employee" && reportType !== "leave" && reportType !== "overtime" && (
+            <>
+              {reportType === "daily-attendance" || reportType === "daily-ot" ? (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Date</label>
+                  <Input
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => {
+                      setStartDate(e.target.value);
+                      setEndDate(e.target.value);
+                    }}
+                  />
+                </div>
+              ) : (
+                <>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Start Date</label>
+                    <Input
+                      type="date"
+                      value={startDate}
+                      onChange={(e) => setStartDate(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">End Date</label>
+                    <Input
+                      type="date"
+                      value={endDate}
+                      onChange={(e) => setEndDate(e.target.value)}
+                    />
+                  </div>
+                </>
+              )}
+            </>
+          )}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Employee</label>
+            <Select value={selectedEmployee} onValueChange={setSelectedEmployee}>
+              <SelectTrigger className="w-full rounded-md border-gray-300">
+                <SelectValue placeholder="Select employee" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Employees</SelectItem>
+                {employees && employees.map((emp: any) => (
+                  <SelectItem key={emp.employeeId} value={emp.employeeId}>
+                    {emp.fullName} ({emp.employeeId})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          {(reportType === "monthly-attendance" || reportType === "daily-ot" || reportType === "daily-attendance" || reportType === "offer-attendance" || reportType === "late-arrival" || reportType === "half-day" || reportType === "short-leave-usage") && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Group</label>
+              <Select value={selectedGroup} onValueChange={setSelectedGroup}>
+                <SelectTrigger className="w-full rounded-md border-gray-300">
+                  <SelectValue placeholder="Select group" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Groups</SelectItem>
+                  <SelectItem value="group_a">Group A</SelectItem>
+                  <SelectItem value="group_b">Group B</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+          
+          {/* Export Options */}
+          <div className="col-span-full flex gap-2 pt-2">
+            <Button
+              onClick={() => handleExportReport('pdf')}
+              variant="outline"
+              size="sm"
+              className="flex items-center gap-2"
+            >
+              <Download className="h-4 w-4" />
+              Export PDF
+            </Button>
+            <Button
+              onClick={() => handleExportReport('excel')}
+              variant="outline"
+              size="sm"
+              className="flex items-center gap-2"
+            >
+              <Download className="h-4 w-4" />
+              Export Excel
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Report Content */}
+      {reportType === "attendance" && renderAttendanceReport()}
+      {reportType === "leave" && renderLeaveReport()}
+      {reportType === "overtime" && renderOvertimeReport()}
+      {reportType === "employee" && renderEmployeeReport()}
+      {reportType === "daily-attendance" && renderDailyAttendanceReport()}
+      {reportType === "daily-ot" && renderDailyOtReport()}
+      {reportType === "monthly-attendance" && renderMonthlyAttendanceSheet()}
+      {reportType === "late-arrival" && renderLateArrivalReport()}
+      {reportType === "half-day" && renderHalfDayReport()}
+      {reportType === "short-leave-usage" && renderShortLeaveUsageReport()}
+      {reportType === "offer-attendance" && renderOfferAttendanceReport()}
+    </div>
+  );
+}

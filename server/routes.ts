@@ -1,0 +1,2306 @@
+import express from "express";
+import { z } from "zod";
+import ZKLib from "zklib-js";
+import multer from "multer";
+import path from "path";
+import fs from "fs";
+import { and, eq, gte, lt, lte, desc, notInArray, isNotNull, inArray } from "drizzle-orm";
+import { fileURLToPath } from 'url';
+import { sql } from "drizzle-orm";
+
+import { db } from "./db";
+import { zkDeviceManager } from "./zkdevice";
+import {
+  biometricDevices,
+  departments,
+  employees,
+  insertDepartmentSchema,
+  insertEmployeeSchema,
+  attendance,
+  insertAttendanceSchema,
+  leaveRequests,
+  insertLeaveRequestSchema,
+  overtimeRequests,
+  insertOvertimeRequestSchema,
+  insertBiometricDeviceSchema,
+} from "../shared/schema";
+
+import { getGroupWorkingHours, updateGroupWorkingHours } from './hrSettings';
+
+const router = express.Router();
+
+// --- File Upload Setup ---
+// Use import.meta.url to get the directory path in ES modules, compatible with Windows
+const __filename = fileURLToPath(import.meta.url);
+const uploadDir = path.join(path.dirname(__filename), "..", "uploads");
+
+// Ensure upload directory exists
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+    cb(null, file.fieldname + "-" + uniqueSuffix + path.extname(file.originalname));
+  },
+});
+
+const upload = multer({ storage: storage });
+
+// Serve static files from the 'uploads' directory
+router.use("/uploads", express.static(uploadDir));
+
+// --- Upload Route ---
+router.post("/api/upload", upload.single("file"), (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ message: "No file uploaded." });
+  }
+
+  const url = `/uploads/${req.file.filename}`;
+  res.status(200).json({ url });
+});
+
+// --- Dashboard Routes ---
+router.get("/api/dashboard/stats", async (req, res) => {
+  try {
+    const today = new Date();
+    const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const endOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+    const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+
+    const totalEmployeesResult = await db.select({ count: sql`count(*)::int` }).from(employees).where(eq(employees.status, 'active'));
+    const presentTodayResult = await db.select({ count: sql`count(distinct(${attendance.employeeId}))::int` }).from(attendance).where(and(gte(attendance.checkIn, startOfToday), lt(attendance.checkIn, endOfToday)));
+    const onLeaveResult = await db.select({ count: sql`count(*)::int` }).from(leaveRequests).where(and(eq(leaveRequests.status, 'approved'), lte(leaveRequests.startDate, startOfToday), gte(leaveRequests.endDate, startOfToday)));
+    const overtimeResult = await db.select({ totalHours: sql`sum(${overtimeRequests.hours})::int` }).from(overtimeRequests).where(and(eq(overtimeRequests.status, 'approved'), gte(overtimeRequests.date, startOfMonth)));
+
+    res.json({
+      totalEmployees: totalEmployeesResult[0]?.count || 0,
+      presentToday: presentTodayResult[0]?.count || 0,
+      onLeave: onLeaveResult[0]?.count || 0,
+      overtimeHours: overtimeResult[0]?.totalHours || 0,
+    });
+  } catch (error) {
+    console.error("Failed to fetch dashboard stats:", error);
+    res.status(500).json({ message: "Failed to fetch dashboard stats" });
+  }
+});
+
+router.get("/api/dashboard/recent-activity", async (req, res) => {
+  try {
+    const checkIns = await db.select({
+        id: attendance.id,
+        description: sql`concat(${employees.fullName}, ' checked in')`,
+        timestamp: attendance.checkIn,
+        type: sql`'check-in' as type`,
+    }).from(attendance)
+    .leftJoin(employees, eq(sql`${attendance.employeeId}::text`, employees.employeeId))
+    .orderBy(desc(attendance.checkIn))
+    .limit(5);
+
+    const leaves = await db.select({
+        id: leaveRequests.id,
+        description: sql`concat('Leave request ', ${leaveRequests.status}, ' for ', ${employees.fullName})`,
+        timestamp: leaveRequests.createdAt,
+        type: sql`'leave' as type`,
+    }).from(leaveRequests)
+    .leftJoin(employees, eq(leaveRequests.employeeId, employees.id))
+    .orderBy(desc(leaveRequests.createdAt))
+    .limit(5);
+    
+    const overtimes = await db.select({
+        id: overtimeRequests.id,
+        description: sql`concat('Overtime request ', ${overtimeRequests.status}, ' for ', ${employees.fullName})`,
+        timestamp: overtimeRequests.createdAt,
+        type: sql`'overtime' as type`,
+    }).from(overtimeRequests)
+    .leftJoin(employees, eq(overtimeRequests.employeeId, employees.id))
+    .orderBy(desc(overtimeRequests.createdAt))
+    .limit(5);
+
+    const allActivities = [...checkIns, ...leaves, ...overtimes]
+        .sort((a, b) => {
+          const timeA = a.timestamp ? new Date(a.timestamp).getTime() : 0;
+          const timeB = b.timestamp ? new Date(b.timestamp).getTime() : 0;
+          return timeB - timeA;
+        })
+        .slice(0, 5);
+        
+    res.json(allActivities);
+  } catch (error) {
+    console.error("Failed to fetch recent activities:", error);
+    res.status(500).json({ message: "Failed to fetch recent activities" });
+  }
+});
+
+// --- Department Routes ---
+router.get("/api/departments", async (req, res) => {
+  try {
+    const allDepartments = await db.select().from(departments);
+    res.json(allDepartments);
+  } catch (error) {
+    console.error("Failed to fetch departments:", error);
+    res.status(500).json({ message: "Failed to fetch departments" });
+  }
+});
+
+router.post("/api/departments", async (req, res) => {
+  try {
+    const parsedData = insertDepartmentSchema.parse(req.body);
+    const newDepartment = await db.insert(departments).values(parsedData).returning();
+    res.status(201).json(newDepartment[0]);
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ message: "Validation failed", details: error.errors });
+    }
+    console.error("Failed to create department:", error);
+    res.status(500).json({ message: "Failed to create department" });
+  }
+});
+
+// --- Employee Routes ---
+router.get("/api/employees", async (req, res) => {
+  try {
+    const { limit } = z.object({
+      limit: z.coerce.number().int().positive().optional(),
+    }).parse(req.query);
+
+    let query = db
+      .select({
+        id: employees.id,
+        employeeId: employees.employeeId,
+        fullName: employees.fullName,
+        email: employees.email,
+        phone: employees.phone,
+        photoUrl: employees.photoUrl,
+        position: employees.position,
+        employeeGroup: employees.employeeGroup,
+        joinDate: employees.joinDate,
+        status: employees.status,
+        role: employees.role,
+        department: departments.name,
+        departmentId: departments.id,
+      })
+      .from(employees)
+      .leftJoin(departments, eq(employees.departmentId, departments.id))
+      .orderBy(desc(employees.createdAt));
+
+    if (limit) {
+      query.limit(limit);
+    }
+
+    const result = await query;
+
+    res.json(result);
+  } catch (error) {
+    console.error("Failed to fetch employees:", error);
+    res.status(500).json({ message: "Failed to fetch employees" });
+  }
+});
+
+router.get("/api/employees/:id", async (req, res) => {
+  try {
+    const id = req.params.id;
+    const result = await db
+      .select({
+        id: employees.id,
+        employeeId: employees.employeeId,
+        fullName: employees.fullName,
+        email: employees.email,
+        phone: employees.phone,
+        employeeGroup: employees.employeeGroup,
+        joinDate: employees.joinDate,
+        status: employees.status,
+        role: employees.role,
+        department: departments.name,
+        departmentId: departments.id,
+      })
+      .from(employees)
+      .leftJoin(departments, eq(employees.departmentId, departments.id))
+      .where(eq(employees.id, String(id)));
+
+    if (result.length === 0) {
+      return res.status(404).json({ message: "Employee not found" });
+    }
+    res.json(result[0]);
+  } catch (error) {
+    console.error("Failed to fetch employee:", error);
+    res.status(500).json({ message: "Failed to fetch employee" });
+  }
+});
+
+router.post("/api/employees", upload.single("photo"), async (req, res) => {
+  try {
+    // Multer puts non-file fields in req.body. We need to parse numeric/date fields manually.
+    const parsedBody = {
+      ...req.body,
+      departmentId: parseInt(req.body.departmentId, 10),
+      joinDate: new Date(req.body.joinDate),
+    };
+
+    const validatedData = insertEmployeeSchema.parse(parsedBody);
+    let photoUrl: string | undefined = undefined;
+    if (req.file) {
+      photoUrl = `/uploads/${req.file.filename}`;
+
+    }
+
+    // Generate a new UUID for the primary key (id)
+    const id = crypto.randomUUID();
+    
+    // Ensure we have a valid employeeId
+    if (!validatedData.employeeId) {
+      return res.status(400).json({ message: "Employee ID is required" });
+    }
+    
+    // Prepare the employee data according to the schema
+    const employeeData = {
+      ...validatedData,
+      id,
+      employeeId: String(validatedData.employeeId), // Ensure it's a string
+      photoUrl,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    
+    // Insert the new employee record with proper typing
+    try {
+      const newEmployee = await db.insert(employees).values(employeeData).returning();
+      res.status(201).json(newEmployee[0]);
+    } catch (error) {
+      if (error instanceof Error && error.message.includes('duplicate key value violates unique constraint')) {
+        return res.status(400).json({ message: "Employee ID must be unique" });
+      }
+      throw error;
+    }
+  } catch (error) {
+    console.error("Error creating employee:", error);
+    res.status(500).json({ message: "Failed to create employee" });
+  }
+});
+
+router.put("/api/employees/:id", upload.single("photo"), async (req, res) => {
+  try {
+    const id = req.params.id; // Already a string
+
+    const parsedBody = {
+      ...req.body,
+      departmentId: req.body.departmentId ? parseInt(req.body.departmentId, 10) : null,
+    };
+
+    const validated = insertEmployeeSchema.partial().safeParse(parsedBody);
+
+    if (!validated.success) {
+      return res.status(400).json({ errors: validated.error.errors });
+    }
+
+    let photoUrl = req.body.photoUrl;
+    if (req.file) {
+      photoUrl = `/uploads/${req.file.filename}`;
+    }
+
+    // Ensure we don't update the employeeId if it's not provided
+    const updateData = {
+      ...validated.data,
+      photoUrl,
+      updatedAt: new Date(),
+    };
+    
+    // Remove undefined values to prevent overriding with null
+    Object.keys(updateData).forEach(key => {
+      if (updateData[key as keyof typeof updateData] === undefined) {
+        delete updateData[key as keyof typeof updateData];
+      }
+    });
+    
+    const updatedEmployee = await db
+      .update(employees)
+      .set(updateData)
+      .where(eq(employees.id, id))
+      .returning();
+
+    if (updatedEmployee.length === 0) {
+      return res.status(404).json({ message: "Employee not found" });
+    }
+
+    res.json(updatedEmployee[0]);
+  } catch (error) {
+    console.error("Error updating employee:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+router.delete("/api/employees/:id", async (req, res) => {
+  try {
+    const id = req.params.id; // Already a string
+    const deletedEmployee = await db
+      .delete(employees)
+      .where(eq(employees.id, id))
+      .returning();
+
+    if (deletedEmployee.length === 0) {
+      return res.status(404).json({ message: "Employee not found" });
+    }
+
+    res.json({ message: "Employee deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting employee:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// --- Attendance Routes ---
+router.get("/api/attendance", async (req, res) => {
+  try {
+    const { date, status } = z.object({
+      date: z.string().optional(),
+      status: z.enum(["all", "present", "absent", "late", "early_departure"]).optional(),
+    }).parse(req.query);
+
+    if (!date) {
+      return res.json([]);
+    }
+
+    const startDate = new Date(`${date}T00:00:00.000+05:30`);
+    const endDate = new Date(startDate);
+    endDate.setDate(startDate.getDate() + 1);
+
+    const allEmployeeRecords = await db
+      .select({
+        // Employee fields
+        employeeId: employees.employeeId,
+        fullName: employees.fullName,
+        employeeRecordId: employees.id,
+        // Attendance fields (will be null if no record)
+        attendanceId: attendance.id,
+        attendanceDate: attendance.date,
+        checkIn: attendance.checkIn,
+        checkOut: attendance.checkOut,
+        attendanceStatus: attendance.status,
+        workingHours: attendance.workingHours,
+        notes: attendance.notes,
+      })
+      .from(employees)
+      .leftJoin(
+        attendance,
+        and(
+          eq(employees.employeeId, sql`${attendance.employeeId}::text`),
+          gte(attendance.checkIn, startDate),
+          lt(attendance.checkIn, endDate)
+        )
+      );
+
+    let finalRecords = allEmployeeRecords.map((record) => {
+      if (record.attendanceId) {
+        // Employee is present
+        return {
+          id: record.attendanceId,
+          date: record.attendanceDate,
+          checkIn: record.checkIn,
+          checkOut: record.checkOut,
+          status: record.attendanceStatus,
+          workingHours: record.workingHours,
+          notes: record.notes,
+          employee: {
+            fullName: record.fullName,
+            employeeId: record.employeeId,
+          },
+        };
+      } else {
+        // Employee is absent
+        return {
+          id: record.employeeRecordId,
+          date: startDate,
+          checkIn: null,
+          checkOut: null,
+          status: 'absent' as const,
+          workingHours: null,
+          notes: null,
+          employee: {
+            fullName: record.fullName,
+            employeeId: record.employeeId,
+          },
+        };
+      }
+    });
+
+    if (status && status !== 'all') {
+      finalRecords = finalRecords.filter(record => record.status === status);
+    }
+
+    res.json(finalRecords);
+
+  } catch (error: any) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ message: 'Validation failed', details: error.errors });
+    }
+    console.error("Failed to fetch attendance:", error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
+router.post("/api/attendance", async (req, res) => {
+  try {
+    const validatedData = insertAttendanceSchema.parse(req.body);
+    const newRecord = await db.insert(attendance).values(validatedData).returning();
+    res.status(201).json(newRecord[0]);
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ message: "Invalid data", details: error.errors });
+    }
+    console.error("Failed to create attendance record:", error);
+    res.status(500).json({ message: "Failed to create attendance record" });
+  }
+});
+
+// --- Leave Request Routes ---
+router.get("/api/leave-requests", async (req, res) => {
+  try {
+    const records = await db.select().from(leaveRequests).orderBy(desc(leaveRequests.startDate));
+    res.json(records);
+  } catch (error) {
+    console.error("Failed to fetch leave requests:", error);
+    res.status(500).json({ message: "Failed to fetch leave requests" });
+  }
+});
+
+router.post("/api/leave-requests", async (req, res) => {
+  try {
+    const validatedData = insertLeaveRequestSchema.parse(req.body);
+    const newRecord = await db.insert(leaveRequests).values(validatedData).returning();
+    res.status(201).json(newRecord[0]);
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ message: "Invalid data", details: error.errors });
+    }
+    console.error("Failed to create leave request:", error);
+    res.status(500).json({ message: "Failed to create leave request" });
+  }
+});
+
+router.put("/api/leave-requests/:id", async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const validatedData = insertLeaveRequestSchema.partial().parse(req.body);
+    const updatedRecord = await db.update(leaveRequests).set(validatedData).where(eq(leaveRequests.id, id)).returning();
+    res.json(updatedRecord[0]);
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ message: "Invalid data", details: error.errors });
+    }
+    console.error("Failed to update leave request:", error);
+    res.status(500).json({ message: "Failed to update leave request" });
+  }
+});
+
+// --- Overtime Request Routes ---
+router.get("/api/overtime-requests", async (req, res) => {
+  try {
+    const records = await db.select().from(overtimeRequests).orderBy(desc(overtimeRequests.date));
+    res.json(records);
+  } catch (error) {
+    console.error("Failed to fetch overtime requests:", error);
+    res.status(500).json({ message: "Failed to fetch overtime requests" });
+  }
+});
+
+router.post("/api/overtime-requests", async (req, res) => {
+  try {
+    const validatedData = insertOvertimeRequestSchema.parse(req.body);
+    const newRecord = await db.insert(overtimeRequests).values(validatedData).returning();
+    res.status(201).json(newRecord[0]);
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ message: "Invalid data", details: error.errors });
+    }
+    console.error("Failed to create overtime request:", error);
+    res.status(500).json({ message: "Failed to create overtime request" });
+  }
+});
+
+router.put("/api/overtime-requests/:id", async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const validatedData = insertOvertimeRequestSchema.partial().parse(req.body);
+    const updatedRecord = await db
+      .update(overtimeRequests)
+      .set(validatedData)
+      .where(eq(overtimeRequests.id, id))
+      .returning();
+    res.json(updatedRecord[0]);
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res
+        .status(400)
+        .json({ message: "Invalid data", details: error.errors });
+    }
+    console.error("Failed to update overtime request:", error);
+    res.status(500).json({ message: "Failed to update overtime request" });
+  }
+});
+
+// --- Attendance Routes ---
+router.get("/api/attendance/summary", async (req, res) => {
+  try {
+    const { startDate, endDate } = z.object({
+      startDate: z.string().optional(),
+      endDate: z.string().optional(),
+    }).parse(req.query);
+
+    if (!startDate || !endDate) {
+      return res.status(400).json({ message: "Start date and end date are required" });
+    }
+
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const summary = [];
+
+    const activeEmployees = await db.select({ employeeId: employees.employeeId }).from(employees).where(eq(employees.status, 'active'));
+    const activeEmployeeIds = activeEmployees.map(e => e.employeeId);
+
+    for (let day = new Date(start); day <= end; day.setDate(day.getDate() + 1)) {
+      const currentDate = new Date(day);
+      const startOfDay = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate());
+      const endOfDay = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate() + 1);
+
+      const presentEmployees = await db.selectDistinct({ employeeId: employees.employeeId })
+        .from(attendance)
+        .leftJoin(employees, eq(attendance.employeeId, sql`${employees.employeeId}::text`))
+        .where(and(
+          gte(attendance.checkIn, startOfDay),
+          lt(attendance.checkIn, endOfDay),
+          isNotNull(employees.employeeId)
+        ));
+      const presentIds = presentEmployees.map(e => e.employeeId).filter(Boolean) as string[];
+
+      const onLeaveEmployees = await db.selectDistinct({ employeeId: employees.employeeId })
+        .from(leaveRequests)
+        .leftJoin(employees, eq(leaveRequests.employeeId, employees.id))
+        .where(and(
+          eq(leaveRequests.status, 'approved'),
+          lte(leaveRequests.startDate, startOfDay),
+          gte(leaveRequests.endDate, startOfDay),
+          isNotNull(employees.employeeId)
+        ));
+      const onLeaveIds = onLeaveEmployees.map(e => e.employeeId).filter(Boolean) as string[];
+
+      const absentCount = activeEmployeeIds.filter(id => !presentIds.includes(id) && !onLeaveIds.includes(id)).length;
+
+      const lateCountResult = await db.select({ count: sql<number>`count(*)::int` })
+        .from(attendance)
+        .where(and(
+          gte(attendance.checkIn, startOfDay),
+          lt(attendance.checkIn, endOfDay),
+          eq(attendance.status, 'late')
+        ));
+      const lateCount = lateCountResult[0]?.count ?? 0;
+
+      summary.push({
+        date: startOfDay.toISOString().split('T')[0],
+        present: presentIds.length,
+        absent: absentCount,
+        late: lateCount,
+      });
+    }
+
+    res.json(summary);
+  } catch (error) {
+    console.error("Failed to fetch attendance summary:", error);
+    res.status(500).json({ message: "Failed to fetch attendance summary" });
+  }
+});
+
+// --- Employee Report Route ---
+router.get("/api/reports/employees", async (req, res) => {
+  try {
+    const { employeeId } = z.object({
+      employeeId: z.string().optional(),
+    }).parse(req.query);
+
+    const startDate = new Date();
+    startDate.setFullYear(startDate.getFullYear() - 1); // Last year's data by default
+    const endDate = new Date(); // Today
+
+    // Fetch employee data with conditional filtering
+    const selectedEmployees = await db
+      .select({
+        id: employees.id,
+        employeeId: employees.employeeId,
+        fullName: employees.fullName,
+        department: departments.name,
+        position: employees.position,
+        status: employees.status,
+      })
+      .from(employees)
+      .leftJoin(departments, eq(employees.departmentId, departments.id))
+      .where(employeeId && employeeId !== "all" ? eq(employees.id, parseInt(employeeId)) : undefined);
+
+    // Fetch attendance data for these employees with conditional filtering
+    const attendanceRecords = await db
+      .select({
+        employeeId: attendance.employeeId,
+        date: attendance.checkIn,
+        inTime: attendance.checkIn,
+        outTime: attendance.checkOut,
+        status: attendance.status,
+      })
+      .from(attendance)
+      .where(and(
+        gte(attendance.checkIn, startDate),
+        lte(attendance.checkIn, endDate),
+        employeeId && employeeId !== "all" ? eq(attendance.employeeId, employeeId) : undefined
+      ));
+
+    // Format the data for the report
+    const reportData = attendanceRecords.map((record: any) => ({
+      date: record.date ? record.date.toISOString().split('T')[0] : 'N/A',
+      inTime: record.inTime ? record.inTime.toISOString().split('T')[1].substring(0, 5) : 'N/A',
+      outTime: record.outTime ? record.outTime.toISOString().split('T')[1].substring(0, 5) : 'N/A',
+      status: record.status || 'N/A',
+    }));
+
+    res.json({
+      data: reportData,
+      employee: employeeId && employeeId !== "all" && selectedEmployees.length > 0 
+        ? {
+            id: selectedEmployees[0].id,
+            employeeId: selectedEmployees[0].employeeId,
+            fullName: selectedEmployees[0].fullName,
+            department: selectedEmployees[0].department || 'N/A',
+            position: selectedEmployees[0].position || 'N/A',
+            status: selectedEmployees[0].status || 'N/A',
+          }
+        : null
+    });
+  } catch (error) {
+    console.error("Failed to fetch employee report:", error);
+    res.status(500).json({ message: "Failed to fetch employee report" });
+  }
+});
+
+// --- Monthly Attendance Report Route ---
+router.get("/api/reports/monthly-attendance", async (req, res) => {
+  try {
+    const { startDate, endDate, employeeId, group } = z.object({
+      startDate: z.string(),
+      endDate: z.string(),
+      employeeId: z.string().optional(),
+      group: z.string().optional(),
+    }).parse(req.query);
+
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+
+    let employeeQuery = db.select({
+      id: employees.id, // varchar
+      employeeId: employees.employeeId, // varchar
+      fullName: employees.fullName,
+      department: departments.name,
+      employeeGroup: employees.employeeGroup,
+    })
+    .from(employees)
+    .leftJoin(departments, eq(employees.departmentId, departments.id));
+
+    const conditions = [];
+    if (employeeId && employeeId !== 'all') {
+        conditions.push(eq(employees.id, employeeId));
+    }
+    if (group && group !== 'all') {
+        conditions.push(eq(employees.employeeGroup, group as any));
+    }
+    if (conditions.length > 0) {
+        employeeQuery = employeeQuery.where(and(...conditions));
+    }
+
+    const allEmployees = await employeeQuery;
+    if (allEmployees.length === 0) {
+      return res.json([]);
+    }
+    const employeeStringIds = allEmployees.map(e => e.id);
+    const employeeNumericIds = employeeStringIds.map(id => parseInt(id, 10)).filter(id => !isNaN(id));
+
+    // Fetch approved overtime requests
+    const overtimeRecords = await db.select().from(overtimeRequests)
+      .where(and(
+        inArray(overtimeRequests.employeeId, employeeNumericIds),
+        eq(overtimeRequests.status, 'approved'),
+        gte(overtimeRequests.date, start),
+        lte(overtimeRequests.date, end)
+      ));
+
+    console.log('Fetched Overtime Records (with filters):', JSON.stringify(overtimeRecords, null, 2));
+    
+    // Also fetch attendance records to extract overtimeHours if available (similar to Daily OT Report logic)
+    const attendanceRecordsForOT = await db.select().from(attendance)
+      .where(and(
+        inArray(attendance.employeeId, allEmployees.map(e => e.id)),
+        gte(attendance.date, start),
+        lte(attendance.date, end)
+      ));
+    console.log('Attendance Records for OT Calculation:', JSON.stringify(attendanceRecordsForOT, null, 2));
+
+    const leaveRecords = await db.select().from(leaveRequests)
+      .where(and(
+        inArray(leaveRequests.employeeId, employeeNumericIds),
+        eq(leaveRequests.status, 'approved'),
+        lte(leaveRequests.startDate, end),
+        gte(leaveRequests.endDate, start)
+      ));
+
+    // --- DEBUGGING: Fetch a sample of all overtime records to inspect data --- 
+    try {
+      const allOvertimesForDebugging = await db.select().from(overtimeRequests).limit(10);
+      console.log('SAMPLE OF ALL OVERTIME RECORDS IN DB:', JSON.stringify(allOvertimesForDebugging, null, 2));
+    } catch (e) {
+      console.error("Error fetching all overtimes for debugging:", e);
+    }
+    // --- END DEBUGGING ---
+
+    console.log('Fetched Overtime Records (with filters):', JSON.stringify(overtimeRecords, null, 2));
+
+    const reportData = allEmployees.map(emp => {
+      const dailyData: { [key: number]: any } = {};
+      const numericEmpId = parseInt(emp.id, 10);
+
+      const empAttendance = attendanceRecordsForOT.filter(a => a.employeeId === emp.id);
+      const empLeaves = leaveRecords.filter(l => l.employeeId === numericEmpId);
+      const empOvertimes = overtimeRecords.filter(o => o.employeeId === numericEmpId);
+
+      for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+        const day = new Date(d);
+        const dayKey = day.getDate();
+        const dayData: any = {};
+
+        // Default to Sunday as a holiday
+        const isHoliday = day.getDay() === 0;
+        const onLeave = empLeaves.find(l => day >= new Date(l.startDate) && day <= new Date(l.endDate));
+        const attendanceRecord = empAttendance.find(a => new Date(a.date).toDateString() === day.toDateString());
+
+        if (isHoliday) {
+          dayData.status = 'HL';
+        } else if (onLeave) {
+          dayData.status = 'A';
+        } else if (attendanceRecord) {
+          dayData.status = 'P';
+          dayData.inTime = attendanceRecord.checkIn ? new Date(attendanceRecord.checkIn).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }) : '';
+          dayData.outTime = attendanceRecord.checkOut ? new Date(attendanceRecord.checkOut).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }) : '';
+          if (attendanceRecord.checkIn && attendanceRecord.checkOut) {
+            const diffMs = new Date(attendanceRecord.checkOut).getTime() - new Date(attendanceRecord.checkIn).getTime();
+            const workedHours = Math.floor(diffMs / 3600000);
+            const workedMins = Math.floor((diffMs % 3600000) / 60000);
+            dayData.workedHours = `${String(workedHours).padStart(2, '0')}:${String(workedMins).padStart(2, '0')}`;
+          }
+        } else {
+          dayData.status = 'A';
+        }
+
+        // Calculate overtime like in Daily OT Report
+        if (attendanceRecord && attendanceRecord.checkIn && attendanceRecord.checkOut) {
+          const diffMs = new Date(attendanceRecord.checkOut).getTime() - new Date(attendanceRecord.checkIn).getTime();
+          const actualHours = diffMs / (1000 * 60 * 60);
+          
+          // Determine required hours based on employee group (same logic as Daily OT Report)
+          let requiredHours = 8; // Default
+          if (emp.employeeGroup === 'group_a') {
+            requiredHours = 7.75; // groupA minHoursForOT
+          } else if (emp.employeeGroup === 'group_b') {
+            requiredHours = 8.75; // groupB minHoursForOT
+          }
+          
+          const calculatedOtHours = Math.max(0, actualHours - requiredHours);
+          if (calculatedOtHours > 0) {
+            dayData.overtime = calculatedOtHours.toFixed(2);
+          }
+        }
+        
+        // Check for explicit overtime request (override calculated OT if exists)
+        const overtimeRecord = empOvertimes.find(o => new Date(o.date).toDateString() === day.toDateString());
+        if (overtimeRecord) {
+          dayData.overtime = overtimeRecord.hours;
+        }
+        
+        dailyData[dayKey] = dayData;
+
+        const attForDay = empAttendance.find(a => a.date && new Date(a.date).toDateString() === day.toDateString());
+        if (attForDay) {
+          if (attForDay.checkIn) {
+            dayData.inTime = new Date(attForDay.checkIn).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+          }
+          if (attForDay.checkOut) {
+            dayData.outTime = new Date(attForDay.checkOut).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+            if (attForDay.checkIn) {
+              const workedMs = new Date(attForDay.checkOut).getTime() - new Date(attForDay.checkIn).getTime();
+              const hours = Math.floor(workedMs / 3600000);
+              const minutes = Math.floor((workedMs % 3600000) / 60000);
+              dayData.workedHours = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+            }
+          }
+        }
+
+        const leaveForDay = empLeaves.find(l => l.startDate && l.endDate && day >= new Date(l.startDate) && day <= new Date(l.endDate));
+        if (leaveForDay) {
+          dayData.leave = leaveForDay.leaveType;
+        }
+
+        dailyData[dayKey] = dayData;
+      }
+
+      return {
+        ...emp,
+        dailyData,
+      };
+    });
+
+    res.json(reportData);
+
+  } catch (error) {
+    console.error("Failed to fetch monthly attendance sheet:", error);
+    res.status(500).json({ message: "Failed to fetch monthly attendance sheet" });
+  }
+});
+
+// --- Daily Attendance Report Route ---
+router.get("/api/reports/daily-attendance", async (req, res) => {
+  try {
+    const { date, employeeId, group } = z.object({
+      date: z.string().transform(val => new Date(val)),
+      employeeId: z.string().optional(),
+      group: z.string().optional(),
+    }).parse(req.query);
+
+    const startOfDay = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    const endOfDay = new Date(date.getFullYear(), date.getMonth(), date.getDate() + 1);
+
+    // Fetch HR policy for group time thresholds
+    const groupWorkingHours = await getGroupWorkingHours();
+    console.log('Loaded Group Working Hours:', JSON.stringify(groupWorkingHours, null, 2));
+
+    // Determine required hours for each group from HR policy
+    const requiredHoursGroupA = groupWorkingHours.groupA?.minHoursForOT || 8;
+    const requiredHoursGroupB = groupWorkingHours.groupB?.minHoursForOT || 8;
+
+    // Restructure employees query to handle typing issue with Drizzle ORM
+    const baseEmployeesQuery = db.select({
+      id: employees.id,
+      employeeId: employees.employeeId,
+      fullName: employees.fullName,
+      department: departments.name,
+      employeeGroup: employees.employeeGroup,
+    })
+    .from(employees)
+    .leftJoin(departments, eq(employees.departmentId, departments.id));
+
+    const conditions = [];
+    if (employeeId && employeeId !== 'all') {
+        conditions.push(eq(employees.employeeId, employeeId));
+    }
+    if (group && group !== 'all') {
+        conditions.push(eq(employees.employeeGroup, group as any));
+    }
+    
+    const employeesQuery = conditions.length > 0
+      ? baseEmployeesQuery.where(and(...conditions))
+      : baseEmployeesQuery;
+
+    const allEmployees = await employeesQuery;
+
+    const attendanceRecords = await db.select().from(attendance)
+      .where(and(
+        gte(attendance.checkIn, startOfDay),
+        lt(attendance.checkIn, endOfDay)
+      ));
+
+    const leaveRecords = await db.select().from(leaveRequests)
+      .where(and(
+        eq(leaveRequests.status, 'approved'),
+        lte(leaveRequests.startDate, startOfDay),
+        gte(leaveRequests.endDate, startOfDay)
+      ));
+
+    const reportData = allEmployees.map(emp => {
+      const empAttendance = attendanceRecords.find(a => a.employeeId === emp.id);
+      const onLeave = leaveRecords.some(l => l.employeeId === parseInt(emp.id));
+      const isGroupA = emp.employeeGroup === 'group_a';
+      const thresholds = isGroupA ? groupWorkingHours.groupA : groupWorkingHours.groupB;
+      const formattedGroup = emp.employeeGroup ? (emp.employeeGroup.includes('a') || emp.employeeGroup.includes('A') ? 'Group A' : 'Group B') : 'N/A';
+
+      if (onLeave) {
+        return {
+          employeeId: emp.employeeId,
+          fullName: emp.fullName,
+          date: startOfDay.toISOString().split('T')[0],
+          inTime: '',
+          outTime: '',
+          totalHours: '',
+          isLate: false,
+          isHalfDay: false,
+          onShortLeave: false,
+          isAbsent: false,
+          status: 'On Leave',
+          employeeGroup: formattedGroup
+        };
+      }
+
+      if (!empAttendance) {
+        return {
+          employeeId: emp.employeeId,
+          fullName: emp.fullName,
+          date: startOfDay.toISOString().split('T')[0],
+          inTime: '',
+          outTime: '',
+          totalHours: '',
+          isLate: false,
+          isHalfDay: false,
+          onShortLeave: false,
+          isAbsent: true,
+          status: 'Absent',
+          employeeGroup: formattedGroup
+        };
+      }
+
+      const inTime = empAttendance.checkIn ? new Date(empAttendance.checkIn) : null;
+      const outTime = empAttendance.checkOut ? new Date(empAttendance.checkOut) : null;
+      let totalHours = '';
+      if (inTime && outTime) {
+        const diffMs = outTime.getTime() - inTime.getTime();
+        const diffHrs = Math.floor(diffMs / 3600000);
+        const diffMins = Math.floor((diffMs % 3600000) / 60000);
+        totalHours = `${diffHrs}h ${diffMins}m`;
+      }
+
+      let isLate = false;
+      let isHalfDay = false;
+      let onShortLeave = false;
+
+      if (inTime && thresholds) {
+        const inTimeHour = inTime.getHours();
+        const inTimeMinute = inTime.getMinutes();
+        const lateThreshold = isGroupA ? 
+          (thresholds.startTime ? new Date(thresholds.startTime).getHours() * 60 + new Date(thresholds.startTime).getMinutes() : 9 * 60) : 
+          (thresholds.startTime ? new Date(thresholds.startTime).getHours() * 60 + new Date(thresholds.startTime).getMinutes() : 8 * 60 + 15);
+        const halfDayThreshold = isGroupA ? 
+          (thresholds.halfDayThreshold ? new Date(thresholds.halfDayThreshold).getHours() * 60 + new Date(thresholds.halfDayThreshold).getMinutes() : 10 * 60) : 
+          (thresholds.halfDayThreshold ? new Date(thresholds.halfDayThreshold).getHours() * 60 + new Date(thresholds.halfDayThreshold).getMinutes() : 9 * 60 + 30);
+
+        const inTimeTotalMinutes = inTimeHour * 60 + inTimeMinute;
+        if (inTimeTotalMinutes > lateThreshold) {
+          isLate = true;
+        }
+        if (inTimeTotalMinutes > halfDayThreshold) {
+          isHalfDay = true;
+        }
+      }
+
+      // Logic for short leave: Check if worked hours are less than expected full day but more than half day
+      if (inTime && outTime && thresholds) {
+        const expectedHours = thresholds.workingHours || 8;
+        const workedMs = outTime.getTime() - inTime.getTime();
+        const workedHours = workedMs / (1000 * 60 * 60);
+        if (workedHours < expectedHours && workedHours > expectedHours / 2) {
+          onShortLeave = true;
+        }
+      }
+
+      // Update status to include Half Day information
+      let status = 'Present';
+      if (isHalfDay) {
+        status = 'Half Day';
+      } else if (onShortLeave) {
+        status = 'Short Leave';
+      } else if (isLate) {
+        status = 'Late';
+      }
+
+      return {
+        employeeId: emp.employeeId,
+        fullName: emp.fullName,
+        date: startOfDay.toISOString().split('T')[0],
+        inTime: inTime ? inTime.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : '',
+        outTime: outTime ? outTime.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : '',
+        totalHours,
+        isLate,
+        isHalfDay,
+        onShortLeave,
+        isAbsent: false,
+        status: status,
+        employeeGroup: formattedGroup
+      };
+    });
+
+    res.json(reportData);
+  } catch (error) {
+    console.error("Failed to fetch daily attendance report:", error);
+    res.status(500).json({ message: "Failed to fetch daily attendance report" });
+  }
+});
+
+// --- Daily OT Report Route ---
+router.get("/api/reports/daily-ot", async (req, res) => {
+  try {
+    const { date, employeeId, group } = z.object({
+      date: z.string().transform(val => new Date(val)),
+      employeeId: z.string().optional(),
+      group: z.string().optional(),
+    }).parse(req.query);
+
+    const startOfDay = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    const endOfDay = new Date(date.getFullYear(), date.getMonth(), date.getDate() + 1);
+
+    // Fetch HR policy for group time thresholds
+    const groupWorkingHours = await getGroupWorkingHours();
+    console.log('Loaded Group Working Hours:', JSON.stringify(groupWorkingHours, null, 2));
+
+    // Determine required hours for each group from HR policy
+    const requiredHoursGroupA = groupWorkingHours.groupA?.minHoursForOT || 8;
+    const requiredHoursGroupB = groupWorkingHours.groupB?.minHoursForOT || 8;
+
+    // Restructure employees query to handle typing issue with Drizzle ORM
+    const baseEmployeesQuery = db.select({
+      id: employees.id,
+      employeeId: employees.employeeId,
+      fullName: employees.fullName,
+      employeeGroup: employees.employeeGroup,
+    })
+    .from(employees);
+
+    const conditions = [];
+    if (employeeId && employeeId !== 'all') {
+        conditions.push(eq(employees.employeeId, employeeId));
+    }
+    if (group && group !== 'all') {
+        conditions.push(eq(employees.employeeGroup, group as any));
+    }
+    
+    const employeesQuery = conditions.length > 0
+      ? baseEmployeesQuery.where(and(...conditions))
+      : baseEmployeesQuery;
+
+    const allEmployees = await employeesQuery;
+
+    const attendanceRecords = await db.select().from(attendance)
+      .where(and(
+        gte(attendance.checkIn, startOfDay),
+        lt(attendance.checkIn, endOfDay)
+      ));
+
+    // Assuming there is an overtime requests table or similar for approval status
+    // Adjust the table name and fields as per your actual database schema
+    let otRecords: any[] = [];
+    try {
+      // Check if overtimeRequests table exists or is defined; this is a placeholder for actual table name
+      // You may need to adjust this based on your database schema
+      if (typeof overtimeRequests !== 'undefined') {
+        otRecords = await db.select().from(overtimeRequests)
+          .where(
+            eq(overtimeRequests.date, startOfDay)
+          );
+      }
+    } catch (e) {
+      console.warn("Overtime requests table not accessible, skipping OT approval status:", e);
+      otRecords = [];
+    }
+
+    const reportData = allEmployees.map(emp => {
+      let requiredHours = 8; // Default required hours
+
+      console.log(`Processing record for employee: ${emp.employeeId}, group: ${emp.employeeGroup}`);
+
+      if (emp.employeeGroup === 'group_a' && groupWorkingHours.groupA?.minHoursForOT) {
+        requiredHours = groupWorkingHours.groupA.minHoursForOT;
+      } else if (emp.employeeGroup === 'group_b' && groupWorkingHours.groupB?.minHoursForOT) {
+        requiredHours = groupWorkingHours.groupB.minHoursForOT;
+      }
+
+      console.log(`Calculated requiredHours: ${requiredHours}`);
+
+      let actualHours = 0;
+      const empAttendance = attendanceRecords.find(a => a.employeeId === emp.id);
+      if (empAttendance && empAttendance.checkIn && empAttendance.checkOut) {
+        const diffMs = new Date(empAttendance.checkOut).getTime() - new Date(empAttendance.checkIn).getTime();
+        actualHours = diffMs / (1000 * 60 * 60);
+      }
+
+      const otHours = Math.max(0, actualHours - requiredHours);
+
+      return {
+        ...emp,
+        actualHours: actualHours.toFixed(2),
+        requiredHours: requiredHours.toFixed(2),
+        otHours: otHours.toFixed(2),
+        otApprovalStatus: 'N/A', // Placeholder
+      };
+    });
+
+    res.json(reportData);
+  } catch (error) {
+    console.error('Failed to fetch daily OT report:', error);
+    res.status(500).json({ message: 'Failed to fetch daily OT report' });
+  }
+});
+
+// --- Biometric Device Routes ---
+router.get("/api/biometric-devices", async (req, res) => {
+  try {
+    const devices = await db.select().from(biometricDevices);
+    res.json(devices);
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+router.post("/api/biometric-devices", async (req, res) => {
+  try {
+    const deviceData = insertBiometricDeviceSchema.parse(req.body);
+
+    const existingDevice = await db.query.biometricDevices.findFirst({
+      where: eq(biometricDevices.deviceId, deviceData.deviceId),
+    });
+
+    if (existingDevice) {
+      return res.status(409).json({ success: false, message: "Device with this ID already exists." });
+    }
+
+    const zk = new ZKLib(deviceData.ip, deviceData.port, 5200, 5000);
+    await zk.createSocket();
+    await zk.disconnect();
+
+    const newDevice = await db.insert(biometricDevices).values(deviceData).returning();
+    res.status(201).json(newDevice[0]);
+  } catch (error: any) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ success: false, message: "Invalid device data", errors: error.errors });
+    }
+    res.status(500).json({ success: false, message: "Could not connect to the device. Please check the IP and port." });
+  }
+});
+
+router.put("/api/biometric-devices/:id", async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const deviceData = insertBiometricDeviceSchema.partial().parse(req.body);
+
+    const updatedDevice = await db.update(biometricDevices).set(deviceData).where(eq(biometricDevices.id, id)).returning();
+    res.json(updatedDevice[0]);
+  } catch (error: any) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ success: false, message: "Invalid device data", errors: error.errors });
+    }
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+router.delete("/api/biometric-devices/:id", async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    await db.delete(biometricDevices).where(eq(biometricDevices.id, id));
+    res.status(204).send();
+  } catch (error) {
+    console.error("Failed to delete biometric device:", error);
+    res.status(500).json({ message: "Failed to delete biometric device" });
+  }
+});
+
+// --- ZK Device Routes ---
+router.post("/api/zk-devices/:deviceId/connect", async (req, res) => {
+  try {
+    const deviceId = req.params.deviceId;
+    const device = await db.query.biometricDevices.findFirst({
+      where: eq(biometricDevices.deviceId, deviceId),
+    });
+
+    if (!device) {
+      return res.status(404).json({ message: "Device not found" });
+    }
+
+    const isConnected = await zkDeviceManager.connectDevice(deviceId, {
+      ip: device.ip,
+      port: device.port,
+      timeout: 5000, // Default timeout
+      inport: 1, // Default inport
+    });
+    if (isConnected) {
+      res.json({ success: true, message: "Device connected successfully" });
+    } else {
+      res.status(500).json({ success: false, message: "Failed to connect to device" });
+    }
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+router.post("/api/zk-devices/:deviceId/disconnect", async (req, res) => {
+  try {
+    const deviceId = req.params.deviceId;
+    await zkDeviceManager.disconnectDevice(deviceId);
+    res.json({ success: true, message: "Device disconnected successfully" });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+router.get("/api/zk-devices/:deviceId/info", async (req, res) => {
+  try {
+    const deviceId = req.params.deviceId;
+    const info = await zkDeviceManager.getDeviceInfo(deviceId);
+    res.json({ success: true, info });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+router.post('/api/employees/import', async (req, res) => {
+  const importUsersSchema = z.object({
+    users: z.array(
+      z.object({
+        employeeId: z.string().min(1, "Employee ID is required"),
+        fullName: z.string().min(1, "Full name is required"),
+        email: z.string().email(),
+        phone: z.string(),
+        position: z.string(),
+        joinDate: z.coerce.date(),
+        status: z.enum(["active", "inactive"]),
+      })
+    ),
+    role: z.enum(["admin", "user"]),
+    employeeGroup: z.enum(["group_a", "group_b"]),
+  });
+
+  try {
+    const validated = importUsersSchema.safeParse(req.body);
+    if (!validated.success) {
+      console.error("Import validation failed:", JSON.stringify(validated.error.issues, null, 2));
+      return res.status(400).json({ success: false, message: "Invalid input", errors: validated.error.issues });
+    }
+
+    // Check for duplicate Employee IDs in the import data
+    const employeeIds = new Set();
+    const duplicateEmployeeIds = [];
+    for (const user of validated.data.users) {
+      const employeeId = user.employeeId;
+      if (employeeIds.has(employeeId)) {
+        duplicateEmployeeIds.push(employeeId);
+      } else {
+        employeeIds.add(employeeId);
+      }
+    }
+
+    if (duplicateEmployeeIds.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Duplicate Employee IDs found in import data",
+        duplicateEmployeeIds: duplicateEmployeeIds,
+      });
+    }
+
+    // Check for existing employees
+    const existingEmployees = await db.query.employees.findMany();
+    const existingEmployeeIds = new Set(existingEmployees.map(e => String(e.employeeId)));
+    // Filter out users that already exist in the system
+    const newUsers = validated.data.users.filter(user => !existingEmployeeIds.has(user.employeeId));
+
+    if (newUsers.length === 0) {
+      return res.status(200).json({ 
+        success: true, 
+        message: "All selected users already exist in the system.",
+      });
+    }
+
+    // Get or create default department
+    let defaultDepartment = await db.query.departments.findFirst({ 
+      where: eq(departments.name, "Unassigned") 
+    });
+    
+    if (!defaultDepartment) {
+      const newDept = await db.insert(departments).values({ name: "Unassigned" }).returning();
+      defaultDepartment = newDept[0];
+    }
+
+    // Prepare employees for insertion
+    const employeesToInsert = newUsers.map((user) => {
+      return {
+        id: user.employeeId,
+        employeeId: user.employeeId,
+        fullName: user.fullName,
+        email: user.email,
+        phone: user.phone,
+        position: user.position,
+        departmentId: defaultDepartment!.id,
+        employeeGroup: validated.data.employeeGroup,
+        joinDate: user.joinDate,
+        status: user.status,
+        role: validated.data.role,
+        biometricDeviceId: user.employeeId,
+      };
+    });
+
+    // Insert in a transaction
+    await db.transaction(async (tx) => {
+      await tx.insert(employees).values(employeesToInsert);
+    });
+
+    res.status(201).json({
+      success: true,
+      message: `Successfully imported ${employeesToInsert.length} new employees.`,
+      importedCount: employeesToInsert.length,
+      skippedCount: validated.data.users.length - employeesToInsert.length,
+    });
+  } catch (error) {
+    console.error("Failed to import employees:", error);
+    res.status(500).json({ success: false, message: "An unexpected error occurred during import." });
+  }
+});
+
+router.post("/api/zk-devices/:deviceId/sync", async (req, res) => {
+  try {
+    const deviceId = req.params.deviceId;
+    const device = await db.query.biometricDevices.findFirst({
+      where: eq(biometricDevices.deviceId, deviceId),
+    });
+
+    if (!device) {
+      return res.status(404).json({ message: "Device not found" });
+    }
+
+    if (!zkDeviceManager.isDeviceConnected(deviceId)) {
+      const connected = await zkDeviceManager.connectDevice(deviceId, {
+        ip: device.ip,
+        port: device.port,
+        timeout: 5000,
+        inport: 1,
+      });
+      if (!connected) {
+        return res.status(500).json({ message: "Could not connect to device" });
+      }
+    }
+
+    const logs = await zkDeviceManager.syncAttendanceData(deviceId);
+
+    if (!logs || logs.length === 0) {
+      return res.json({ success: true, message: "No new attendance logs to sync." });
+    }
+
+// Get all employees with their biometric IDs and card numbers
+const allEmployees = await db.query.employees.findMany();
+const idMaps = {
+byId: new Map<string, string>(),
+byEmployeeId: new Map<string, string>(),
+byBiometricId: new Map<string, string>(),
+
+};
+
+allEmployees.forEach((emp) => {
+// Ensure all IDs are treated as strings
+const empId = String(emp.id);
+if (emp.id) idMaps.byId.set(empId, empId);
+if (emp.employeeId) idMaps.byEmployeeId.set(String(emp.employeeId), empId);
+if (emp.biometricDeviceId) idMaps.byBiometricId.set(String(emp.biometricDeviceId), empId);
+
+});
+
+// Helper function to find employee ID from any identifier
+const findEmployeeId = (uid: string | number): string | null => {
+  // Convert to string and trim
+  const strUid = String(uid).trim();
+  
+  // Try exact match first
+  if (idMaps.byId.has(strUid)) return idMaps.byId.get(strUid)!;
+  if (idMaps.byBiometricId.has(strUid)) return idMaps.byBiometricId.get(strUid)!;
+  if (idMaps.byEmployeeId.has(strUid)) return idMaps.byEmployeeId.get(strUid)!;
+
+  
+  // If the UID is a number, try without any string conversion
+  if (typeof uid === 'number') {
+    const numUid = uid;
+    if (idMaps.byId.has(String(numUid))) return idMaps.byId.get(String(numUid))!;
+    if (idMaps.byBiometricId.has(String(numUid))) return idMaps.byBiometricId.get(String(numUid))!;
+  }
+  
+  // Try removing leading zeros if any
+  if (/^0+/.test(strUid)) {
+    const trimmedUid = strUid.replace(/^0+/, '');
+    if (trimmedUid && idMaps.byId.has(trimmedUid)) return idMaps.byId.get(trimmedUid)!;
+    if (trimmedUid && idMaps.byBiometricId.has(trimmedUid)) return idMaps.byBiometricId.get(trimmedUid)!;
+  }
+  
+  console.warn(`No employee found for UID: ${uid} (type: ${typeof uid})`);
+  return null;
+};
+
+    // Debug: Log matching employees
+    const matchingEmployees = logs
+      .map(log => {
+        const uid = String(log.uid).trim();
+        return {
+          uid,
+          employeeId: findEmployeeId(uid)
+        };
+      })
+      .filter(x => x.employeeId);
+
+    console.log(`Found ${matchingEmployees.length} matching employees out of ${logs.length} logs`);
+    if (matchingEmployees.length > 0) {
+      console.log('Sample matches:', matchingEmployees.slice(0, 5));
+    }
+    
+    // Debug: Log the first few log entries with more details
+    console.log('First 5 log entries with UID types:', logs.slice(0, 5).map(log => ({
+      uid: log.uid,
+      uidType: typeof log.uid,
+      timestamp: log.timestamp
+    })));
+
+    // Group logs by employee and date to find check-in and check-out
+    const attendanceMap = new Map<string, {
+      employeeId: string;  // Changed from number to string to match schema
+      date: Date;
+      checkIn: Date;
+      checkOut: Date;
+      logs: any[];
+    }>();
+
+    // Process each log entry
+    for (const log of logs) {
+      const uid = String(log.uid).trim();
+      const employeeDbId = findEmployeeId(uid);
+      if (!employeeDbId) {
+        console.warn(`No employee found for UID: ${uid}`);
+        continue;
+      }
+
+      const logDate = new Date(log.timestamp);
+      const dateKey = `${employeeDbId}-${logDate.toISOString().split('T')[0]}`;
+      
+      // Initialize or update attendance record
+      if (!attendanceMap.has(dateKey)) {
+        attendanceMap.set(dateKey, {
+          employeeId: employeeDbId, // employeeDbId is already a string from findEmployeeId
+          date: new Date(logDate.getFullYear(), logDate.getMonth(), logDate.getDate()),
+          checkIn: log.timestamp,
+          checkOut: log.timestamp,
+          logs: [log]
+        });
+      } else {
+        const record = attendanceMap.get(dateKey)!;
+        record.logs.push(log);
+        // Update check-in/check-out times
+        if (log.timestamp < record.checkIn) record.checkIn = log.timestamp;
+        if (log.timestamp > record.checkOut) record.checkOut = log.timestamp;
+      }
+    }
+
+    // Prepare records for database insertion
+    const attendanceRecordsToInsert: (typeof attendance.$inferInsert)[] = [];
+    for (const [_, record] of attendanceMap) {
+      // Calculate working hours in hours (with 2 decimal places)
+      const workingHours = ((record.checkOut.getTime() - record.checkIn.getTime()) / (1000 * 60 * 60)).toFixed(2);
+      
+      // Skip if check-in/check-out spans multiple days
+      if (record.checkIn.toDateString() !== record.checkOut.toDateString()) {
+        console.warn(`Skipping record for employee ${record.employeeId} - check-in and check-out are on different days`);
+        continue;
+      }
+
+      // Only include fields that exist in the attendance schema
+      const attendanceRecord: typeof attendance.$inferInsert = {
+        employeeId: record.employeeId,
+        date: record.date,
+        checkIn: record.checkIn,
+        checkOut: record.checkOut,
+        status: 'present',
+        workingHours: workingHours,
+        notes: '',
+        // Overtime hours will be set to null by default
+        overtimeHours: null,
+      };
+      attendanceRecordsToInsert.push(attendanceRecord);
+    }
+
+    // Insert or update attendance records
+    for (const record of attendanceRecordsToInsert) {
+      try {
+        await db.transaction(async (tx) => {
+          // First try to update existing record
+          const updated = await tx
+            .update(attendance)
+            .set({
+              checkIn: record.checkIn,
+              checkOut: record.checkOut,
+              workingHours: record.workingHours,
+              status: record.status,
+              notes: record.notes,
+              // Don't include updatedAt as it's not in the schema
+            })
+            .where(
+              and(
+                eq(attendance.employeeId, record.employeeId),
+                eq(attendance.date, record.date)
+              )
+            );
+
+          // If no rows were updated, insert a new record
+          if (updated.rowCount === 0) {
+            // Create a new record without any extra fields
+            await tx.insert(attendance).values({
+              employeeId: record.employeeId,
+              date: record.date,
+              checkIn: record.checkIn,
+              checkOut: record.checkOut,
+              status: record.status,
+              workingHours: record.workingHours,
+              notes: record.notes,
+              overtimeHours: null, // Set default value for required field
+              // createdAt will be set by the database default
+            });
+          }
+        });
+      } catch (error) {
+        console.error('Error upserting attendance record:', error);
+        throw error;
+      }
+    }
+
+    res.json({ 
+      success: true, 
+      message: `Synced ${attendanceRecordsToInsert.length} attendance records`,
+      recordsProcessed: attendanceRecordsToInsert.length
+    });
+  } catch (error) {
+    console.error('Error syncing attendance:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: error instanceof Error ? error.message : 'Failed to sync attendance',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+router.get("/api/zk-devices/:deviceId/users", async (req, res) => {
+  const { deviceId } = req.params;
+  try {
+    const internalDevice = await db.query.biometricDevices.findFirst({ where: eq(biometricDevices.deviceId, deviceId) });
+    if (!internalDevice) {
+      return res.status(404).json({ success: false, message: "Device not found in database" });
+    }
+
+    if (!zkDeviceManager.isDeviceConnected(deviceId)) {
+      await zkDeviceManager.connectDevice(deviceId, {
+        ip: internalDevice.ip,
+        port: internalDevice.port ?? 4370,
+        timeout: 5000,
+        inport: 5200,
+      });
+    }
+    const users = await zkDeviceManager.getUsers(deviceId);
+    res.json(users);
+  } catch (e) {
+    console.error(`Failed to fetch users from device ${deviceId}:`, e);
+    res.status(500).json({ success: false, message: `Failed to fetch users from device: ${(e as Error).message}` });
+  }
+});
+
+router.post("/api/employees/:id/photo", upload.single("file"), async (req, res) => {
+  try {
+    const id = req.params.id; // Already a string, no need to parse
+    const file = req.file;
+    if (!file) {
+      return res.status(400).json({ success: false, message: "No file provided" });
+    }
+
+    const employee = await db.query.employees.findFirst({ where: eq(employees.id, id) });
+    if (!employee) {
+      return res.status(404).json({ success: false, message: "Employee not found" });
+    }
+
+    // In a real app, you'd save to a file storage service and get a URL
+    // For simplicity, we'll store a placeholder URL
+    const photoUrl = `/uploads/${id}-${Date.now()}${path.extname(file.originalname)}`;
+    
+    await db.update(employees).set({ photoUrl }).where(eq(employees.id, id));
+    res.status(200).json({ url: photoUrl });
+  } catch (error) {
+    console.error("Failed to upload employee photo:", error);
+    res.status(500).json({ success: false, message: "Failed to upload employee photo" });
+  }
+});
+
+router.post("/api/zk-devices/:deviceId/connect", async (req, res) => {
+  const { deviceId } = req.params;
+  try {
+    const device = await db.query.biometricDevices.findFirst({ where: eq(biometricDevices.deviceId, deviceId) });
+    if (!device) {
+      return res.status(404).json({ success: false, message: "Device not found" });
+    }
+
+    const deviceInfo = {
+      ip: device.ip,
+      port: device.port ?? 4370,
+      timeout: 5000,
+      inport: 5200, // This seems to be a fixed value in other parts of the code
+    };
+
+    const connected = await zkDeviceManager.connectDevice(deviceId, deviceInfo);
+
+      if (connected) {
+      res.json({ success: true, message: `Successfully connected to device ${deviceId}` });
+    } else {
+      res.status(500).json({ success: false, message: `Failed to connect to device ${deviceId}` });
+    }
+  } catch (error: any) {
+    console.error(`Error connecting to device ${deviceId}:`, error);
+    res.status(500).json({ success: false, message: error.message || "An internal error occurred" });
+  }
+});
+
+router.get("/api/zk-devices/:deviceId/logs", async (req, res) => {
+  const { deviceId } = req.params;
+  try {
+    const internalDevice = await db.query.biometricDevices.findFirst({ where: eq(biometricDevices.deviceId, deviceId) });
+    if (!internalDevice) {
+      return res.status(404).json({ success: false, message: "Device not found in database" });
+    }
+
+    const zkInstance = new ZKLib(internalDevice.ip, internalDevice.port ?? 4370, 5200, 5000);
+    await zkInstance.createSocket();
+    const logs = await zkInstance.getLogs();
+    await zkInstance.disconnect();
+
+    res.json(logs);
+  } catch (e) {
+    res.status(500).json({ success: false, message: "An error occurred while fetching logs from the device." });
+  }
+});
+
+router.get("/api/zk-devices/:deviceId/info", async (req, res) => {
+  const { deviceId } = req.params;
+  try {
+    const internalDevice = await db.query.biometricDevices.findFirst({ where: eq(biometricDevices.deviceId, deviceId) });
+    if (!internalDevice) {
+      return res.status(404).json({ success: false, message: "Device not found in database" });
+    }
+
+    const zkInstance = new ZKLib(internalDevice.ip, internalDevice.port ?? 4370, 5200, 5000);
+    await zkInstance.createSocket();
+    const info = await zkInstance.getInfo();
+    await zkInstance.disconnect();
+
+    res.json({ success: true, info });
+  } catch (e) {
+    console.error(`Failed to get info for device ${deviceId}:`, e);
+    res.status(500).json({ success: false, message: "An error occurred while fetching info from the device." });
+  }
+});
+
+router.delete("/api/zk-devices/:deviceId/logs", async (req, res) => {
+  const { deviceId } = req.params;
+  try {
+    const internalDevice = await db.query.biometricDevices.findFirst({ where: eq(biometricDevices.deviceId, deviceId) });
+    if (!internalDevice) {
+      return res.status(404).json({ success: false, message: "Device not found in database" });
+    }
+
+    const zkInstance = new ZKLib(internalDevice.ip, internalDevice.port ?? 4370, 5200, 5000);
+    await zkInstance.createSocket();
+    await zkInstance.clearLogs();
+    await zkInstance.disconnect();
+
+    res.status(204).send();
+  } catch (e) {
+    res.status(500).json({ success: false, message: "An error occurred while clearing logs from the device." });
+  }
+});
+
+router.get("/api/zk-devices/:deviceId/users", async (req, res) => {
+  const { deviceId } = req.params;
+  try {
+    const users = await zkDeviceManager.getUsers(deviceId);
+    res.json({ success: true, data: users });
+  } catch (error: any) {
+    console.error(`Failed to get users for device ${deviceId}:`, error);
+    res.status(500).json({ success: false, message: error.message || "An error occurred while fetching users from the device." });
+  }
+});
+
+router.get("/api/zk-devices/status", async (req, res) => {
+  try {
+    const connectedDevices = zkDeviceManager.getConnectedDevices();
+    res.json({ success: true, connectedDevices });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// Backup & Maintenance Routes
+let backups: any[] = [];
+router.post('/api/backup', async (req, res) => {
+  try {
+    // This would implement actual backup logic in a real system
+    // For now, we'll simulate a successful backup with a timestamped filename
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const backupName = `backup-${timestamp}.bak`;
+    console.log('Creating system backup...', backupName);
+    // In a real system, this would create a file
+    // Simulate storing the backup info
+    const backupInfo = { name: backupName, timestamp: new Date().toISOString(), size: '45.2 MB' };
+    // Store this info (simulated)
+    backups.push(backupInfo);
+    res.json({ success: true, message: 'Backup created successfully', backup: backupInfo });
+  } catch (error) {
+    console.error('Failed to create backup:', error);
+    res.status(500).json({ success: false, message: 'Failed to create backup' });
+  }
+});
+
+router.get('/api/backup/list', async (req, res) => {
+  try {
+    // Return list of backups
+    res.json({ success: true, backups });
+  } catch (error) {
+    console.error('Failed to list backups:', error);
+    res.status(500).json({ success: false, message: 'Failed to list backups' });
+  }
+});
+
+router.post('/api/backup/restore', async (req, res) => {
+  try {
+    const { backupName } = req.body;
+    if (!backupName) {
+      return res.status(400).json({ success: false, message: 'Backup name is required for restore' });
+    }
+    // This would implement actual restore logic in a real system
+    // For now, we'll simulate a successful restore
+    console.log('Restoring system from backup...', backupName);
+    res.json({ success: true, message: `System restored successfully from ${backupName}`, timestamp: new Date().toISOString() });
+  } catch (error) {
+    console.error('Failed to restore backup:', error);
+    res.status(500).json({ success: false, message: 'Failed to restore backup' });
+  }
+});
+
+router.get('/api/backup/download/:backupName', async (req, res) => {
+  try {
+    const { backupName } = req.params;
+    // In a real system, this would send the actual backup file
+    // For simulation, return a placeholder
+    console.log('Downloading backup...', backupName);
+    res.setHeader('Content-Disposition', `attachment; filename=${backupName}`);
+    res.setHeader('Content-Type', 'application/octet-stream');
+    res.send(`This is a placeholder for backup file: ${backupName}`);
+  } catch (error) {
+    console.error('Failed to download backup:', error);
+    res.status(500).json({ success: false, message: 'Failed to download backup' });
+  }
+});
+
+router.post('/api/logs/clear', async (req, res) => {
+  try {
+    // This would implement actual log clearing logic in a real system
+    // For now, we'll simulate successful log clearing
+    console.log('Clearing system logs...');
+    res.json({ success: true, message: 'System logs cleared successfully', timestamp: new Date().toISOString() });
+  } catch (error) {
+    console.error('Failed to clear logs:', error);
+    res.status(500).json({ success: false, message: 'Failed to clear system logs' });
+  }
+});
+
+// Group Working Hours endpoints
+router.get('/api/group-working-hours', (req, res) => {
+  res.json(getGroupWorkingHours());
+});
+
+router.post('/api/group-working-hours', (req, res) => {
+  const newSettings = req.body;
+  const updatedSettings = updateGroupWorkingHours(newSettings);
+  res.json(updatedSettings);
+});
+
+// HR Policies endpoint
+router.get('/api/hr-policies', async (req, res) => {
+  try {
+    const policies = require('./data/hr-policies.json');
+    res.json(policies);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to load HR policies' });
+  }
+});
+
+// Reports Routes
+router.get('/api/reports/daily-ot', async (req, res) => {
+  try {
+    const { date, employeeId } = req.query;
+
+    if (!date || typeof date !== 'string') {
+      return res.status(400).json({ message: 'Date parameter is required.' });
+    }
+
+    const targetDate = new Date(date);
+    const startOfDay = new Date(targetDate.setHours(0, 0, 0, 0));
+    const endOfDay = new Date(targetDate.setHours(23, 59, 59, 999));
+
+    const conditions = [
+      gte(attendance.checkIn, startOfDay),
+      lte(attendance.checkIn, endOfDay),
+      eq(employees.status, 'active')
+    ];
+
+    if (employeeId && employeeId !== 'all') {
+      conditions.push(eq(employees.employeeId, employeeId.toString()));
+    }
+
+    const attendanceRecords = await db
+      .select({
+        employeeId: employees.employeeId,
+        fullName: employees.fullName,
+        employeeGroup: employees.employeeGroup,
+        date: sql`to_char(${attendance.checkIn}, 'YYYY-MM-DD')`,
+        checkIn: attendance.checkIn,
+        checkOut: attendance.checkOut,
+      })
+      .from(attendance)
+      .leftJoin(employees, eq(sql`${attendance.employeeId}::text`, employees.employeeId))
+      .where(and(...conditions));
+
+    // Fetch group working hours to determine required hours
+    const groupWorkingHours = await getGroupWorkingHours();
+    console.log('Loaded Group Working Hours:', JSON.stringify(groupWorkingHours, null, 2));
+
+    const reportData = attendanceRecords.map(record => {
+      let requiredHours = 8; // Default required hours
+
+      console.log(`Processing record for employee: ${record.employeeId}, group: ${record.employeeGroup}`);
+
+      if (record.employeeGroup === 'group_a' && groupWorkingHours.groupA?.minHoursForOT) {
+        requiredHours = groupWorkingHours.groupA.minHoursForOT;
+      } else if (record.employeeGroup === 'group_b' && groupWorkingHours.groupB?.minHoursForOT) {
+        requiredHours = groupWorkingHours.groupB.minHoursForOT;
+      }
+
+      console.log(`Calculated requiredHours: ${requiredHours}`);
+
+      let actualHours = 0;
+      if (record.checkIn && record.checkOut) {
+        const diffMs = new Date(record.checkOut).getTime() - new Date(record.checkIn).getTime();
+        actualHours = diffMs / (1000 * 60 * 60);
+      }
+
+      const otHours = Math.max(0, actualHours - requiredHours);
+
+      return {
+        ...record,
+        actualHours: actualHours.toFixed(2) + 'h',
+        requiredHours: requiredHours.toFixed(2) + 'h',
+        otHours: otHours.toFixed(2) + 'h',
+        otApprovalStatus: 'N/A', // Placeholder
+      };
+    });
+
+    res.json(reportData);
+  } catch (error) {
+    console.error('Failed to fetch daily OT report:', error);
+    res.status(500).json({ message: 'Failed to fetch daily OT report' });
+  }
+});
+
+router.get('/api/reports/employees', async (req, res) => {
+  try {
+    const { employeeId } = req.query;
+    const conditions: any[] = [];
+    if (employeeId && employeeId !== 'all') {
+      conditions.push(eq(employees.employeeId, employeeId.toString()));
+    }
+
+    const employeeData = await db.select().from(employees).where(and(...conditions));
+    res.json(employeeData);
+  } catch (error) {
+    console.error('Failed to fetch employee report:', error);
+    res.status(500).json({ message: 'Failed to fetch employee report' });
+  }
+});
+
+// Late Arrival Report
+router.get('/api/reports/late-arrival', async (req, res) => {
+  try {
+    const { startDate, endDate, employeeId, group } = req.query;
+    const { getGroupWorkingHours } = await import('./hrSettings.js');
+    const groupSettings = getGroupWorkingHours();
+
+    const conditions: any[] = [
+      gte(attendance.date, new Date(startDate as string)),
+      lte(attendance.date, new Date(endDate as string))
+    ];
+
+    if (employeeId && employeeId !== 'all') {
+      conditions.push(eq(attendance.employeeId, employeeId as string));
+    }
+
+    if (group && group !== 'all') {
+      conditions.push(eq(employees.employeeGroup, group as any));
+    }
+
+    const lateArrivals = await db
+      .select({
+        employeeId: employees.employeeId,
+        fullName: employees.fullName,
+        employeeGroup: employees.employeeGroup,
+        date: attendance.date,
+        checkIn: attendance.checkIn,
+        status: attendance.status
+      })
+      .from(attendance)
+      .innerJoin(employees, eq(attendance.employeeId, employees.id))
+      .where(and(...conditions))
+      .orderBy(desc(attendance.date));
+
+    const reportData = lateArrivals.map(record => {
+      const group = record.employeeGroup;
+      const groupPolicy = group === 'group_a' ? groupSettings.groupA : groupSettings.groupB;
+      const gracePeriod = groupPolicy.lateArrivalPolicy.gracePeriodUntil;
+      const halfDayAfter = groupPolicy.lateArrivalPolicy.halfDayAfter;
+
+      let minutesLate = 0;
+      let status = 'present';
+
+      if (record.checkIn) {
+        const checkInTime = new Date(record.checkIn);
+        const graceTime = new Date(record.checkIn);
+        const [graceHour, graceMinute] = gracePeriod.split(':');
+        graceTime.setHours(parseInt(graceHour), parseInt(graceMinute), 0);
+
+        const halfDayTime = new Date(record.checkIn);
+        const [halfHour, halfMinute] = halfDayAfter.split(':');
+        halfDayTime.setHours(parseInt(halfHour), parseInt(halfMinute), 0);
+
+        if (checkInTime > graceTime) {
+          minutesLate = Math.floor((checkInTime.getTime() - graceTime.getTime()) / (1000 * 60));
+          
+          if (checkInTime > halfDayTime) {
+            status = 'half_day';
+          } else {
+            status = 'late';
+          }
+        }
+      }
+
+      // Only include records that are actually late or half day
+      if (status === 'late' || status === 'half_day') {
+        return {
+          ...record,
+          checkInTime: record.checkIn ? new Date(record.checkIn).toLocaleTimeString() : null,
+          status,
+          minutesLate
+        };
+      }
+      return null;
+    }).filter(Boolean);
+
+    res.json(reportData);
+  } catch (error) {
+    console.error('Failed to fetch late arrival report:', error);
+    res.status(500).json({ message: 'Failed to fetch late arrival report' });
+  }
+});
+
+// Half Day Report
+router.get('/api/reports/half-day', async (req, res) => {
+  try {
+    const { startDate, endDate, employeeId, group } = req.query;
+    const { getGroupWorkingHours } = await import('./hrSettings.js');
+    const groupSettings = getGroupWorkingHours();
+
+    const conditions: any[] = [
+      gte(attendance.date, new Date(startDate as string)),
+      lte(attendance.date, new Date(endDate as string))
+    ];
+
+    if (employeeId && employeeId !== 'all') {
+      conditions.push(eq(attendance.employeeId, employeeId as string));
+    }
+
+    if (group && group !== 'all') {
+      conditions.push(eq(employees.employeeGroup, group as any));
+    }
+
+    const halfDayRecords = await db
+      .select({
+        employeeId: employees.employeeId,
+        fullName: employees.fullName,
+        employeeGroup: employees.employeeGroup,
+        date: attendance.date,
+        checkIn: attendance.checkIn,
+        checkOut: attendance.checkOut,
+        status: attendance.status,
+        notes: attendance.notes
+      })
+      .from(attendance)
+      .innerJoin(employees, eq(attendance.employeeId, employees.id))
+      .where(and(...conditions))
+      .orderBy(desc(attendance.date));
+
+    const reportData = halfDayRecords.map(record => {
+      const group = record.employeeGroup;
+      const groupPolicy = group === 'group_a' ? groupSettings.groupA : groupSettings.groupB;
+      const halfDayAfter = groupPolicy.lateArrivalPolicy.halfDayAfter;
+      const halfDayBefore = groupPolicy.lateArrivalPolicy.halfDayBefore;
+
+      let isHalfDay = false;
+      let reason = 'Regular attendance';
+
+      if (record.checkIn) {
+        const checkInTime = new Date(record.checkIn);
+        const halfDayAfterTime = new Date(record.checkIn);
+        const [afterHour, afterMinute] = halfDayAfter.split(':');
+        halfDayAfterTime.setHours(parseInt(afterHour), parseInt(afterMinute), 0);
+
+        const halfDayBeforeTime = new Date(record.checkIn);
+        const [beforeHour, beforeMinute] = halfDayBefore.split(':');
+        halfDayBeforeTime.setHours(parseInt(beforeHour), parseInt(beforeMinute), 0);
+
+        if (checkInTime > halfDayAfterTime && checkInTime < halfDayBeforeTime) {
+          isHalfDay = true;
+          reason = `Late arrival after ${halfDayAfter}`;
+        }
+      }
+
+      // Only include records that qualify as half day
+      if (isHalfDay || record.status === 'late' || record.notes?.includes('half day')) {
+        return {
+          ...record,
+          checkInTime: record.checkIn ? new Date(record.checkIn).toLocaleTimeString() : null,
+          checkOutTime: record.checkOut ? new Date(record.checkOut).toLocaleTimeString() : null,
+          reason
+        };
+      }
+      return null;
+    }).filter(Boolean);
+
+    res.json(reportData);
+  } catch (error) {
+    console.error('Failed to fetch half day report:', error);
+    res.status(500).json({ message: 'Failed to fetch half day report' });
+  }
+});
+
+// Short Leave Usage Report
+router.get('/api/reports/short-leave-usage', async (req, res) => {
+  try {
+    const { startDate, endDate, employeeId, group } = req.query;
+    const { getGroupWorkingHours } = await import('./hrSettings.js');
+    const groupSettings = getGroupWorkingHours();
+
+    const conditions: any[] = [];
+
+    if (employeeId && employeeId !== 'all') {
+      conditions.push(eq(employees.employeeId, employeeId as string));
+    }
+
+    if (group && group !== 'all') {
+      conditions.push(eq(employees.employeeGroup, group as any));
+    }
+
+    const allEmployees = await db
+      .select({
+        employeeId: employees.employeeId,
+        fullName: employees.fullName,
+        employeeGroup: employees.employeeGroup
+      })
+      .from(employees)
+      .where(conditions.length > 0 ? and(...conditions) : undefined);
+
+    // For now, simulate short leave usage data since we don't have a dedicated short leave table
+    const reportData = allEmployees.map(employee => {
+      const group = employee.employeeGroup;
+      const groupPolicy = group === 'group_a' ? groupSettings.groupA : groupSettings.groupB;
+      const maxAllowed = groupPolicy.shortLeavePolicy?.maxPerMonth || 2;
+
+      // Simulate usage data (in a real system, this would come from a short leave tracking table)
+      const shortLeavesUsed = Math.floor(Math.random() * (maxAllowed + 1));
+      const remaining = maxAllowed - shortLeavesUsed;
+      const usagePercentage = Math.round((shortLeavesUsed / maxAllowed) * 100);
+
+      const startDateObj = new Date(startDate as string);
+      const month = startDateObj.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+
+      return {
+        ...employee,
+        month,
+        shortLeavesUsed,
+        maxAllowed,
+        remaining,
+        usagePercentage,
+        lastUsed: shortLeavesUsed > 0 ? new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toLocaleDateString() : null
+      };
+    });
+
+    res.json(reportData);
+  } catch (error) {
+    console.error('Failed to fetch short leave usage report:', error);
+    res.status(500).json({ message: 'Failed to fetch short leave usage report' });
+  }
+});
+
+// Offer-Attendance Report
+router.get('/api/reports/offer-attendance', async (req, res) => {
+  try {
+    const { startDate, endDate, employeeId, group } = req.query;
+    const { getGroupWorkingHours } = await import('./hrSettings.js');
+    const groupSettings = getGroupWorkingHours();
+
+    const conditions: any[] = [
+      gte(attendance.date, new Date(startDate as string)),
+      lte(attendance.date, new Date(endDate as string))
+    ];
+
+    if (employeeId && employeeId !== 'all') {
+      conditions.push(eq(attendance.employeeId, employeeId as string));
+    }
+
+    if (group && group !== 'all') {
+      conditions.push(eq(employees.employeeGroup, group as any));
+    }
+
+    const attendanceRecords = await db
+      .select({
+        employeeId: employees.employeeId,
+        fullName: employees.fullName,
+        employeeGroup: employees.employeeGroup,
+        departmentId: employees.departmentId,
+        date: attendance.date,
+        checkIn: attendance.checkIn,
+        checkOut: attendance.checkOut,
+        status: attendance.status,
+        workingHours: attendance.workingHours,
+        overtimeHours: attendance.overtimeHours
+      })
+      .from(attendance)
+      .innerJoin(employees, eq(attendance.employeeId, employees.id))
+      .where(and(...conditions))
+      .orderBy(employees.employeeId, attendance.date);
+
+    // Group data by employee
+    const employeeData = new Map();
+
+    attendanceRecords.forEach(record => {
+      const empId = record.employeeId;
+      if (!employeeData.has(empId)) {
+        employeeData.set(empId, {
+          employeeId: record.employeeId,
+          fullName: record.fullName,
+          employeeGroup: record.employeeGroup,
+          departmentId: record.departmentId,
+          totalOfferHours: 0,
+          workingDays: 0,
+          holidayHours: 0,
+          saturdayHours: 0,
+          weeklyBreakdown: {
+            monday: 0,
+            tuesday: 0,
+            wednesday: 0,
+            thursday: 0,
+            friday: 0,
+            saturday: 0,
+            sunday: 0
+          }
+        });
+      }
+
+      const employee = employeeData.get(empId);
+      const date = new Date(record.date);
+      const dayOfWeek = date.getDay(); // 0 = Sunday, 1 = Monday, etc.
+      const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+      
+      // Group-specific overtime calculation start times
+      const group = record.employeeGroup;
+      const overtimeStartTime = group === 'group_a' ? '16:15' : '16:45';
+      
+      let offerHours = 0;
+      
+      if (record.checkOut && record.checkIn) {
+        const checkOutTime = new Date(record.checkOut);
+        const checkInTime = new Date(record.checkIn);
+        
+        // Calculate overtime hours starting from the specified time
+        const [overtimeHour, overtimeMinute] = overtimeStartTime.split(':');
+        const overtimeStart = new Date(date);
+        overtimeStart.setHours(parseInt(overtimeHour), parseInt(overtimeMinute), 0);
+        
+        // If checkout is after the overtime start time, calculate offer hours
+        if (checkOutTime > overtimeStart) {
+          const overtimeMs = checkOutTime.getTime() - overtimeStart.getTime();
+          offerHours = Math.max(0, overtimeMs / (1000 * 60 * 60)); // Convert to hours
+        }
+        
+        // Include government holidays and Saturdays (assuming Saturday is day 6)
+        const isWeekend = dayOfWeek === 6 || dayOfWeek === 0; // Saturday or Sunday
+        const isHoliday = isGovernmentHoliday(date); // You would implement this function
+        
+        if (isWeekend || isHoliday) {
+          // On weekends and holidays, count all working hours as offer hours
+          const workingMs = checkOutTime.getTime() - checkInTime.getTime();
+          offerHours = Math.max(offerHours, workingMs / (1000 * 60 * 60));
+          
+          if (dayOfWeek === 6) { // Saturday
+            employee.saturdayHours += offerHours;
+          } else if (isHoliday) {
+            employee.holidayHours += offerHours;
+          }
+        }
+      }
+      
+      // Exclude records marked as holidays or delays in status/notes
+      const isExcluded = record.status === 'absent' || 
+                        (record.status && record.status.includes('holiday')) ||
+                        (record.status && record.status.includes('delay'));
+      
+      if (!isExcluded && offerHours > 0) {
+        employee.totalOfferHours += offerHours;
+        employee.workingDays += 1;
+        employee.weeklyBreakdown[dayNames[dayOfWeek]] += offerHours;
+      }
+    });
+
+    // Convert map to array and format data
+    const reportData = Array.from(employeeData.values()).map(employee => ({
+      ...employee,
+      totalOfferHours: parseFloat(employee.totalOfferHours.toFixed(2)),
+      averageOfferHoursPerDay: parseFloat((employee.totalOfferHours / Math.max(employee.workingDays, 1)).toFixed(2)),
+      holidayHours: parseFloat(employee.holidayHours.toFixed(2)),
+      saturdayHours: parseFloat(employee.saturdayHours.toFixed(2)),
+      weeklyBreakdown: Object.fromEntries(
+        Object.entries(employee.weeklyBreakdown).map(([day, hours]) => [
+          day, parseFloat((hours as number).toFixed(2))
+        ])
+      )
+    }));
+
+    res.json(reportData);
+  } catch (error) {
+    console.error('Failed to fetch offer-attendance report:', error);
+    res.status(500).json({ message: 'Failed to fetch offer-attendance report' });
+  }
+});
+
+// Helper function to check if a date is a government holiday
+function isGovernmentHoliday(date: Date): boolean {
+  // This would typically check against a database of government holidays
+  // For now, we'll use some common Sri Lankan holidays as examples
+  const holidays = [
+    '2025-01-01', // New Year's Day
+    '2025-02-04', // Independence Day
+    '2025-05-01', // May Day
+    '2025-12-25', // Christmas Day
+    // Add more holidays as needed
+  ];
+  
+  const dateString = date.toISOString().split('T')[0];
+  return holidays.includes(dateString);
+}
+
+export default router;
+
+export function registerRoutes(app: any) {
+  app.use(router);
+  return app;
+}

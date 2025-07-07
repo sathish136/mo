@@ -1,0 +1,99 @@
+# Ministry of Finance Sri Lanka HR Attendance Management System
+
+## Overview
+
+This is a comprehensive HR Attendance Management System built for the Ministry of Finance Sri Lanka. The application automates employee attendance tracking using ZK biometric devices and provides policy-based calculations for government employees. It features a modern React frontend with a Node.js/Express backend, utilizing PostgreSQL for data persistence.
+
+## System Architecture
+
+### Frontend Architecture
+- **Framework**: React 18 with TypeScript
+- **Build Tool**: Vite for fast development and optimized builds
+- **UI Library**: Radix UI components with shadcn/ui styling system
+- **Styling**: Tailwind CSS with custom government theme colors
+- **State Management**: TanStack Query for server state management
+- **Routing**: Wouter for client-side routing
+- **Form Handling**: React Hook Form with Zod validation
+
+### Backend Architecture
+- **Runtime**: Node.js with Express.js framework
+- **Language**: TypeScript with ES modules
+- **Database**: PostgreSQL with Drizzle ORM
+- **Database Provider**: Neon serverless PostgreSQL
+- **API Design**: RESTful API with structured error handling
+- **Session Management**: express-session with PostgreSQL store
+
+### Database Schema
+- **Employees**: Core employee data with biometric device integration
+- **Attendance**: Daily attendance records with check-in/check-out times
+- **Leave Requests**: Leave management with approval workflows
+- **Overtime Requests**: Overtime tracking and approval system
+- **Biometric Devices**: ZK device management and configuration
+
+## Key Components
+
+### Frontend Components
+- **Dashboard**: Overview of attendance statistics and recent activities
+- **Employee Management**: CRUD operations for employee records
+- **Attendance Tracker**: Real-time attendance monitoring and manual entry
+- **Leave Management**: Leave request submission and approval workflows
+- **Overtime Management**: Overtime request handling and tracking
+- **Reports**: Comprehensive reporting with data visualization
+- **Settings**: System configuration and biometric device management
+
+### Backend Services
+- **Storage Layer**: Abstracted database operations with type-safe queries
+- **Route Handlers**: RESTful endpoints for all business operations
+- **Database Connection**: Pooled connections with Neon serverless PostgreSQL
+- **Middleware**: Request logging, error handling, and session management
+
+## Data Flow
+
+1. **Employee Registration**: Employees are registered with biometric device IDs
+2. **Attendance Capture**: ZK biometric devices capture attendance data
+3. **Data Processing**: Backend processes attendance records and calculates working hours
+4. **Policy Application**: Government-specific attendance policies are applied
+5. **Report Generation**: System generates various reports for HR and management
+6. **Leave/Overtime Workflows**: Approval workflows for leave and overtime requests
+
+## External Dependencies
+
+### Core Dependencies
+- **@neondatabase/serverless**: Serverless PostgreSQL database connection
+- **drizzle-orm**: Type-safe database ORM with PostgreSQL support
+- **@tanstack/react-query**: Server state management and caching
+- **@radix-ui/react-***: Headless UI components for accessibility
+- **zod**: Runtime type validation and schema definition
+- **tailwindcss**: Utility-first CSS framework
+
+### Development Dependencies
+- **vite**: Fast build tool and development server
+- **typescript**: Type checking and compilation
+- **esbuild**: Fast JavaScript bundler for production builds
+
+## Deployment Strategy
+
+### Build Process
+1. **Frontend Build**: Vite builds the React application to `dist/public`
+2. **Backend Build**: esbuild bundles the server code to `dist/index.js`
+3. **Database Migration**: Drizzle migrations are applied to PostgreSQL
+
+### Production Configuration
+- **Node.js Environment**: Production server runs compiled JavaScript
+- **Database**: Neon serverless PostgreSQL with connection pooling
+- **Static Assets**: Frontend assets served from `dist/public`
+- **Environment Variables**: Database URL and session secrets from environment
+
+### Development Workflow
+- **Development Server**: Vite dev server with HMR for frontend
+- **Backend Server**: tsx for TypeScript execution with hot reload
+- **Database**: Drizzle push for schema synchronization
+
+## User Preferences
+
+Preferred communication style: Simple, everyday language.
+
+## Changelog
+
+Changelog:
+- July 04, 2025. Initial setup
