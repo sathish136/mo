@@ -41,11 +41,11 @@ export default function OvertimeManagement() {
     mutationFn: async (employees: any[]) => {
       const promises = employees.map(employee => {
         const overtimeRequest = {
-          employeeId: employee.id,
+          employeeId: employee.employeeId, // Use employeeId string instead of numeric id
           date: new Date(employee.date),
-          startTime: new Date(),
-          endTime: new Date(),
-          hours: employee.otHours,
+          startTime: new Date(`${employee.date}T08:00:00`), // Use proper datetime format
+          endTime: new Date(`${employee.date}T17:00:00`), // Use proper datetime format
+          hours: parseFloat(employee.otHours), // Ensure it's a number
           reason: "Bulk approved for overtime hours worked",
           status: "approved",
         };
@@ -74,11 +74,11 @@ export default function OvertimeManagement() {
     mutationFn: async (employees: any[]) => {
       const promises = employees.map(employee => {
         const overtimeRequest = {
-          employeeId: employee.id,
+          employeeId: employee.employeeId, // Use employeeId string instead of numeric id
           date: new Date(employee.date),
-          startTime: new Date(),
-          endTime: new Date(),
-          hours: employee.otHours,
+          startTime: new Date(`${employee.date}T08:00:00`), // Use proper datetime format
+          endTime: new Date(`${employee.date}T17:00:00`), // Use proper datetime format
+          hours: parseFloat(employee.otHours), // Ensure it's a number
           reason: "Bulk rejected - overtime not authorized",
           status: "rejected",
         };
@@ -106,11 +106,11 @@ export default function OvertimeManagement() {
   const singleApproveMutation = useMutation({
     mutationFn: async (employee: any) => {
       const overtimeRequest = {
-        employeeId: employee.id,
+        employeeId: employee.employeeId, // Use employeeId string instead of numeric id
         date: new Date(employee.date),
-        startTime: new Date(),
-        endTime: new Date(),
-        hours: employee.otHours,
+        startTime: new Date(`${employee.date}T08:00:00`), // Use proper datetime format
+        endTime: new Date(`${employee.date}T17:00:00`), // Use proper datetime format
+        hours: parseFloat(employee.otHours), // Ensure it's a number
         reason: "Approved for overtime hours worked",
         status: "approved",
       };
@@ -136,11 +136,11 @@ export default function OvertimeManagement() {
   const singleRejectMutation = useMutation({
     mutationFn: async (employee: any) => {
       const overtimeRequest = {
-        employeeId: employee.id,
+        employeeId: employee.employeeId, // Use employeeId string instead of numeric id
         date: new Date(employee.date),
-        startTime: new Date(),
-        endTime: new Date(),
-        hours: employee.otHours,
+        startTime: new Date(`${employee.date}T08:00:00`), // Use proper datetime format
+        endTime: new Date(`${employee.date}T17:00:00`), // Use proper datetime format
+        hours: parseFloat(employee.otHours), // Ensure it's a number
         reason: "Rejected - overtime not authorized",
         status: "rejected",
       };
@@ -205,115 +205,115 @@ export default function OvertimeManagement() {
   const approvalRate = totalRequests > 0 ? (approvedRequests / totalRequests) * 100 : 0;
 
   return (
-    <div className="space-y-6 p-6 bg-gradient-to-br from-slate-50 to-blue-50 min-h-screen">
-      {/* Modern Header */}
+    <div className="space-y-6 p-6 bg-gray-50 min-h-screen">
+      {/* Professional Header */}
       <div className="flex items-center justify-between">
-        <div className="space-y-2">
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+        <div className="space-y-1">
+          <h1 className="text-2xl font-bold text-gray-900">
             Overtime Management
           </h1>
-          <p className="text-slate-600 font-medium">Streamline overtime approvals with intelligent workflow automation</p>
+          <p className="text-gray-600">Streamline overtime approvals with intelligent workflow automation</p>
         </div>
         <div className="flex items-center gap-3">
-          <Button variant="outline" size="sm" className="shadow-sm">
+          <Button variant="outline" size="sm" className="border-gray-300">
             <RefreshCw className="w-4 h-4 mr-2" />
             Refresh
           </Button>
-          <Button variant="outline" size="sm" className="shadow-sm">
+          <Button variant="outline" size="sm" className="border-gray-300">
             <Download className="w-4 h-4 mr-2" />
             Export
           </Button>
         </div>
       </div>
 
-      {/* Enhanced Dashboard Cards */}
+      {/* Professional Dashboard Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white border-0 shadow-lg hover:shadow-xl transition-all">
+        <Card className="bg-white border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-blue-100 text-sm font-medium">Pending Approvals</p>
-                <p className="text-3xl font-bold">{eligibleEmployees.length}</p>
-                <p className="text-blue-200 text-xs mt-1">Require action today</p>
+                <p className="text-gray-600 text-sm font-medium">Pending Approvals</p>
+                <p className="text-3xl font-bold text-gray-900">{eligibleEmployees.length}</p>
+                <p className="text-gray-500 text-xs mt-1">Require action today</p>
               </div>
-              <div className="bg-blue-400 bg-opacity-30 p-3 rounded-full">
-                <Users className="w-8 h-8" />
+              <div className="bg-gray-100 p-3 rounded-full">
+                <Users className="w-8 h-8 text-gray-600" />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-amber-500 to-orange-500 text-white border-0 shadow-lg hover:shadow-xl transition-all">
+        <Card className="bg-white border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-amber-100 text-sm font-medium">Total OT Hours</p>
-                <p className="text-3xl font-bold">{totalOTHours.toFixed(1)}h</p>
-                <p className="text-amber-200 text-xs mt-1">This period</p>
+                <p className="text-gray-600 text-sm font-medium">Total OT Hours</p>
+                <p className="text-3xl font-bold text-gray-900">{totalOTHours.toFixed(1)}h</p>
+                <p className="text-gray-500 text-xs mt-1">This period</p>
               </div>
-              <div className="bg-amber-400 bg-opacity-30 p-3 rounded-full">
-                <Clock className="w-8 h-8" />
+              <div className="bg-gray-100 p-3 rounded-full">
+                <Clock className="w-8 h-8 text-gray-600" />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-green-500 to-emerald-500 text-white border-0 shadow-lg hover:shadow-xl transition-all">
+        <Card className="bg-white border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-green-100 text-sm font-medium">Approval Rate</p>
-                <p className="text-3xl font-bold">{approvalRate.toFixed(0)}%</p>
+                <p className="text-gray-600 text-sm font-medium">Approval Rate</p>
+                <p className="text-3xl font-bold text-gray-900">{approvalRate.toFixed(0)}%</p>
                 <div className="mt-2">
-                  <Progress value={approvalRate} className="h-2 bg-green-400" />
+                  <Progress value={approvalRate} className="h-2 bg-gray-200" />
                 </div>
               </div>
-              <div className="bg-green-400 bg-opacity-30 p-3 rounded-full">
-                <TrendingUp className="w-8 h-8" />
+              <div className="bg-gray-100 p-3 rounded-full">
+                <TrendingUp className="w-8 h-8 text-gray-600" />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-purple-500 to-indigo-500 text-white border-0 shadow-lg hover:shadow-xl transition-all">
+        <Card className="bg-white border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-purple-100 text-sm font-medium">Selected</p>
-                <p className="text-3xl font-bold">{selectedEmployees.size}</p>
-                <p className="text-purple-200 text-xs mt-1">{selectedOTHours.toFixed(1)}h selected</p>
+                <p className="text-gray-600 text-sm font-medium">Selected</p>
+                <p className="text-3xl font-bold text-gray-900">{selectedEmployees.size}</p>
+                <p className="text-gray-500 text-xs mt-1">{selectedOTHours.toFixed(1)}h selected</p>
               </div>
-              <div className="bg-purple-400 bg-opacity-30 p-3 rounded-full">
-                <Check className="w-8 h-8" />
+              <div className="bg-gray-100 p-3 rounded-full">
+                <Check className="w-8 h-8 text-gray-600" />
               </div>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Smart Action Bar */}
-      <Card className="bg-white shadow-lg border-0">
+      {/* Professional Action Bar */}
+      <Card className="bg-white border border-gray-200 shadow-sm">
         <CardHeader className="pb-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-6">
-              <div className="flex items-center gap-3 bg-slate-50 px-4 py-2 rounded-lg">
-                <Calendar className="w-5 h-5 text-slate-600" />
-                <label className="text-sm font-medium text-slate-700">Date Filter:</label>
+              <div className="flex items-center gap-3 bg-gray-50 px-4 py-2 rounded-lg border border-gray-200">
+                <Calendar className="w-5 h-5 text-gray-600" />
+                <label className="text-sm font-medium text-gray-700">Date Filter:</label>
                 <Input
                   type="date"
                   value={selectedDate}
                   onChange={(e) => setSelectedDate(e.target.value)}
-                  className="w-44 border-slate-200"
+                  className="w-44 border-gray-300"
                 />
               </div>
               
               {selectedEmployees.size > 0 && (
-                <div className="flex items-center gap-3 px-4 py-2 bg-blue-50 rounded-lg">
-                  <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+                <div className="flex items-center gap-3 px-4 py-2 bg-gray-50 rounded-lg border border-gray-200">
+                  <Badge variant="secondary" className="bg-gray-100 text-gray-800">
                     {selectedEmployees.size} Selected
                   </Badge>
-                  <span className="text-sm text-slate-600">•</span>
-                  <span className="text-sm font-medium text-slate-700">{selectedOTHours.toFixed(1)}h total</span>
+                  <span className="text-sm text-gray-600">•</span>
+                  <span className="text-sm font-medium text-gray-700">{selectedOTHours.toFixed(1)}h total</span>
                 </div>
               )}
             </div>
@@ -322,7 +322,7 @@ export default function OvertimeManagement() {
               <div className="flex items-center gap-3">
                 <Button
                   size="sm"
-                  className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white shadow-md"
+                  className="bg-green-600 hover:bg-green-700 text-white"
                   onClick={handleBulkApprove}
                   disabled={bulkApproveMutation.isPending || bulkRejectMutation.isPending}
                 >
@@ -331,7 +331,7 @@ export default function OvertimeManagement() {
                 </Button>
                 <Button
                   size="sm"
-                  className="bg-gradient-to-r from-red-500 to-rose-500 hover:from-red-600 hover:to-rose-600 text-white shadow-md"
+                  className="bg-red-600 hover:bg-red-700 text-white"
                   onClick={handleBulkReject}
                   disabled={bulkApproveMutation.isPending || bulkRejectMutation.isPending}
                 >
@@ -344,19 +344,19 @@ export default function OvertimeManagement() {
         </CardHeader>
       </Card>
 
-      {/* Enhanced Workflow Tabs */}
-      <Card className="bg-white shadow-lg border-0">
+      {/* Professional Workflow Tabs */}
+      <Card className="bg-white border border-gray-200 shadow-sm">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-3 bg-slate-100">
-            <TabsTrigger value="pending" className="flex items-center gap-2 data-[state=active]:bg-white">
+          <TabsList className="grid w-full grid-cols-3 bg-gray-100 border-b border-gray-200">
+            <TabsTrigger value="pending" className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:border-b-2 data-[state=active]:border-blue-500">
               <AlertCircle className="w-4 h-4" />
               Pending Approvals ({eligibleEmployees.length})
             </TabsTrigger>
-            <TabsTrigger value="approved" className="flex items-center gap-2 data-[state=active]:bg-white">
+            <TabsTrigger value="approved" className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:border-b-2 data-[state=active]:border-green-500">
               <CheckCircle className="w-4 h-4" />
               Approved ({approvedRequests})
             </TabsTrigger>
-            <TabsTrigger value="rejected" className="flex items-center gap-2 data-[state=active]:bg-white">
+            <TabsTrigger value="rejected" className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:border-b-2 data-[state=active]:border-red-500">
               <XCircle className="w-4 h-4" />
               Rejected ({rejectedRequests})
             </TabsTrigger>
@@ -366,32 +366,32 @@ export default function OvertimeManagement() {
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <Award className="w-5 h-5 text-amber-600" />
-                  <h3 className="text-lg font-semibold text-slate-800">
+                  <Award className="w-5 h-5 text-gray-600" />
+                  <h3 className="text-lg font-semibold text-gray-800">
                     Overtime Approvals Required - {new Date(selectedDate).toLocaleDateString()}
                   </h3>
                 </div>
-                <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">
+                <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200">
                   {eligibleEmployees.length} Pending
                 </Badge>
               </div>
               
               {isEligibleLoading ? (
                 <div className="text-center py-12">
-                  <RefreshCw className="w-8 h-8 text-slate-400 mx-auto mb-4 animate-spin" />
-                  <p className="text-slate-600 font-medium">Loading eligible employees...</p>
+                  <RefreshCw className="w-8 h-8 text-gray-400 mx-auto mb-4 animate-spin" />
+                  <p className="text-gray-600 font-medium">Loading eligible employees...</p>
                 </div>
               ) : eligibleEmployees.length === 0 ? (
-                <div className="text-center py-12 bg-slate-50 rounded-lg">
-                  <Activity className="w-12 h-12 text-slate-400 mx-auto mb-4" />
-                  <h4 className="text-lg font-medium text-slate-800 mb-2">All caught up!</h4>
-                  <p className="text-slate-600">No overtime approvals needed for {new Date(selectedDate).toLocaleDateString()}</p>
-                  <p className="text-sm text-slate-500 mt-1">Try selecting a different date or check attendance records.</p>
+                <div className="text-center py-12 bg-gray-50 rounded-lg">
+                  <Activity className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                  <h4 className="text-lg font-medium text-gray-800 mb-2">All caught up!</h4>
+                  <p className="text-gray-600">No overtime approvals needed for {new Date(selectedDate).toLocaleDateString()}</p>
+                  <p className="text-sm text-gray-500 mt-1">Try selecting a different date or check attendance records.</p>
                 </div>
               ) : (
-                <div className="bg-gradient-to-r from-amber-50 to-orange-50 rounded-lg overflow-hidden">
+                <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
                   <Table>
-                    <TableHeader className="bg-amber-100">
+                    <TableHeader className="bg-gray-50">
                       <TableRow>
                         <TableHead className="w-12">
                           <Checkbox
@@ -399,28 +399,28 @@ export default function OvertimeManagement() {
                             onCheckedChange={handleSelectAll}
                           />
                         </TableHead>
-                        <TableHead className="w-16 text-amber-800 font-semibold">S.No</TableHead>
-                        <TableHead className="text-amber-800 font-semibold">Employee ID</TableHead>
-                        <TableHead className="text-amber-800 font-semibold">Name</TableHead>
-                        <TableHead className="text-amber-800 font-semibold">Group</TableHead>
-                        <TableHead className="text-amber-800 font-semibold">Actual Hours</TableHead>
-                        <TableHead className="text-amber-800 font-semibold">Required Hours</TableHead>
-                        <TableHead className="text-amber-800 font-semibold">OT Hours</TableHead>
-                        <TableHead className="text-amber-800 font-semibold">Actions</TableHead>
+                        <TableHead className="w-16 text-gray-700 font-semibold">S.No</TableHead>
+                        <TableHead className="text-gray-700 font-semibold">Employee ID</TableHead>
+                        <TableHead className="text-gray-700 font-semibold">Name</TableHead>
+                        <TableHead className="text-gray-700 font-semibold">Group</TableHead>
+                        <TableHead className="text-gray-700 font-semibold">Actual Hours</TableHead>
+                        <TableHead className="text-gray-700 font-semibold">Required Hours</TableHead>
+                        <TableHead className="text-gray-700 font-semibold">OT Hours</TableHead>
+                        <TableHead className="text-gray-700 font-semibold">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {eligibleEmployees.map((employee: any, index: number) => (
-                        <TableRow key={`${employee.employeeId}-${employee.date}`} className="hover:bg-amber-50 border-amber-100">
+                        <TableRow key={`${employee.employeeId}-${employee.date}`} className="hover:bg-gray-50 border-gray-200">
                           <TableCell>
                             <Checkbox
                               checked={selectedEmployees.has(employee.id)}
                               onCheckedChange={(checked) => handleSelectEmployee(employee.id, checked as boolean)}
                             />
                           </TableCell>
-                          <TableCell className="font-medium text-slate-800">{index + 1}</TableCell>
-                          <TableCell className="font-mono text-slate-700">{employee.employeeId}</TableCell>
-                          <TableCell className="font-medium text-slate-800">{employee.fullName}</TableCell>
+                          <TableCell className="font-medium text-gray-800">{index + 1}</TableCell>
+                          <TableCell className="font-mono text-gray-700">{employee.employeeId}</TableCell>
+                          <TableCell className="font-medium text-gray-800">{employee.fullName}</TableCell>
                           <TableCell>
                             <Badge 
                               variant={employee.employeeGroup === 'group_a' ? 'default' : 'secondary'}
@@ -429,10 +429,10 @@ export default function OvertimeManagement() {
                               {employee.employeeGroup === 'group_a' ? 'Group A' : 'Group B'}
                             </Badge>
                           </TableCell>
-                          <TableCell className="font-semibold text-slate-700">{employee.actualHours}h</TableCell>
-                          <TableCell className="text-slate-600">{employee.requiredHours}h</TableCell>
+                          <TableCell className="font-semibold text-gray-700">{employee.actualHours}h</TableCell>
+                          <TableCell className="text-gray-600">{employee.requiredHours}h</TableCell>
                           <TableCell>
-                            <Badge className="bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold">
+                            <Badge className="bg-orange-100 text-orange-800 font-bold border border-orange-200">
                               +{employee.otHours}h
                             </Badge>
                           </TableCell>
@@ -440,7 +440,7 @@ export default function OvertimeManagement() {
                             <div className="flex gap-2">
                               <Button
                                 size="sm"
-                                className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white shadow-sm"
+                                className="bg-green-600 hover:bg-green-700 text-white"
                                 onClick={() => singleApproveMutation.mutate(employee)}
                                 disabled={singleApproveMutation.isPending || singleRejectMutation.isPending}
                               >
@@ -449,7 +449,7 @@ export default function OvertimeManagement() {
                               </Button>
                               <Button
                                 size="sm"
-                                className="bg-gradient-to-r from-red-500 to-rose-500 hover:from-red-600 hover:to-rose-600 text-white shadow-sm"
+                                className="bg-red-600 hover:bg-red-700 text-white"
                                 onClick={() => singleRejectMutation.mutate(employee)}
                                 disabled={singleApproveMutation.isPending || singleRejectMutation.isPending}
                               >
