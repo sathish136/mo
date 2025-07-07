@@ -1217,10 +1217,16 @@ router.get("/api/reports/daily-ot", async (req, res) => {
       ));
 
     // Fetch overtime requests for the specific date
-    const otRecords = await db.select().from(overtimeRequests)
-      .where(
-        sql`DATE(${overtimeRequests.date}) = DATE(${startOfDay})`
-      );
+    let otRecords: any[] = [];
+    try {
+      otRecords = await db.select().from(overtimeRequests)
+        .where(
+          sql`DATE(${overtimeRequests.date}) = ${date.toISOString().split('T')[0]}`
+        );
+    } catch (error) {
+      console.error("Error fetching overtime records:", error);
+      otRecords = [];
+    }
 
     const reportData = allEmployees.map(emp => {
       let requiredHours = 8; // Default required hours

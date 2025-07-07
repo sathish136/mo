@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertLeaveRequestSchema, type LeaveRequest, type InsertLeaveRequest } from "@shared/schema";
+import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 
@@ -88,9 +89,11 @@ export default function LeaveManagement() {
   });
 
   const form = useForm<InsertLeaveRequest>({
-    resolver: zodResolver(insertLeaveRequestSchema),
+    resolver: zodResolver(insertLeaveRequestSchema.extend({
+      employeeId: z.string().min(1, "Employee selection is required")
+    })),
     defaultValues: {
-      employeeId: 0,
+      employeeId: "",
       leaveType: "annual",
       startDate: new Date(),
       endDate: new Date(),
@@ -105,8 +108,20 @@ export default function LeaveManagement() {
     const endDate = new Date(data.endDate);
     const days = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
     
+    // Find the employee by employeeId to get the database ID
+    const employee = employees?.find((emp: any) => emp.employeeId === data.employeeId);
+    if (!employee) {
+      toast({
+        title: "Error",
+        description: "Employee not found",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     createLeaveRequestMutation.mutate({
       ...data,
+      employeeId: employee.id.toString(), // Convert to string as schema expects varchar
       days,
     });
   };
@@ -197,13 +212,13 @@ export default function LeaveManagement() {
                       <FormItem>
                         <FormLabel>Employee</FormLabel>
                         <FormControl>
-                          <Select onValueChange={(value) => field.onChange(parseInt(value))}>
+                          <Select onValueChange={field.onChange} value={field.value}>
                             <SelectTrigger>
                               <SelectValue placeholder="Select Employee" />
                             </SelectTrigger>
                             <SelectContent>
                               {employees?.map((employee: any) => (
-                                <SelectItem key={employee.id} value={employee.id.toString()}>
+                                <SelectItem key={employee.id} value={employee.employeeId}>
                                   {employee.fullName} - {employee.employeeId}
                                 </SelectItem>
                               ))}
