@@ -23,6 +23,8 @@ export function useLicense() {
     currentLogins: 0
   });
 
+  const [isInitialized, setIsInitialized] = useState(false);
+
   useEffect(() => {
     // Load license from localStorage on mount
     const savedLicense = localStorage.getItem('systemLicense');
@@ -32,8 +34,35 @@ export function useLicense() {
         parsed.expiryDate = new Date(parsed.expiryDate);
       }
       setLicense(parsed);
+      
+      // If we have a valid license, create a session on the backend
+      if (parsed.isValid && parsed.licenseKey) {
+        createSessionForStoredLicense(parsed.licenseKey);
+      }
     }
+    setIsInitialized(true);
   }, []);
+
+  const createSessionForStoredLicense = async (licenseKey: string) => {
+    try {
+      const response = await fetch('/api/license/validate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ licenseKey })
+      });
+      
+      const result = await response.json();
+      if (result.valid) {
+        setLicense(prev => ({
+          ...prev,
+          currentLogins: result.currentSessions || 0
+        }));
+        startSessionPolling(licenseKey);
+      }
+    } catch (error) {
+      console.error('Error creating session for stored license:', error);
+    }
+  };
 
   const validateLicense = async (key: string): Promise<boolean> => {
     try {
@@ -50,7 +79,7 @@ export function useLicense() {
         const licenseConfigs: Record<string, Omit<LicenseState, 'licenseKey' | 'currentLogins'>> = {
           'J7K9-P2Q4-R6T8-U1V3': {
             isValid: true,
-            licensedTo: 'Ministry of Finance Sri Lanka',
+            licensedTo: 'Live U Pvt Ltd',
             expiryDate: new Date('2025-12-31'),
             features: ['HR Management', 'Attendance Tracking', 'Biometric Integration', 'Reports', 'Advanced Analytics'],
             tier: 'Enterprise Pro',
@@ -58,7 +87,7 @@ export function useLicense() {
           },
           'M5N7-B8C2-L4X6-W9Z0': {
             isValid: true,
-            licensedTo: 'Ministry of Finance Sri Lanka',
+            licensedTo: 'Live U Pvt Ltd',
             expiryDate: new Date('2025-12-31'),
             features: ['HR Management', 'Attendance Tracking', 'Biometric Integration', 'Reports'],
             tier: 'Enterprise Plus',
@@ -66,7 +95,7 @@ export function useLicense() {
           },
           'D3F5-H6J8-K1L4-P7R9': {
             isValid: true,
-            licensedTo: 'Ministry of Finance Sri Lanka',
+            licensedTo: 'Live U Pvt Ltd',
             expiryDate: new Date('2025-12-31'),
             features: ['HR Management', 'Attendance Tracking', 'Basic Reports'],
             tier: 'Enterprise Basic',
@@ -74,7 +103,7 @@ export function useLicense() {
           },
           'Q2W4-E5R7-T8Y1-U3I6': {
             isValid: true,
-            licensedTo: 'Ministry of Finance Sri Lanka',
+            licensedTo: 'Live U Pvt Ltd',
             expiryDate: new Date('2025-12-31'),
             features: ['HR Management', 'Attendance Tracking', 'Biometric Integration', 'Reports', 'Multi-User Access'],
             tier: 'Enterprise Max',
@@ -82,7 +111,7 @@ export function useLicense() {
           },
           'A9S2-D5F7-G3H6-J8K1': {
             isValid: true,
-            licensedTo: 'Ministry of Finance Sri Lanka - Demo',
+            licensedTo: 'Live U Pvt Ltd - Demo',
             expiryDate: new Date('2025-12-31'),
             features: ['HR Management', 'Attendance Tracking', 'Demo Features'],
             tier: 'Enterprise Demo',

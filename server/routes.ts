@@ -2607,77 +2607,96 @@ export function registerRoutes(app: any) {
     }
   });
 
-  // License validation and session management
-  app.post('/api/license/validate', (req: any, res: any) => {
-    try {
-      const { licenseKey } = req.body;
-      const sessionId = req.session?.id || req.sessionID;
-      const ipAddress = req.ip || req.connection.remoteAddress || req.headers['x-forwarded-for'] || 'Unknown';
-      const userAgent = req.headers['user-agent'] || 'Unknown';
+// License validation and session management
+router.post('/api/license/validate', (req: any, res: any) => {
+  try {
+    const { licenseKey } = req.body;
+    const sessionId = req.session?.id || req.sessionID || `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const ipAddress = req.ip || req.connection.remoteAddress || req.headers['x-forwarded-for'] || 'Unknown';
+    const userAgent = req.headers['user-agent'] || 'Unknown';
 
-      // Validate license key
-      const licenseConfigs: Record<string, any> = {
-        'J7K9-P2Q4-R6T8-U1V3': { tier: 'Enterprise Pro', maxWebLogins: 2 },
-        'M5N7-B8C2-L4X6-W9Z0': { tier: 'Enterprise Plus', maxWebLogins: 3 },
-        'D3F5-H6J8-K1L4-P7R9': { tier: 'Enterprise Basic', maxWebLogins: 1 },
-        'Q2W4-E5R7-T8Y1-U3I6': { tier: 'Enterprise Max', maxWebLogins: 5 },
-        'A9S2-D5F7-G3H6-J8K1': { tier: 'Enterprise Demo', maxWebLogins: 999 }
-      };
+    // Validate license key
+    const licenseConfigs: Record<string, any> = {
+      'J7K9-P2Q4-R6T8-U1V3': { tier: 'Enterprise Pro', maxWebLogins: 2 },
+      'M5N7-B8C2-L4X6-W9Z0': { tier: 'Enterprise Plus', maxWebLogins: 3 },
+      'D3F5-H6J8-K1L4-P7R9': { tier: 'Enterprise Basic', maxWebLogins: 1 },
+      'Q2W4-E5R7-T8Y1-U3I6': { tier: 'Enterprise Max', maxWebLogins: 5 },
+      'A9S2-D5F7-G3H6-J8K1': { tier: 'Enterprise Demo', maxWebLogins: 999 }
+    };
 
-      const config = licenseConfigs[licenseKey];
-      if (!config) {
-        return res.status(400).json({ valid: false, message: 'Invalid license key' });
-      }
-
-      // Check current session count for this license
-      const currentSessions = sessionManager.getSessionCount(licenseKey);
-      if (currentSessions >= config.maxWebLogins && config.maxWebLogins !== 999) {
-        return res.status(400).json({ 
-          valid: false, 
-          message: `Maximum ${config.maxWebLogins} concurrent sessions reached for this license` 
-        });
-      }
-
-      // Add session
-      sessionManager.addSession(sessionId, ipAddress, userAgent, licenseKey);
-      
-      res.json({ 
-        valid: true, 
-        message: 'License validated successfully',
-        currentSessions: sessionManager.getSessionCount(licenseKey),
-        maxSessions: config.maxWebLogins
-      });
-    } catch (error) {
-      console.error('Error validating license:', error);
-      res.status(500).json({ valid: false, message: 'License validation failed' });
+    const config = licenseConfigs[licenseKey];
+    if (!config) {
+      return res.status(400).json({ valid: false, message: 'Invalid license key' });
     }
-  });
 
-  // Get current session info
-  app.get('/api/license/sessions', (req: any, res: any) => {
-    try {
-      const { licenseKey } = req.query;
-      const sessions = licenseKey ? 
-        sessionManager.getActiveSessionsForLicense(licenseKey) : 
-        sessionManager.getAllActiveSessions();
-      
-      const sessionInfo = sessions.map(session => ({
-        sessionId: session.sessionId.substring(0, 8) + '...',
-        ipAddress: session.ipAddress,
-        loginTime: session.loginTime,
-        lastActivity: session.lastActivity,
-        userAgent: session.userAgent.substring(0, 50) + '...'
-      }));
-
-      res.json({
-        currentSessions: sessions.length,
-        sessions: sessionInfo
+    // Check current session count for this license
+    const currentSessions = sessionManager.getSessionCount(licenseKey);
+    if (currentSessions >= config.maxWebLogins && config.maxWebLogins !== 999) {
+      return res.status(400).json({ 
+        valid: false, 
+        message: `Maximum ${config.maxWebLogins} concurrent sessions reached for this license` 
       });
-    } catch (error) {
-      console.error('Error fetching session info:', error);
-      res.status(500).json({ error: 'Failed to fetch session info' });
     }
-  });
+
+    // Add session
+    sessionManager.addSession(sessionId, ipAddress, userAgent, licenseKey);
+    
+    res.json({ 
+      valid: true, 
+      message: 'License validated successfully',
+      currentSessions: sessionManager.getSessionCount(licenseKey),
+      maxSessions: config.maxWebLogins
+    });
+  } catch (error) {
+    console.error('Error validating license:', error);
+    res.status(500).json({ valid: false, message: 'License validation failed' });
+  }
+});
+
+// Get current session info
+router.get('/api/license/sessions', (req: any, res: any) => {
+  try {
+    console.log('Sessions API called with query:', req.query);
+    const { licenseKey } = req.query;
+    
+    // Get sessions from session manager
+    const sessions = licenseKey ? 
+      sessionManager.getActiveSessionsForLicense(licenseKey) : 
+      sessionManager.getAllActiveSessions();
+    
+    console.log('Found sessions:', sessions.length);
+    
+    // Format session info safely
+    const sessionInfo = sessions.map(session => {
+      try {
+        return {
+          sessionId: session.sessionId || 'Unknown',
+          ipAddress: session.ipAddress || 'Unknown',
+          loginTime: session.loginTime || new Date(),
+          lastActivity: session.lastActivity || new Date(),
+          userAgent: session.userAgent || 'Unknown'
+        };
+      } catch (sessionError) {
+        console.error('Error processing session:', sessionError);
+        return {
+          sessionId: 'Error',
+          ipAddress: 'Unknown',
+          loginTime: new Date(),
+          lastActivity: new Date(),
+          userAgent: 'Unknown'
+        };
+      }
+    });
+
+    res.json({
+      currentSessions: sessions.length,
+      sessions: sessionInfo
+    });
+  } catch (error) {
+    console.error('Error fetching session info:', error);
+    res.status(500).json({ error: 'Failed to fetch session info', details: error.message });
+  }
+});
 
   return app;
 }
