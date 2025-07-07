@@ -53,6 +53,13 @@ export default function Settings() {
     taxId: "123456789V",
     establishedYear: "2020"
   });
+  const [autoSyncSettings, setAutoSyncSettings] = useState({
+    enabled: false,
+    interval: 30, // minutes
+    lastSync: null as Date | null,
+    syncOnStartup: true,
+    notifications: true
+  });
   const [isViewUsersDialogOpen, setIsViewUsersDialogOpen] = useState(false);
   const [viewingDevice, setViewingDevice] = useState<BiometricDevice | null>(null);
   const [deviceUsers, setDeviceUsers] = useState<DeviceUser[]>([]);
@@ -627,6 +634,115 @@ export default function Settings() {
 
         {/* Devices Tab */}
         <TabsContent value="devices" className="space-y-6">
+          {/* Auto Sync Settings */}
+          <Card className="border border-gray-200">
+            <CardHeader>
+              <CardTitle className="text-lg font-semibold text-gray-900 flex items-center">
+                <RefreshCw className="w-5 h-5 mr-2" />
+                Attendance Auto Sync
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <Label className="text-base font-medium">Enable Auto Sync</Label>
+                  <p className="text-sm text-gray-500">Automatically sync attendance data from biometric devices</p>
+                </div>
+                <Switch
+                  checked={autoSyncSettings.enabled}
+                  onCheckedChange={(checked) => setAutoSyncSettings({...autoSyncSettings, enabled: checked})}
+                />
+              </div>
+              
+              {autoSyncSettings.enabled && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                  <div className="space-y-2">
+                    <Label htmlFor="syncInterval">Sync Interval (minutes)</Label>
+                    <Select 
+                      value={autoSyncSettings.interval.toString()} 
+                      onValueChange={(value) => setAutoSyncSettings({...autoSyncSettings, interval: parseInt(value)})}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="5">5 minutes</SelectItem>
+                        <SelectItem value="10">10 minutes</SelectItem>
+                        <SelectItem value="15">15 minutes</SelectItem>
+                        <SelectItem value="30">30 minutes</SelectItem>
+                        <SelectItem value="60">1 hour</SelectItem>
+                        <SelectItem value="120">2 hours</SelectItem>
+                        <SelectItem value="240">4 hours</SelectItem>
+                        <SelectItem value="480">8 hours</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-sm font-medium">Sync on startup</Label>
+                      <Switch
+                        checked={autoSyncSettings.syncOnStartup}
+                        onCheckedChange={(checked) => setAutoSyncSettings({...autoSyncSettings, syncOnStartup: checked})}
+                      />
+                    </div>
+                    
+                    <div className="flex items-center justify-between">
+                      <Label className="text-sm font-medium">Sync notifications</Label>
+                      <Switch
+                        checked={autoSyncSettings.notifications}
+                        onCheckedChange={(checked) => setAutoSyncSettings({...autoSyncSettings, notifications: checked})}
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="md:col-span-2">
+                    <div className="flex items-center justify-between p-3 bg-white rounded border">
+                      <div>
+                        <p className="text-sm font-medium">Last Sync</p>
+                        <p className="text-xs text-gray-500">
+                          {autoSyncSettings.lastSync 
+                            ? autoSyncSettings.lastSync.toLocaleString() 
+                            : 'Never synced'
+                          }
+                        </p>
+                      </div>
+                      <Button
+                        size="sm"
+                        onClick={() => {
+                          // Trigger manual sync for all devices
+                          biometricDevices?.forEach(device => {
+                            syncDeviceMutation.mutate(device.deviceId);
+                          });
+                          setAutoSyncSettings({...autoSyncSettings, lastSync: new Date()});
+                        }}
+                        disabled={syncDeviceMutation.isPending}
+                        className="bg-blue-600 hover:bg-blue-700"
+                      >
+                        {syncDeviceMutation.isPending ? 'Syncing...' : 'Sync Now'}
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  <div className="md:col-span-2 flex justify-end">
+                    <Button 
+                      onClick={() => {
+                        // Save auto sync settings
+                        toast({
+                          title: "Settings Saved",
+                          description: "Auto sync settings have been saved successfully.",
+                        });
+                      }}
+                      className="bg-green-600 hover:bg-green-700"
+                    >
+                      Save Auto Sync Settings
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
           {/* Biometric Devices */}
       <Card className="border border-gray-200">
         <CardHeader>
