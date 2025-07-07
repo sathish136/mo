@@ -100,6 +100,8 @@ Changelog:
 - July 07, 2025. Migration from Replit Agent to Replit environment completed
   - Database setup with PostgreSQL
   - All dependencies installed and configured
+  - Fixed overtime management approved/rejected tabs to show actual data instead of placeholders
+  - Removed Daily OT Report button from overtime management page
   - Monthly attendance report enhancements:
     - Added total hours calculation column
     - Added overtime total column (without 'h' suffix)

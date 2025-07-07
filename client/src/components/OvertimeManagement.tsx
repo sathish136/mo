@@ -444,15 +444,6 @@ export default function OvertimeManagement() {
                   <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200">
                     {filteredEmployees.length} of {eligibleEmployees.length} Pending
                   </Badge>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="border-blue-300 text-blue-700 hover:bg-blue-50"
-                    onClick={() => window.open('/reports', '_blank')}
-                  >
-                    <FileText className="w-4 h-4 mr-1" />
-                    Daily OT Report
-                  </Button>
                 </div>
               </div>
               
@@ -560,26 +551,124 @@ export default function OvertimeManagement() {
           </TabsContent>
 
           <TabsContent value="approved" className="mt-6">
-            <div className="text-center py-12 bg-green-50 rounded-lg border border-green-200">
-              <CheckCircle className="w-12 h-12 text-green-600 mx-auto mb-4" />
-              <h4 className="text-lg font-medium text-green-800 mb-2">Approved Overtime Requests</h4>
-              <p className="text-green-700">{approvedRequests} requests have been approved</p>
-              <Button variant="outline" className="mt-4 border-green-300 text-green-700 hover:bg-green-100">
-                <FileText className="w-4 h-4 mr-2" />
-                View Approved Requests
-              </Button>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <CheckCircle className="w-5 h-5 text-green-600" />
+                  <h3 className="text-lg font-semibold text-gray-800">Approved Overtime Requests</h3>
+                </div>
+                <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                  {approvedRequests} Approved
+                </Badge>
+              </div>
+              
+              {isRequestsLoading ? (
+                <div className="text-center py-12">
+                  <RefreshCw className="w-8 h-8 text-gray-400 mx-auto mb-4 animate-spin" />
+                  <p className="text-gray-600 font-medium">Loading approved requests...</p>
+                </div>
+              ) : overtimeRequests.filter((req: any) => req.status === 'approved').length === 0 ? (
+                <div className="text-center py-12 bg-green-50 rounded-lg border border-green-200">
+                  <CheckCircle className="w-12 h-12 text-green-600 mx-auto mb-4" />
+                  <h4 className="text-lg font-medium text-green-800 mb-2">No Approved Requests</h4>
+                  <p className="text-green-700">No overtime requests have been approved yet</p>
+                </div>
+              ) : (
+                <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                  <Table>
+                    <TableHeader className="bg-gray-50">
+                      <TableRow>
+                        <TableHead className="w-16 text-gray-700 font-semibold">S.No</TableHead>
+                        <TableHead className="text-gray-700 font-semibold">Employee ID</TableHead>
+                        <TableHead className="text-gray-700 font-semibold">Date</TableHead>
+                        <TableHead className="text-gray-700 font-semibold">Hours</TableHead>
+                        <TableHead className="text-gray-700 font-semibold">Reason</TableHead>
+                        <TableHead className="text-gray-700 font-semibold">Approved By</TableHead>
+                        <TableHead className="text-gray-700 font-semibold">Approved At</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {overtimeRequests.filter((req: any) => req.status === 'approved').map((request: any, index: number) => (
+                        <TableRow key={request.id} className="hover:bg-gray-50 border-gray-200">
+                          <TableCell className="font-medium text-gray-800">{index + 1}</TableCell>
+                          <TableCell className="font-mono text-gray-700">{request.employeeId}</TableCell>
+                          <TableCell className="text-gray-700">{new Date(request.date).toLocaleDateString()}</TableCell>
+                          <TableCell>
+                            <Badge className="bg-green-100 text-green-700 font-bold border border-green-300">
+                              {request.hours}h
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-gray-600 max-w-xs truncate">{request.reason}</TableCell>
+                          <TableCell className="text-gray-700">{request.approvedBy || 'System'}</TableCell>
+                          <TableCell className="text-gray-600">
+                            {request.approvedAt ? new Date(request.approvedAt).toLocaleDateString() : 'N/A'}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
             </div>
           </TabsContent>
 
           <TabsContent value="rejected" className="mt-6">
-            <div className="text-center py-12 bg-red-50 rounded-lg border border-red-200">
-              <XCircle className="w-12 h-12 text-red-600 mx-auto mb-4" />
-              <h4 className="text-lg font-medium text-red-800 mb-2">Rejected Overtime Requests</h4>
-              <p className="text-red-700">{rejectedRequests} requests have been rejected</p>
-              <Button variant="outline" className="mt-4 border-red-300 text-red-700 hover:bg-red-100">
-                <FileText className="w-4 h-4 mr-2" />
-                View Rejected Requests
-              </Button>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <XCircle className="w-5 h-5 text-red-600" />
+                  <h3 className="text-lg font-semibold text-gray-800">Rejected Overtime Requests</h3>
+                </div>
+                <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
+                  {rejectedRequests} Rejected
+                </Badge>
+              </div>
+              
+              {isRequestsLoading ? (
+                <div className="text-center py-12">
+                  <RefreshCw className="w-8 h-8 text-gray-400 mx-auto mb-4 animate-spin" />
+                  <p className="text-gray-600 font-medium">Loading rejected requests...</p>
+                </div>
+              ) : overtimeRequests.filter((req: any) => req.status === 'rejected').length === 0 ? (
+                <div className="text-center py-12 bg-red-50 rounded-lg border border-red-200">
+                  <XCircle className="w-12 h-12 text-red-600 mx-auto mb-4" />
+                  <h4 className="text-lg font-medium text-red-800 mb-2">No Rejected Requests</h4>
+                  <p className="text-red-700">No overtime requests have been rejected yet</p>
+                </div>
+              ) : (
+                <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                  <Table>
+                    <TableHeader className="bg-gray-50">
+                      <TableRow>
+                        <TableHead className="w-16 text-gray-700 font-semibold">S.No</TableHead>
+                        <TableHead className="text-gray-700 font-semibold">Employee ID</TableHead>
+                        <TableHead className="text-gray-700 font-semibold">Date</TableHead>
+                        <TableHead className="text-gray-700 font-semibold">Hours</TableHead>
+                        <TableHead className="text-gray-700 font-semibold">Reason</TableHead>
+                        <TableHead className="text-gray-700 font-semibold">Rejected At</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {overtimeRequests.filter((req: any) => req.status === 'rejected').map((request: any, index: number) => (
+                        <TableRow key={request.id} className="hover:bg-gray-50 border-gray-200">
+                          <TableCell className="font-medium text-gray-800">{index + 1}</TableCell>
+                          <TableCell className="font-mono text-gray-700">{request.employeeId}</TableCell>
+                          <TableCell className="text-gray-700">{new Date(request.date).toLocaleDateString()}</TableCell>
+                          <TableCell>
+                            <Badge className="bg-red-100 text-red-700 font-bold border border-red-300">
+                              {request.hours}h
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-gray-600 max-w-xs truncate">{request.reason}</TableCell>
+                          <TableCell className="text-gray-600">
+                            {request.createdAt ? new Date(request.createdAt).toLocaleDateString() : 'N/A'}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
             </div>
           </TabsContent>
         </Tabs>
