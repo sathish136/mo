@@ -320,11 +320,10 @@ Changelog:
     - Fixed application routing to redirect unauthenticated users to login page
     - Login state persists across browser sessions until explicit logout
   - Login Page Design Enhancement (July 7, 2025):
-    - Completely redesigned login page with modern dark gradient theme
     - Removed "Powered by Live U Pvt Ltd Sri Lanka" branding as requested
-    - Implemented glass-morphism design with backdrop blur effects
-    - Added gradient backgrounds and professional visual elements
-    - Enhanced demo credentials display with improved styling
-    - Fixed JavaScript errors (rememberMe variable) for proper functionality
+    - Reverted to original clean, professional light design per user preference
     - Updated license system to show "Ministry of Finance" instead of company branding
-    - Professional dark theme with blue/cyan gradient color scheme
+    - Fixed JavaScript errors (rememberMe variable) for proper functionality
+    - Maintained clean light blue gradient background design
+    - Professional styling with clear demo credentials display (admin/admin123)
+    - Modified LicenseGuard to allow login page access without license validation
