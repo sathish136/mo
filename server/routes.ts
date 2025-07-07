@@ -1216,22 +1216,11 @@ router.get("/api/reports/daily-ot", async (req, res) => {
         lt(attendance.checkIn, endOfDay)
       ));
 
-    // Assuming there is an overtime requests table or similar for approval status
-    // Adjust the table name and fields as per your actual database schema
-    let otRecords: any[] = [];
-    try {
-      // Check if overtimeRequests table exists or is defined; this is a placeholder for actual table name
-      // You may need to adjust this based on your database schema
-      if (typeof overtimeRequests !== 'undefined') {
-        otRecords = await db.select().from(overtimeRequests)
-          .where(
-            eq(overtimeRequests.date, startOfDay)
-          );
-      }
-    } catch (e) {
-      console.warn("Overtime requests table not accessible, skipping OT approval status:", e);
-      otRecords = [];
-    }
+    // Fetch overtime requests for the specific date
+    const otRecords = await db.select().from(overtimeRequests)
+      .where(
+        sql`DATE(${overtimeRequests.date}) = DATE(${startOfDay})`
+      );
 
     const reportData = allEmployees.map(emp => {
       let requiredHours = 8; // Default required hours
@@ -1255,16 +1244,28 @@ router.get("/api/reports/daily-ot", async (req, res) => {
 
       const otHours = Math.max(0, actualHours - requiredHours);
 
-      // Check for overtime request and its status
-      const overtimeRequest = otRecords.find(ot => ot.employeeId === parseInt(emp.id));
-      let otApprovalStatus = 'Pending';
+      // Check for overtime request and its status based on actual workflow
+      const overtimeRequest = otRecords.find(ot => ot.employeeId === emp.id);
+      let otApprovalStatus = 'Pending'; // Default status for eligible employees
       
       if (otHours > 0) {
         if (overtimeRequest) {
-          otApprovalStatus = overtimeRequest.status === 'approved' ? 'Approved' : 
-                           overtimeRequest.status === 'rejected' ? 'Rejected' : 'Pending';
+          // Map database status to display status
+          switch (overtimeRequest.status) {
+            case 'approved':
+              otApprovalStatus = 'Approved';
+              break;
+            case 'rejected':
+              otApprovalStatus = 'Rejected';
+              break;
+            case 'pending':
+            default:
+              otApprovalStatus = 'Pending';
+              break;
+          }
         } else {
-          otApprovalStatus = 'Pending'; // Default to pending instead of "Not Applied"
+          // No overtime request submitted yet - default to Pending
+          otApprovalStatus = 'Pending';
         }
       }
 
