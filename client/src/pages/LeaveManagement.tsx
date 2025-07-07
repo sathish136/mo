@@ -58,9 +58,15 @@ export default function LeaveManagement() {
     queryKey: ["/api/employees"],
   });
 
-  const { data: leaveTypes = [] } = useQuery({
-    queryKey: ["/api/leave-types"],
-  });
+  // Get leave types from holiday types instead of separate leave types table
+  const leaveTypes = [
+    { id: 1, name: "annual", description: "Annual Leave" },
+    { id: 2, name: "sick", description: "Sick Leave" },
+    { id: 3, name: "casual", description: "Casual Leave" },
+    { id: 4, name: "maternity", description: "Maternity Leave" },
+    { id: 5, name: "paternity", description: "Paternity Leave" },
+    { id: 6, name: "special", description: "Special Leave" },
+  ];
 
   const { data: attendance = [] } = useQuery({
     queryKey: ["/api/attendance"],
