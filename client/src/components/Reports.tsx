@@ -458,8 +458,10 @@ export default function Reports() {
         return;
       }
 
-      if (format === "pdf") {
-        exportToPDF(data, filename, reportType);
+      if (format === "pdf-portrait") {
+        exportToPDF(data, filename, reportType, 'portrait');
+      } else if (format === "pdf-landscape") {
+        exportToPDF(data, filename, reportType, 'landscape');
       }
     } catch (error) {
       console.error("Export failed:", error);
@@ -471,7 +473,7 @@ export default function Reports() {
 
 
 
-  const exportToPDF = (data: any[], filename: string, reportType: string) => {
+  const exportToPDF = (data: any[], filename: string, reportType: string, orientation: 'portrait' | 'landscape' = 'portrait') => {
     // Simple HTML to PDF conversion using browser print
     const printWindow = window.open("", "_blank");
     if (!printWindow) return;
@@ -516,8 +518,8 @@ export default function Reports() {
         <title>${filename}</title>
         <style>
           @page {
-            size: A4;
-            margin: 0.5in;
+            size: A4 ${orientation};
+            margin: ${orientation === 'landscape' ? '0.3in' : '0.5in'};
           }
           * {
             box-sizing: border-box;
@@ -526,7 +528,7 @@ export default function Reports() {
             font-family: Arial, sans-serif; 
             margin: 0; 
             padding: 0;
-            font-size: 11px;
+            font-size: ${orientation === 'landscape' ? '10px' : '11px'};
             line-height: 1.3;
             width: 100%;
             max-width: 100%;
@@ -543,14 +545,14 @@ export default function Reports() {
             padding-bottom: 20px;
           }
           .company-name {
-            font-size: 28px;
+            font-size: ${orientation === 'landscape' ? '24px' : '28px'};
             font-weight: bold;
             color: #1e40af;
             margin-bottom: 5px;
             text-transform: uppercase;
           }
           .department {
-            font-size: 18px;
+            font-size: ${orientation === 'landscape' ? '16px' : '18px'};
             color: #374151;
             margin-bottom: 8px;
             font-weight: 600;
@@ -568,7 +570,7 @@ export default function Reports() {
             border: 2px solid #e2e8f0;
           }
           .report-title {
-            font-size: 20px;
+            font-size: ${orientation === 'landscape' ? '18px' : '20px'};
             font-weight: bold;
             color: #1f2937;
             margin-bottom: 15px;
@@ -659,13 +661,13 @@ export default function Reports() {
               margin-bottom: 15px;
             }
             table { 
-              font-size: 8px;
+              font-size: ${orientation === 'landscape' ? '9px' : '8px'};
               margin-top: 10px;
               page-break-inside: auto;
             }
             th, td { 
-              padding: 2px 1px;
-              font-size: 8px;
+              padding: ${orientation === 'landscape' ? '3px 2px' : '2px 1px'};
+              font-size: ${orientation === 'landscape' ? '9px' : '8px'};
             }
             tr { 
               page-break-inside: avoid; 
@@ -2059,13 +2061,22 @@ export default function Reports() {
             <FileSpreadsheet className="h-4 w-4" />
             Excel Export
           </Button>
-          <Button 
-            onClick={() => handleExportReport('pdf')}
-            className="bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 text-white font-semibold py-2 px-4 rounded-lg shadow-lg transition duration-200 ease-in-out flex items-center gap-2"
-          >
-            <FileText className="h-4 w-4" />
-            PDF Export
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              onClick={() => handleExportReport('pdf-portrait')}
+              className="bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 text-white font-semibold py-2 px-3 rounded-lg shadow-lg transition duration-200 ease-in-out flex items-center gap-2 text-sm"
+            >
+              <FileText className="h-4 w-4" />
+              PDF Portrait
+            </Button>
+            <Button 
+              onClick={() => handleExportReport('pdf-landscape')}
+              className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold py-2 px-3 rounded-lg shadow-lg transition duration-200 ease-in-out flex items-center gap-2 text-sm"
+            >
+              <FileText className="h-4 w-4" />
+              PDF Landscape
+            </Button>
+          </div>
         </div>
       </div>
       <Card className="rounded-lg shadow-sm border-gray-200">
