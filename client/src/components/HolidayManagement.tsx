@@ -457,7 +457,7 @@ export default function HolidayManagement() {
                     </Button>
                     <Button 
                       type="submit" 
-                      className="bg-[hsl(var(--gov-navy))] hover:bg-[hsl(var(--gov-navy-light))]"
+                      className="bg-blue-600 hover:bg-blue-700 text-white"
                       disabled={createHolidayMutation.isPending}
                     >
                       {createHolidayMutation.isPending ? "Adding..." : "Add Holiday"}
@@ -655,7 +655,7 @@ export default function HolidayManagement() {
                     </Button>
                     <Button 
                       type="submit" 
-                      className="bg-[hsl(var(--gov-navy))] hover:bg-[hsl(var(--gov-navy-light))]"
+                      className="bg-blue-600 hover:bg-blue-700 text-white"
                       disabled={updateHolidayMutation.isPending}
                     >
                       {updateHolidayMutation.isPending ? "Updating..." : "Update Holiday"}
