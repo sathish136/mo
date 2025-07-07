@@ -352,6 +352,52 @@ router.delete("/api/employees/:id", async (req, res) => {
   }
 });
 
+router.put("/api/employees/bulk", async (req, res) => {
+  try {
+    const { employeeIds, updates } = req.body;
+    
+    if (!Array.isArray(employeeIds) || employeeIds.length === 0) {
+      return res.status(400).json({ message: "Employee IDs are required" });
+    }
+
+    if (!updates || Object.keys(updates).length === 0) {
+      return res.status(400).json({ message: "Updates are required" });
+    }
+
+    // Validate the updates object
+    const validatedUpdates = insertEmployeeSchema.partial().safeParse(updates);
+    if (!validatedUpdates.success) {
+      return res.status(400).json({ errors: validatedUpdates.error.errors });
+    }
+
+    const updateData = {
+      ...validatedUpdates.data,
+      updatedAt: new Date(),
+    };
+
+    // Remove undefined values
+    Object.keys(updateData).forEach(key => {
+      if (updateData[key as keyof typeof updateData] === undefined) {
+        delete updateData[key as keyof typeof updateData];
+      }
+    });
+
+    const updatedEmployees = await db
+      .update(employees)
+      .set(updateData)
+      .where(inArray(employees.id, employeeIds))
+      .returning();
+
+    res.json({ 
+      message: `Successfully updated ${updatedEmployees.length} employees`,
+      updatedCount: updatedEmployees.length 
+    });
+  } catch (error) {
+    console.error("Error bulk updating employees:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
 // --- Attendance Routes ---
 router.get("/api/attendance", async (req, res) => {
   try {

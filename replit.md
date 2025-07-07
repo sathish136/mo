@@ -116,3 +116,10 @@ Changelog:
     - Improved OT eligibility filtering - only shows employees with OT hours > 0
     - Enhanced OT approval status display (Approved/Pending/Rejected/Not Applied/N/A)
     - Added total OT hours and approved OT hours summary in daily OT report
+  - Employee Management enhancements:
+    - Added serial numbers (S.No) column to employee table
+    - Added multiple selection with checkboxes
+    - Added bulk operations for department, group, and status changes
+    - Added bulk operations dialog with intuitive interface
+    - Added select all/deselect all functionality
+    - Enhanced table layout with better organization

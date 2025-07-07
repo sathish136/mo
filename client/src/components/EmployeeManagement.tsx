@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Search, Eye, Edit, UserX, Filter, Upload } from "lucide-react";
+import { Plus, Search, Eye, Edit, UserX, Filter, Upload, Settings2, Users, Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,6 +10,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Label } from "@/components/ui/label";
@@ -26,6 +27,9 @@ const getEmployees = async (): Promise<EmployeeWithDepartment[]> => apiRequest('
 const getDepartments = async (): Promise<Department[]> => apiRequest('GET', '/api/departments').then(res => res.json());
 const addEmployee = async (employee: InsertEmployee): Promise<Employee> => apiRequest('POST', '/api/employees', employee).then(res => res.json());
 const updateEmployee = async (employee: Employee): Promise<Employee> => apiRequest('PUT', `/api/employees/${employee.id}`, employee).then(res => res.json());
+const bulkUpdateEmployees = async (data: { employeeIds: string[], updates: Partial<Employee> }): Promise<void> => {
+  await apiRequest('PUT', '/api/employees/bulk', data);
+};
 const addDepartment = async (name: string): Promise<Department> => apiRequest('POST', '/api/departments', { name }).then(res => res.json());
 const deleteEmployee = async (id: number): Promise<void> => {
   await apiRequest('DELETE', `/api/employees/${id}`);
@@ -198,12 +202,125 @@ function EmployeeForm({ onSubmit, onCancel, isPending, departments, initialData 
   );
 }
 
+// --- Bulk Operations Component ---
+interface BulkOperationsProps {
+  selectedEmployees: string[];
+  onBulkUpdate: (updates: Partial<Employee>) => void;
+  onClose: () => void;
+  departments: Department[];
+  isPending: boolean;
+}
+
+function BulkOperations({ selectedEmployees, onBulkUpdate, onClose, departments, isPending }: BulkOperationsProps) {
+  const [operation, setOperation] = useState("");
+  const [bulkDepartmentId, setBulkDepartmentId] = useState<number | undefined>(undefined);
+  const [bulkGroup, setBulkGroup] = useState("");
+  const [bulkStatus, setBulkStatus] = useState("");
+
+  const handleBulkUpdate = () => {
+    const updates: Partial<Employee> = {};
+    
+    if (operation === "department" && bulkDepartmentId) {
+      updates.departmentId = bulkDepartmentId;
+    } else if (operation === "group" && bulkGroup) {
+      updates.employeeGroup = bulkGroup as "group_a" | "group_b";
+    } else if (operation === "status" && bulkStatus) {
+      updates.status = bulkStatus as "active" | "inactive";
+    }
+
+    if (Object.keys(updates).length > 0) {
+      onBulkUpdate(updates);
+    }
+  };
+
+  return (
+    <Dialog open={selectedEmployees.length > 0} onOpenChange={() => onClose()}>
+      <DialogContent className="sm:max-w-[425px]">
+        <DialogHeader>
+          <DialogTitle>Bulk Operations ({selectedEmployees.length} selected)</DialogTitle>
+        </DialogHeader>
+        
+        <div className="space-y-4">
+          <div>
+            <Label htmlFor="operation">Select Operation</Label>
+            <Select value={operation} onValueChange={setOperation}>
+              <SelectTrigger>
+                <SelectValue placeholder="Choose operation" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="department">Change Department</SelectItem>
+                <SelectItem value="group">Change Group</SelectItem>
+                <SelectItem value="status">Change Status</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {operation === "department" && (
+            <div>
+              <Label htmlFor="department">New Department</Label>
+              <Select value={bulkDepartmentId?.toString()} onValueChange={(value) => setBulkDepartmentId(parseInt(value))}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select department" />
+                </SelectTrigger>
+                <SelectContent>
+                  {departments.map((dept) => (
+                    <SelectItem key={dept.id} value={dept.id.toString()}>{dept.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {operation === "group" && (
+            <div>
+              <Label htmlFor="group">New Group</Label>
+              <Select value={bulkGroup} onValueChange={setBulkGroup}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select group" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="group_a">Group A</SelectItem>
+                  <SelectItem value="group_b">Group B</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {operation === "status" && (
+            <div>
+              <Label htmlFor="status">New Status</Label>
+              <Select value={bulkStatus} onValueChange={setBulkStatus}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="inactive">Inactive</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>Cancel</Button>
+          <Button onClick={handleBulkUpdate} disabled={isPending || !operation}>
+            {isPending ? "Updating..." : "Update Selected"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 // --- Main Employee Management Component ---
 export default function EmployeeManagement() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filters, setFilters] = useState({ group: "all", status: "all" });
   const [dialogs, setDialogs] = useState({ add: false, edit: false, view: false });
   const [selectedEmployee, setSelectedEmployee] = useState<EmployeeWithDepartment | null>(null);
+  const [selectedEmployees, setSelectedEmployees] = useState<string[]>([]);
+  const [showBulkOperations, setShowBulkOperations] = useState(false);
 
   const groupDisplay: Record<string, { name: string; className: string }> = {
     'group_a': { name: 'Group A', className: 'bg-blue-100 text-blue-800' },
@@ -233,6 +350,17 @@ export default function EmployeeManagement() {
     onError: (error) => toast({ title: "Error updating employee", description: error.message, variant: "destructive" })
   });
 
+  const bulkUpdateMutation = useMutation({ 
+    mutationFn: bulkUpdateEmployees, 
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['employees'] });
+      toast({ title: "Employees updated successfully!" });
+      setSelectedEmployees([]);
+      setShowBulkOperations(false);
+    },
+    onError: (error) => toast({ title: "Error updating employees", description: error.message, variant: "destructive" })
+  });
+
   const deleteEmployeeMutation = useMutation({ mutationFn: deleteEmployee, 
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['employees'] });
@@ -254,6 +382,26 @@ export default function EmployeeManagement() {
   const handleAddSubmit = (data: InsertEmployee) => createEmployeeMutation.mutate(data);
   const handleEditSubmit = (data: InsertEmployee) => updateEmployeeMutation.mutate({ ...selectedEmployee!, ...data });
 
+  const handleBulkUpdate = (updates: Partial<Employee>) => {
+    bulkUpdateMutation.mutate({ employeeIds: selectedEmployees, updates });
+  };
+
+  const handleSelectEmployee = (employeeId: string, checked: boolean) => {
+    if (checked) {
+      setSelectedEmployees(prev => [...prev, employeeId]);
+    } else {
+      setSelectedEmployees(prev => prev.filter(id => id !== employeeId));
+    }
+  };
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedEmployees(filteredEmployees.map(emp => emp.id));
+    } else {
+      setSelectedEmployees([]);
+    }
+  };
+
   const openDialog = (type: 'add' | 'edit' | 'view', employee: EmployeeWithDepartment | null = null) => {
     setSelectedEmployee(employee);
     setDialogs(prev => ({ ...prev, [type]: true }));
@@ -270,7 +418,15 @@ export default function EmployeeManagement() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold">Employee Management</h1>
-        <Button onClick={() => openDialog('add')}><Plus className="mr-2 h-4 w-4" /> Add Employee</Button>
+        <div className="flex items-center gap-2">
+          {selectedEmployees.length > 0 && (
+            <Button variant="outline" onClick={() => setShowBulkOperations(true)}>
+              <Settings2 className="mr-2 h-4 w-4" />
+              Bulk Operations ({selectedEmployees.length})
+            </Button>
+          )}
+          <Button onClick={() => openDialog('add')}><Plus className="mr-2 h-4 w-4" /> Add Employee</Button>
+        </div>
       </div>
 
       <Card>
@@ -313,6 +469,13 @@ export default function EmployeeManagement() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-12">
+                  <Checkbox
+                    checked={selectedEmployees.length === filteredEmployees.length && filteredEmployees.length > 0}
+                    onCheckedChange={handleSelectAll}
+                  />
+                </TableHead>
+                <TableHead className="w-16">S.No</TableHead>
                 <TableHead>Name</TableHead>
                 <TableHead>Department</TableHead>
                 <TableHead>Group</TableHead>
@@ -323,21 +486,28 @@ export default function EmployeeManagement() {
             <TableBody>
               {isLoadingEmployees ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center">
+                  <TableCell colSpan={7} className="text-center">
                     Loading employees...
                   </TableCell>
                 </TableRow>
               ) : filteredEmployees.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center py-12 text-gray-500">
+                  <TableCell colSpan={7} className="text-center py-12 text-gray-500">
                     <UserX className="w-16 h-16 mx-auto mb-4 text-gray-300" />
                     <h3 className="text-xl font-semibold">No Employees Found</h3>
                     <p>Your search or filter criteria did not match any employees.</p>
                   </TableCell>
                 </TableRow>
               ) : (
-                                filteredEmployees.map((employee) => (
+                filteredEmployees.map((employee, index) => (
                   <TableRow key={employee.id}>
+                    <TableCell>
+                      <Checkbox
+                        checked={selectedEmployees.includes(employee.id)}
+                        onCheckedChange={(checked) => handleSelectEmployee(employee.id, checked as boolean)}
+                      />
+                    </TableCell>
+                    <TableCell className="font-medium">{index + 1}</TableCell>
                     <TableCell>
                       <div className="flex items-center gap-4">
                         <Avatar>
@@ -351,7 +521,7 @@ export default function EmployeeManagement() {
                       </div>
                     </TableCell>
                     <TableCell>{employee.department || "Unassigned"}</TableCell>
-                                        <TableCell>
+                    <TableCell>
                       <span className={cn('inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium', employee.employeeGroup && groupDisplay[employee.employeeGroup]?.className)}>
                         {groupDisplay[employee.employeeGroup]?.name ?? employee.employeeGroup}
                       </span>
@@ -435,6 +605,17 @@ export default function EmployeeManagement() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Bulk Operations Dialog */}
+      {showBulkOperations && (
+        <BulkOperations
+          selectedEmployees={selectedEmployees}
+          onBulkUpdate={handleBulkUpdate}
+          onClose={() => setShowBulkOperations(false)}
+          departments={departments}
+          isPending={bulkUpdateMutation.isPending}
+        />
+      )}
     </div>
   );
 }
