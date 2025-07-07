@@ -162,7 +162,12 @@ export default function Login() {
           </CardContent>
         </Card>
 
-
+        {/* Branding */}
+        <div className="text-center">
+          <p className="text-xs text-gray-500">
+            Powered by <span className="font-medium text-gray-600">Live U Pvt Ltd</span>
+          </p>
+        </div>
       </div>
     </div>
   );

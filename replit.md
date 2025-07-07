@@ -320,10 +320,10 @@ Changelog:
     - Fixed application routing to redirect unauthenticated users to login page
     - Login state persists across browser sessions until explicit logout
   - Login Page Design Enhancement (July 7, 2025):
-    - Removed "Powered by Live U Pvt Ltd Sri Lanka" branding as requested
     - Reverted to original clean, professional light design per user preference
-    - Updated license system to show "Ministry of Finance" instead of company branding
     - Fixed JavaScript errors (rememberMe variable) for proper functionality
     - Maintained clean light blue gradient background design
     - Removed demo credentials display for cleaner professional appearance
     - Modified LicenseGuard to allow login page access without license validation
+    - Added "Powered by Live U Pvt Ltd" branding at bottom of login page
+    - Updated license system to show "Live U Pvt Ltd" branding throughout system
