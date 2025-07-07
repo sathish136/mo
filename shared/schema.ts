@@ -211,7 +211,11 @@ export const insertLeaveRequestSchema = createInsertSchema(leaveRequests).omit({
   approvedAt: true,
 });
 
-export const insertOvertimeRequestSchema = createInsertSchema(overtimeRequests).omit({
+export const insertOvertimeRequestSchema = createInsertSchema(overtimeRequests, {
+  date: z.coerce.date(),
+  startTime: z.coerce.date(),
+  endTime: z.coerce.date(),
+}).omit({
   id: true,
   createdAt: true,
   approvedBy: true,

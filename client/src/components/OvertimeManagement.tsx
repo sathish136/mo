@@ -42,10 +42,10 @@ export default function OvertimeManagement() {
       const promises = employees.map(employee => {
         const overtimeRequest = {
           employeeId: employee.employeeId, // Use employeeId string instead of numeric id
-          date: new Date(employee.date),
-          startTime: new Date(`${employee.date}T08:00:00`), // Use proper datetime format
-          endTime: new Date(`${employee.date}T17:00:00`), // Use proper datetime format
-          hours: parseFloat(employee.otHours), // Ensure it's a number
+          date: employee.date, // Send as string, schema will coerce to date
+          startTime: `${employee.date}T08:00:00`, // Send as string
+          endTime: `${employee.date}T17:00:00`, // Send as string
+          hours: employee.otHours.toString(), // Convert to string as expected by schema
           reason: "Bulk approved for overtime hours worked",
           status: "approved",
         };
@@ -75,10 +75,10 @@ export default function OvertimeManagement() {
       const promises = employees.map(employee => {
         const overtimeRequest = {
           employeeId: employee.employeeId, // Use employeeId string instead of numeric id
-          date: new Date(employee.date),
-          startTime: new Date(`${employee.date}T08:00:00`), // Use proper datetime format
-          endTime: new Date(`${employee.date}T17:00:00`), // Use proper datetime format
-          hours: parseFloat(employee.otHours), // Ensure it's a number
+          date: employee.date, // Send as string, schema will coerce to date
+          startTime: `${employee.date}T08:00:00`, // Send as string
+          endTime: `${employee.date}T17:00:00`, // Send as string
+          hours: employee.otHours.toString(), // Convert to string as expected by schema
           reason: "Bulk rejected - overtime not authorized",
           status: "rejected",
         };
@@ -105,15 +105,17 @@ export default function OvertimeManagement() {
 
   const singleApproveMutation = useMutation({
     mutationFn: async (employee: any) => {
+      console.log("Single approve mutation called with employee:", employee);
       const overtimeRequest = {
         employeeId: employee.employeeId, // Use employeeId string instead of numeric id
-        date: new Date(employee.date),
-        startTime: new Date(`${employee.date}T08:00:00`), // Use proper datetime format
-        endTime: new Date(`${employee.date}T17:00:00`), // Use proper datetime format
-        hours: parseFloat(employee.otHours), // Ensure it's a number
+        date: employee.date, // Send as string, schema will coerce to date
+        startTime: `${employee.date}T08:00:00`, // Send as string
+        endTime: `${employee.date}T17:00:00`, // Send as string
+        hours: employee.otHours.toString(), // Convert to string as expected by schema
         reason: "Approved for overtime hours worked",
         status: "approved",
       };
+      console.log("Sending overtime request:", overtimeRequest);
       const response = await apiRequest("POST", "/api/overtime-requests", overtimeRequest);
       return response.json();
     },
@@ -137,10 +139,10 @@ export default function OvertimeManagement() {
     mutationFn: async (employee: any) => {
       const overtimeRequest = {
         employeeId: employee.employeeId, // Use employeeId string instead of numeric id
-        date: new Date(employee.date),
-        startTime: new Date(`${employee.date}T08:00:00`), // Use proper datetime format
-        endTime: new Date(`${employee.date}T17:00:00`), // Use proper datetime format
-        hours: parseFloat(employee.otHours), // Ensure it's a number
+        date: employee.date, // Send as string, schema will coerce to date
+        startTime: `${employee.date}T08:00:00`, // Send as string
+        endTime: `${employee.date}T17:00:00`, // Send as string
+        hours: employee.otHours.toString(), // Convert to string as expected by schema
         reason: "Rejected - overtime not authorized",
         status: "rejected",
       };
@@ -172,6 +174,7 @@ export default function OvertimeManagement() {
   };
 
   const handleSelectEmployee = (employeeId: string, checked: boolean) => {
+    console.log("Selecting employee:", employeeId, "checked:", checked);
     const newSelected = new Set(selectedEmployees);
     if (checked) {
       newSelected.add(employeeId);
@@ -179,6 +182,7 @@ export default function OvertimeManagement() {
       newSelected.delete(employeeId);
     }
     setSelectedEmployees(newSelected);
+    console.log("Selected employees:", newSelected);
   };
 
   const handleBulkApprove = () => {
@@ -319,23 +323,23 @@ export default function OvertimeManagement() {
             </div>
             
             {selectedEmployees.size > 0 && (
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
                 <Button
                   size="sm"
-                  className="bg-green-600 hover:bg-green-700 text-white"
+                  className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 h-8 text-xs"
                   onClick={handleBulkApprove}
                   disabled={bulkApproveMutation.isPending || bulkRejectMutation.isPending}
                 >
-                  <CheckCircle className="w-4 h-4 mr-2" />
+                  <CheckCircle className="w-3 h-3 mr-1" />
                   Approve {selectedEmployees.size}
                 </Button>
                 <Button
                   size="sm"
-                  className="bg-red-600 hover:bg-red-700 text-white"
+                  className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 h-8 text-xs"
                   onClick={handleBulkReject}
                   disabled={bulkApproveMutation.isPending || bulkRejectMutation.isPending}
                 >
-                  <XCircle className="w-4 h-4 mr-2" />
+                  <XCircle className="w-3 h-3 mr-1" />
                   Reject {selectedEmployees.size}
                 </Button>
               </div>
@@ -437,23 +441,23 @@ export default function OvertimeManagement() {
                             </Badge>
                           </TableCell>
                           <TableCell>
-                            <div className="flex gap-2">
+                            <div className="flex gap-1">
                               <Button
                                 size="sm"
-                                className="bg-green-600 hover:bg-green-700 text-white"
+                                className="bg-green-600 hover:bg-green-700 text-white px-2 py-1 h-7 text-xs"
                                 onClick={() => singleApproveMutation.mutate(employee)}
                                 disabled={singleApproveMutation.isPending || singleRejectMutation.isPending}
                               >
-                                <CheckCircle className="w-4 h-4 mr-1" />
+                                <CheckCircle className="w-3 h-3 mr-1" />
                                 Approve
                               </Button>
                               <Button
                                 size="sm"
-                                className="bg-red-600 hover:bg-red-700 text-white"
+                                className="bg-red-600 hover:bg-red-700 text-white px-2 py-1 h-7 text-xs"
                                 onClick={() => singleRejectMutation.mutate(employee)}
                                 disabled={singleApproveMutation.isPending || singleRejectMutation.isPending}
                               >
-                                <XCircle className="w-4 h-4 mr-1" />
+                                <XCircle className="w-3 h-3 mr-1" />
                                 Reject
                               </Button>
                             </div>
