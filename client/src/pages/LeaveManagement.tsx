@@ -161,7 +161,7 @@ export default function LeaveManagement() {
         },
         body: JSON.stringify({ 
           status, 
-          approvedBy: "emp_001", // Current user ID
+          approvedBy: "1149", // Current user ID - use actual employee ID
           approvedAt: new Date().toISOString(),
           rejectionReason: reason 
         }),

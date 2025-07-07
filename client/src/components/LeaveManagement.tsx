@@ -73,7 +73,11 @@ export default function LeaveManagement() {
 
   const updateLeaveRequestMutation = useMutation({
     mutationFn: async ({ id, status }: { id: number; status: string }) => {
-      const response = await apiRequest("PUT", `/api/leave-requests/${id}`, { status });
+      const response = await apiRequest("PUT", `/api/leave-requests/${id}`, { 
+        status, 
+        approvedBy: "1149", // Current user ID - use actual employee ID
+        approvedAt: new Date().toISOString()
+      });
       return response.json();
     },
     onSuccess: () => {
