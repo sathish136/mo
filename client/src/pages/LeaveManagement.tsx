@@ -20,7 +20,7 @@ import type { LeaveRequest, Employee, LeaveType } from "@shared/schema";
 
 const leaveRequestSchema = z.object({
   employeeId: z.string().min(1, "Employee is required"),
-  leaveType: z.enum(["annual", "sick", "casual", "maternity", "paternity"]),
+  leaveType: z.enum(["annual", "special"]),
   startDate: z.string().min(1, "Start date is required"),
   endDate: z.string().min(1, "End date is required"),
   days: z.number().min(1, "Days must be at least 1"),
