@@ -103,7 +103,37 @@ export function updateGroupWorkingHours(newSettings: Partial<GroupWorkingHours>)
 
 const router: Router = express.Router();
 
-// Save HR settings including attendance calculation guidelines
+// GET endpoint for group working hours
+router.get('/api/group-working-hours', async (req, res) => {
+  try {
+    const settings = getGroupWorkingHours();
+    res.json(settings);
+  } catch (error) {
+    console.error('Error fetching group working hours:', error);
+    res.status(500).json({ error: 'Failed to fetch group working hours' });
+  }
+});
+
+// POST endpoint for saving group working hours (this is what the frontend uses)
+router.post('/api/group-working-hours', async (req, res) => {
+  try {
+    const newSettings = req.body;
+    console.log('Received group working hours update:', JSON.stringify(newSettings, null, 2));
+    
+    const updatedSettings = updateGroupWorkingHours(newSettings);
+    console.log('Successfully updated group working hours:', JSON.stringify(updatedSettings, null, 2));
+    
+    res.json({ 
+      message: 'Group working hours saved successfully',
+      settings: updatedSettings 
+    });
+  } catch (error) {
+    console.error('Error saving group working hours:', error);
+    res.status(500).json({ error: 'Failed to save group working hours' });
+  }
+});
+
+// Legacy endpoint (keeping for backward compatibility)
 router.post('/api/hr-settings', async (req, res) => {
   try {
     const settings = req.body;

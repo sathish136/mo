@@ -29,6 +29,7 @@ import {
 
 import { getGroupWorkingHours, updateGroupWorkingHours } from './hrSettings';
 import { attendanceCalculator } from './attendanceCalculator';
+import hrSettingsRouter from './hrSettings';
 
 const router = express.Router();
 
@@ -640,10 +641,15 @@ router.get("/api/overtime-eligible", async (req, res) => {
 
     const eligibleEmployees = allEmployees.map(emp => {
       let requiredHours = 8;
-      if (emp.employeeGroup === 'group_a' && groupWorkingHours.groupA?.minHoursForOT) {
-        requiredHours = groupWorkingHours.groupA.minHoursForOT;
-      } else if (emp.employeeGroup === 'group_b' && groupWorkingHours.groupB?.minHoursForOT) {
-        requiredHours = groupWorkingHours.groupB.minHoursForOT;
+      if (emp.employeeGroup === 'group_a') {
+        // Check the more specific overtime policy setting first, then fallback to main setting
+        requiredHours = groupWorkingHours.groupA?.overtimePolicy?.normalDay?.minHoursForOT || 
+                       groupWorkingHours.groupA?.minHoursForOT || 
+                       8;
+      } else if (emp.employeeGroup === 'group_b') {
+        requiredHours = groupWorkingHours.groupB?.overtimePolicy?.normalDay?.minHoursForOT || 
+                       groupWorkingHours.groupB?.minHoursForOT || 
+                       8;
       }
 
       let actualHours = 0;
@@ -1236,10 +1242,15 @@ router.get("/api/reports/daily-ot", async (req, res) => {
 
       console.log(`Processing record for employee: ${emp.employeeId}, group: ${emp.employeeGroup}`);
 
-      if (emp.employeeGroup === 'group_a' && groupWorkingHours.groupA?.minHoursForOT) {
-        requiredHours = groupWorkingHours.groupA.minHoursForOT;
-      } else if (emp.employeeGroup === 'group_b' && groupWorkingHours.groupB?.minHoursForOT) {
-        requiredHours = groupWorkingHours.groupB.minHoursForOT;
+      if (emp.employeeGroup === 'group_a') {
+        // Check the more specific overtime policy setting first, then fallback to main setting
+        requiredHours = groupWorkingHours.groupA?.overtimePolicy?.normalDay?.minHoursForOT || 
+                       groupWorkingHours.groupA?.minHoursForOT || 
+                       8;
+      } else if (emp.employeeGroup === 'group_b') {
+        requiredHours = groupWorkingHours.groupB?.overtimePolicy?.normalDay?.minHoursForOT || 
+                       groupWorkingHours.groupB?.minHoursForOT || 
+                       8;
       }
 
       console.log(`Calculated requiredHours: ${requiredHours}`);
@@ -1963,13 +1974,32 @@ router.post('/api/logs/clear', async (req, res) => {
 
 // Group Working Hours endpoints
 router.get('/api/group-working-hours', (req, res) => {
-  res.json(getGroupWorkingHours());
+  try {
+    const settings = getGroupWorkingHours();
+    console.log('Fetching group working hours:', JSON.stringify(settings, null, 2));
+    res.json(settings);
+  } catch (error) {
+    console.error('Error fetching group working hours:', error);
+    res.status(500).json({ error: 'Failed to fetch group working hours' });
+  }
 });
 
 router.post('/api/group-working-hours', (req, res) => {
-  const newSettings = req.body;
-  const updatedSettings = updateGroupWorkingHours(newSettings);
-  res.json(updatedSettings);
+  try {
+    const newSettings = req.body;
+    console.log('Saving group working hours:', JSON.stringify(newSettings, null, 2));
+    
+    const updatedSettings = updateGroupWorkingHours(newSettings);
+    console.log('Successfully saved group working hours:', JSON.stringify(updatedSettings, null, 2));
+    
+    res.json({ 
+      message: 'Group working hours saved successfully',
+      settings: updatedSettings 
+    });
+  } catch (error) {
+    console.error('Error saving group working hours:', error);
+    res.status(500).json({ error: 'Failed to save group working hours' });
+  }
 });
 
 // HR Policies endpoint
@@ -2027,10 +2057,15 @@ router.get('/api/reports/daily-ot', async (req, res) => {
 
       console.log(`Processing record for employee: ${record.employeeId}, group: ${record.employeeGroup}`);
 
-      if (record.employeeGroup === 'group_a' && groupWorkingHours.groupA?.minHoursForOT) {
-        requiredHours = groupWorkingHours.groupA.minHoursForOT;
-      } else if (record.employeeGroup === 'group_b' && groupWorkingHours.groupB?.minHoursForOT) {
-        requiredHours = groupWorkingHours.groupB.minHoursForOT;
+      if (record.employeeGroup === 'group_a') {
+        // Check the more specific overtime policy setting first, then fallback to main setting
+        requiredHours = groupWorkingHours.groupA?.overtimePolicy?.normalDay?.minHoursForOT || 
+                       groupWorkingHours.groupA?.minHoursForOT || 
+                       8;
+      } else if (record.employeeGroup === 'group_b') {
+        requiredHours = groupWorkingHours.groupB?.overtimePolicy?.normalDay?.minHoursForOT || 
+                       groupWorkingHours.groupB?.minHoursForOT || 
+                       8;
       }
 
       console.log(`Calculated requiredHours: ${requiredHours}`);

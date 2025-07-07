@@ -3,7 +3,7 @@
     "startTime": "08:30",
     "endTime": "16:15",
     "durationMinutes": 450,
-    "minHoursForOT": 7.5,
+    "minHoursForOT": 9.5,
     "lateArrivalPolicy": {
       "gracePeriodUntil": "09:00",
       "halfDayAfter": "10:00",
@@ -25,11 +25,7 @@
     },
     "overtimePolicy": {
       "normalDay": {
-        "minHoursForOT": 7.5,
-        "saturdaySundayFullOT": true
-      },
-      "holiday": {
-        "allHoursAsOT": true
+        "minHoursForOT": 9.5
       }
     }
   },
