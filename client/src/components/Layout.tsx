@@ -12,8 +12,6 @@ const navigation = [
   { name: "Holiday Management", href: "/holidays", icon: Calendar },
   { name: "Overtime", href: "/overtime", icon: Watch },
   { name: "Reports", href: "/reports", icon: ChartBar },
-  // Renamed from Group Policies to HR Settings
-  { name: "HR Settings", href: "/hr-settings", icon: Settings },
   { name: "Settings", href: "/settings", icon: Settings },
 ];
 
